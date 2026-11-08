@@ -1,4 +1,32 @@
+# Python / FastAPI
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Database & Local Data
 backend/data/
-backend/__pycache__/
-frontend/node_modules/
-frontend/.next/
+*.db
+*.db-shm
+*.db-wal
+*.sqlite*
+
+# Next.js / Node
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# Environment Variables
+.env
+.env.*
+!.env.example
+
+# OS / Editor
+.DS_Store
+*.log

@@ -1,43 +1,203 @@
-"""Run: python backend/test_app.py — seed matches Salary.pdf totals, money parsing is exact, writes validate."""
-import sqlite3
+"""Async integration tests for Payday FastAPI backend."""
 
-import app
+import sys
+from collections.abc import AsyncIterator
+from pathlib import Path
 
-c = app.connect(":memory:")
-app.init(c)
-app.init(c)  # second start must not seed twice
+import pytest
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+from sqlalchemy.pool import StaticPool
 
-total = lambda where: c.execute(
-    f"SELECT SUM(amount_cents) FROM paycheques p JOIN sources s ON s.id = p.source_id WHERE {where}"
-).fetchone()[0]
-assert c.execute("SELECT COUNT(*) FROM paycheques").fetchone()[0] == 63
-assert total("s.name = 'Kung Fu Tea' AND paid_on LIKE '2025%'") == 1080975   # PDF: 10809.75
-assert total("s.name = 'Kung Fu Tea' AND paid_on LIKE '2026%'") == 1204466   # PDF: 12044.66
-assert total("s.name = 'Softchoice' AND paid_on LIKE '2025%'") == 1125962    # PDF: 11,259.62
-assert total("s.name = 'Softchoice' AND paid_on LIKE '2026%'") == 1205166    # PDF: 12,051.66
-assert total("s.kind = 'government'") == 397355                              # PDF: 3,973.55
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-assert app.cents("12.345", "x") == 1235 and app.cents("$1,533.69", "x") == 153369 and app.cents(0.1, "x") == 10
-for bad in ("0", "-1", "abc", "nan", "inf", ""):
+from src.database import get_db, seed_database
+from src.main import app
+from src.models import Base
+from src.paycheques.utils import parse_cents
+
+
+@pytest.fixture
+async def db_session_factory() -> AsyncIterator[async_sessionmaker[AsyncSession]]:
+    test_engine = create_async_engine(
+        "sqlite+aiosqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    session_factory = async_sessionmaker(test_engine, expire_on_commit=False)
+
+    async with test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    async with session_factory() as session:
+        await seed_database(session)
+        await seed_database(session)  # second run must be idempotent
+
+    async def _override_get_db() -> AsyncIterator[AsyncSession]:
+        async with session_factory() as session:
+            yield session
+
+    app.dependency_overrides[get_db] = _override_get_db
     try:
-        app.cents(bad, "x")
-        raise AssertionError(bad)
-    except ValueError:
-        pass
+        yield session_factory
+    finally:
+        app.dependency_overrides.clear()
+        await test_engine.dispose()
 
-status, out = app.write(c, "POST", "paycheques", None, {"source_id": 1, "paid_on": "2026-11-20", "amount": "500.10", "hours": ""})
-assert status == 201 and c.execute("SELECT amount_cents FROM paycheques WHERE id = ?", (out["id"],)).fetchone()[0] == 50010
-for bad in ({"source_id": 1, "paid_on": "2026-13-01", "amount": 1}, {"source_id": 1, "paid_on": "2026-11-01", "amount": -5},
-            {"source_id": 1, "paid_on": "2026-11-01", "amount": 5, "hours": "nan"}, {"source_id": "x", "paid_on": "2026-11-01", "amount": 5}):
-    try:
-        app.write(c, "POST", "paycheques", None, bad)
-        raise AssertionError(bad)
-    except ValueError:
-        pass
-try:  # a source with paycheques cannot be deleted
-    app.write(c, "DELETE", "sources", 1, {})
-    raise AssertionError("deleted source with paycheques")
-except sqlite3.IntegrityError:
-    pass
-print("ok")
 
+@pytest.fixture
+async def client(
+    db_session_factory: async_sessionmaker[AsyncSession],
+) -> AsyncIterator[AsyncClient]:
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        yield ac
+
+
+def test_parse_cents() -> None:
+    assert parse_cents("12.345", "x") == 1235
+    assert parse_cents("$1,533.69", "x") == 153369
+    assert parse_cents(0.1, "x") == 10
+    assert parse_cents("", "x", required=False) is None
+    assert parse_cents(None, "x", required=False) is None
+
+    for bad in ("0", "-1", "abc", "nan", "inf", ""):
+        with pytest.raises(ValueError):
+            parse_cents(bad, "x")
+
+
+@pytest.mark.asyncio
+async def test_seed_totals_and_state(client: AsyncClient) -> None:
+    resp = await client.get("/api/state")
+    assert resp.status_code == 200
+    assert resp.headers.get("cache-control") == "no-store"
+
+    data = resp.json()
+    sources_by_id = {s["id"]: s for s in data["sources"]}
+    paycheques = data["paycheques"]
+    assert len(paycheques) == 63
+
+    def total_for(
+        source_name: str | None = None,
+        year_prefix: str | None = None,
+        kind: str | None = None,
+    ) -> int:
+        total = 0
+        for p in paycheques:
+            src = sources_by_id[p["source_id"]]
+            if source_name and src["name"] != source_name:
+                continue
+            if year_prefix and not p["paid_on"].startswith(year_prefix):
+                continue
+            if kind and src["kind"] != kind:
+                continue
+            total += p["amount_cents"]
+        return total
+
+    assert total_for(source_name="Kung Fu Tea", year_prefix="2025") == 1080975
+    assert total_for(source_name="Kung Fu Tea", year_prefix="2026") == 1204466
+    assert total_for(source_name="Softchoice", year_prefix="2025") == 1125962
+    assert total_for(source_name="Softchoice", year_prefix="2026") == 1205166
+    assert total_for(kind="government") == 397355
+
+
+@pytest.mark.asyncio
+async def test_paycheques_crud_and_validation(client: AsyncClient) -> None:
+    resp = await client.post(
+        "/api/paycheques",
+        json={"source_id": 1, "paid_on": "2026-11-20", "amount": "500.10", "hours": ""},
+    )
+    assert resp.status_code == 201
+    created_id = resp.json()["id"]
+
+    state = (await client.get("/api/state")).json()
+    created = next(p for p in state["paycheques"] if p["id"] == created_id)
+    assert created["amount_cents"] == 50010
+    assert created["hours"] is None
+
+    for bad in (
+        {"source_id": 1, "paid_on": "2026-13-01", "amount": 1},
+        {"source_id": 1, "paid_on": "2026-11-01", "amount": -5},
+        {"source_id": 1, "paid_on": "2026-11-01", "amount": 5, "hours": "nan"},
+        {"source_id": "x", "paid_on": "2026-11-01", "amount": 5},
+    ):
+        bad_resp = await client.post("/api/paycheques", json=bad)
+        assert bad_resp.status_code == 400
+        assert "error" in bad_resp.json()
+
+    missing_src = await client.post(
+        "/api/paycheques",
+        json={"source_id": 999, "paid_on": "2026-11-20", "amount": "100.00"},
+    )
+    assert missing_src.status_code == 409
+    assert missing_src.json()["error"] == "That source does not exist."
+
+    upd = await client.put(
+        f"/api/paycheques/{created_id}",
+        json={
+            "source_id": 1,
+            "paid_on": "2026-11-21",
+            "amount": "600.00",
+            "hours": 8,
+            "note": "Updated",
+        },
+    )
+    assert upd.status_code == 200
+    assert upd.json() == {"ok": True}
+
+    del_resp = await client.delete(f"/api/paycheques/{created_id}")
+    assert del_resp.status_code == 200
+    assert del_resp.json() == {"ok": True}
+
+
+@pytest.mark.asyncio
+async def test_sources_Settings_and_export(client: AsyncClient) -> None:
+    # Cannot delete a source that has paycheques
+    del_seeded = await client.delete("/api/sources/1")
+    assert del_seeded.status_code == 409
+    assert del_seeded.json()["error"] == "This source has paycheques. Archive it instead."
+
+    # Duplicate source name rejected (case-insensitive)
+    dup = await client.post(
+        "/api/sources",
+        json={"name": "kung fu tea", "kind": "job", "color": "#0d7480"},
+    )
+    assert dup.status_code == 409
+    assert dup.json()["error"] == "A source with that name already exists."
+
+    # Create and delete a fresh source
+    new_src = await client.post(
+        "/api/sources",
+        json={"name": "Freelance", "kind": "other", "color": "#123456"},
+    )
+    assert new_src.status_code == 201
+    new_id = new_src.json()["id"]
+
+    del_new = await client.delete(f"/api/sources/{new_id}")
+    assert del_new.status_code == 200
+
+    # Goal settings update and clear
+    set_goal = await client.put("/api/settings", json={"goal": "50,000"})
+    assert set_goal.status_code == 200
+    state = (await client.get("/api/state")).json()
+    assert state["settings"]["goal_cents"] == "5000000"
+
+    clear_goal = await client.put("/api/settings", json={"goal": ""})
+    assert clear_goal.status_code == 200
+    state = (await client.get("/api/state")).json()
+    assert "goal_cents" not in state["settings"]
+
+    # CSV export
+    csv_resp = await client.get("/api/export.csv")
+    assert csv_resp.status_code == 200
+    assert "text/csv" in csv_resp.headers["content-type"]
+    assert "attachment; filename=" in csv_resp.headers["content-disposition"]
+    assert len(csv_resp.text.strip().splitlines()) == 64
+
+
+if __name__ == "__main__":
+    raise SystemExit(pytest.main([__file__, "-v"]))

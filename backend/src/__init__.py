@@ -1,0 +1,2 @@
+"""Payday FastAPI application package."""
+

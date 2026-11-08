@@ -1,0 +1,36 @@
+[project]
+name = "payday-backend"
+version = "0.2.0"
+description = "Payday salary management API built with FastAPI, Pydantic v2, and SQLAlchemy 2.0 async"
+requires-python = ">=3.11"
+dependencies = [
+    "aiosqlite>=0.20.0",
+    "fastapi[standard]>=0.115.0",
+    "pydantic>=2.7.0",
+    "pydantic-settings>=2.4.0",
+    "sqlalchemy>=2.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx>=0.27.0",
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+    "ruff>=0.6.0",
+]
+
+[tool.fastapi]
+entrypoint = "src.main:app"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["."]
+testpaths = ["tests", "test_app.py"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "FAST"]
+ignore = ["FAST003"]

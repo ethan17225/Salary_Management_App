@@ -1,0 +1,2 @@
+"""Paycheques bounded context."""
+
