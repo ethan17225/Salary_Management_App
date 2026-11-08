@@ -36,7 +36,12 @@ export default function PaydayPage() {
   const [ready, setReady] = useState(false);
   const [today, setToday] = useState("");
   const [tab, setTab] = useState("overview");
+  const [activeSrcId, setActiveSrcId] = useState(null);
   const [ovYear, setOvYear] = useState(null);
+  const [srcYear, setSrcYear] = useState("all");
+  const [yearOpen, setYearOpen] = useState(false);
+  const [srcYearOpen, setSrcYearOpen] = useState(false);
+  const [srcSearch, setSrcSearch] = useState("");
   const [fYear, setFYear] = useState("");
   const [fSource, setFSource] = useState("");
   const [fSearch, setFSearch] = useState("");
@@ -53,6 +58,8 @@ export default function PaydayPage() {
   const payDlgRef = useRef(null);
   const srcDlgRef = useRef(null);
   const goalDlgRef = useRef(null);
+  const yearDdRef = useRef(null);
+  const srcYearDdRef = useRef(null);
   const amountRef = useRef(null);
   const srcNameRef = useRef(null);
   const goalInputRef = useRef(null);
@@ -62,6 +69,7 @@ export default function PaydayPage() {
   const monthlyCanvas = useRef(null);
   const cumCanvas = useRef(null);
   const splitCanvas = useRef(null);
+  const srcChartCanvas = useRef(null);
 
   const toast = useCallback((msg, undo) => {
     setToastState({ msg, undo });
@@ -109,9 +117,10 @@ export default function PaydayPage() {
   const activeYear = ovYear ?? curYear;
 
   const openPay = useCallback(
-    (p, snap = data, nowStr = today || iso(new Date())) => {
-      const activeSources = snap.sources.filter((s) => !s.archived || s.id === p?.source_id);
-      const defaultSrc = p ? p.source_id : upcoming[0]?.s.id ?? snap.paycheques[0]?.source_id ?? activeSources[0]?.id ?? 0;
+    (p, snap = data, nowStr = today || iso(new Date()), forceSrcId = null) => {
+      const activeSources = snap.sources.filter((s) => !s.archived || s.id === p?.source_id || s.id === forceSrcId);
+      const preferred = forceSrcId ?? (tab === "source" ? activeSrcId : null);
+      const defaultSrc = p ? p.source_id : preferred ?? upcoming[0]?.s.id ?? snap.paycheques[0]?.source_id ?? activeSources[0]?.id ?? 0;
       setPayErr("");
       setPayForm({
         id: p ? p.id : null,
@@ -124,7 +133,7 @@ export default function PaydayPage() {
       payDlgRef.current?.showModal();
       requestAnimationFrame(() => amountRef.current?.focus());
     },
-    [data, today, upcoming]
+    [data, today, upcoming, tab, activeSrcId]
   );
 
   const openSrc = useCallback(
@@ -154,6 +163,14 @@ export default function PaydayPage() {
         if (snap) openPay(null, snap, nowStr);
         return;
       }
+      const m = h.match(/^source\/(\d+)$/);
+      if (m) {
+        setActiveSrcId(+m[1]);
+        setSrcYear("all");
+        setSrcSearch("");
+        setTab("source");
+        return;
+      }
       if (["overview", "paycheques", "sources"].includes(h)) setTab(h);
     };
     reload()
@@ -167,6 +184,10 @@ export default function PaydayPage() {
 
   useEffect(() => {
     const onKey = (e) => {
+      if (e.key === "Escape") {
+        setYearOpen(false);
+        setSrcYearOpen(false);
+      }
       if (
         e.key.toLowerCase() === "n" &&
         !e.metaKey && !e.ctrlKey && !e.altKey &&
@@ -177,17 +198,37 @@ export default function PaydayPage() {
         openPay();
       }
     };
+    const onDown = (e) => {
+      if (yearDdRef.current && !yearDdRef.current.contains(e.target)) setYearOpen(false);
+      if (srcYearDdRef.current && !srcYearDdRef.current.contains(e.target)) setSrcYearOpen(false);
+    };
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onDown);
+    };
   }, [openPay]);
 
   // Overview calculations
-  const isCur = activeYear === curYear;
+  const isAll = activeYear === "all";
+  const isCur = !isAll && activeYear === curYear;
   const inY = useMemo(
-    () => data.paycheques.filter((p) => p.paid_on.startsWith(activeYear + "-")),
-    [data.paycheques, activeYear]
+    () => (isAll ? data.paycheques : data.paycheques.filter((p) => p.paid_on.startsWith(activeYear + "-"))),
+    [data.paycheques, activeYear, isAll]
   );
   const sumY = useMemo(() => sum(inY), [inY]);
+
+  const timelineMonths = useMemo(() => {
+    if (!data.paycheques.length) return MONTHS.map((_, m) => `${curYear}-${pad(m + 1)}`);
+    const [sy, sm] = data.paycheques.at(-1).paid_on.slice(0, 7).split("-").map(Number);
+    const [ey, em] = data.paycheques[0].paid_on.slice(0, 7).split("-").map(Number);
+    const out = [];
+    for (let y = sy, m = sm; y < ey || (y === ey && m <= em); m === 12 ? (y++, (m = 1)) : m++) {
+      out.push(`${y}-${pad(m)}`);
+    }
+    return out;
+  }, [data.paycheques, curYear]);
 
   useEffect(() => {
     const el = bigTotalRef.current;
@@ -227,6 +268,8 @@ export default function PaydayPage() {
     const money = (c) => ` ${c.dataset.label || c.label}: ${CAD.format(c.raw)}`;
     const used = data.sources.filter((s) => bySrc.has(s.id));
     const curMonth = today ? +today.slice(5, 7) - 1 : 11;
+    const monthKeys = isAll ? timelineMonths : MONTHS.map((_, m) => `${activeYear}-${pad(m + 1)}`);
+    const monthLabels = isAll ? timelineMonths.map((ym) => `${MONTHS[+ym.slice(5, 7) - 1]} '${ym.slice(2, 4)}`) : MONTHS;
     const run = (yr, stop) => {
       let t = 0;
       return MONTHS.map((_, m) => {
@@ -235,17 +278,42 @@ export default function PaydayPage() {
         return t / 100;
       });
     };
+    let allRun = 0;
+    const cumData = isAll
+      ? {
+          labels: monthLabels,
+          datasets: [
+            {
+              label: "All-time cumulative",
+              data: timelineMonths.map((ym) => ((allRun += sum(inY.filter((p) => p.paid_on.startsWith(ym)))), allRun / 100)),
+              borderColor: "#0d7480",
+              backgroundColor: "rgba(13,116,128,.09)",
+              fill: true,
+              tension: 0.3,
+              pointRadius: 0,
+              pointHoverRadius: 4,
+              borderWidth: 2.5,
+            },
+          ],
+        }
+      : {
+          labels: MONTHS,
+          datasets: [
+            { label: String(activeYear), data: run(activeYear, isCur ? curMonth : 11), borderColor: "#0d7480", backgroundColor: "rgba(13,116,128,.09)", fill: true, tension: 0.3, pointRadius: 0, pointHoverRadius: 4, borderWidth: 2.5 },
+            { label: String(activeYear - 1), data: run(activeYear - 1, 11), borderColor: "#9aa8af", borderDash: [5, 4], tension: 0.3, pointRadius: 0, pointHoverRadius: 4, borderWidth: 2 },
+          ],
+        };
 
     const c1 = new Chart(monthlyCanvas.current, {
       type: "bar",
       data: {
-        labels: MONTHS,
+        labels: monthLabels,
         datasets: used.map((s) => ({
           label: s.name,
           backgroundColor: s.color,
           borderRadius: 4,
           maxBarThickness: 46,
-          data: MONTHS.map((_, m) => sum(inY.filter((p) => p.source_id === s.id && +p.paid_on.slice(5, 7) === m + 1)) / 100),
+          data: monthKeys.map((ym) => sum(inY.filter((p) => p.source_id === s.id && p.paid_on.startsWith(ym))) / 100),
         })),
       },
       options: {
@@ -270,13 +338,7 @@ export default function PaydayPage() {
     });
     const c3 = new Chart(cumCanvas.current, {
       type: "line",
-      data: {
-        labels: MONTHS,
-        datasets: [
-          { label: String(activeYear), data: run(activeYear, isCur ? curMonth : 11), borderColor: "#0d7480", backgroundColor: "rgba(13,116,128,.09)", fill: true, tension: 0.3, pointRadius: 0, pointHoverRadius: 4, borderWidth: 2.5 },
-          { label: String(activeYear - 1), data: run(activeYear - 1, 11), borderColor: "#9aa8af", borderDash: [5, 4], tension: 0.3, pointRadius: 0, pointHoverRadius: 4, borderWidth: 2 },
-        ],
-      },
+      data: cumData,
       options: {
         interaction: { mode: "index", intersect: false },
         scales: { x: { grid: { display: false } }, y: { border: { display: false }, ticks: { callback: short } } },
@@ -284,26 +346,37 @@ export default function PaydayPage() {
       },
     });
     return () => { c1.destroy(); c2.destroy(); c3.destroy(); };
-  }, [ready, tab, data.sources, data.paycheques, inY, bySrc, sumY, activeYear, isCur, today]);
+  }, [ready, tab, data.sources, data.paycheques, inY, bySrc, sumY, activeYear, isAll, isCur, timelineMonths, today]);
 
   // Derived overview stats
   const cutoff = isCur && today ? `${activeYear - 1}-${today.slice(5)}` : `${activeYear - 1}-12-31`;
-  const prevTotal = sum(data.paycheques.filter((p) => p.paid_on.startsWith(activeYear - 1 + "-") && p.paid_on <= cutoff));
+  const prevTotal = isAll ? 0 : sum(data.paycheques.filter((p) => p.paid_on.startsWith(activeYear - 1 + "-") && p.paid_on <= cutoff));
   const prevPct = prevTotal ? ((sumY - prevTotal) / prevTotal) * 100 : null;
   const thisMonthTotal = today ? sum(data.paycheques.filter((p) => p.paid_on.startsWith(today.slice(0, 7)))) : 0;
+  const paidYearCount = new Set(inY.map((p) => p.paid_on.slice(0, 4))).size;
 
-  const byMonth = Array(12).fill(0);
-  inY.forEach((p) => (byMonth[+p.paid_on.slice(5, 7) - 1] += p.amount_cents));
-  const activeMonths = byMonth.filter(Boolean).length;
-  const bestIdx = byMonth.indexOf(Math.max(...byMonth));
+  const periodMonths = new Map();
+  inY.forEach((p) => {
+    const ym = p.paid_on.slice(0, 7);
+    periodMonths.set(ym, (periodMonths.get(ym) || 0) + p.amount_cents);
+  });
+  const activeMonths = periodMonths.size;
+  const bestPeriodMonth = [...periodMonths].sort((a, b) => b[1] - a[1])[0];
   const topSrc = [...bySrc].sort((a, b) => b[1] - a[1])[0];
 
   const goal = +data.settings.goal_cents || 0;
-  const goalPct = goal ? Math.min(100, (sumY / goal) * 100) : 0;
-  const daysInYr = diffDays(`${activeYear}-01-01`, `${activeYear + 1}-01-01`);
-  const daysDone = isCur && today ? diffDays(`${activeYear}-01-01`, today) + 1 : daysInYr;
-  const goalLeft = goal - sumY;
+  const goalYear = isAll ? curYear : activeYear;
+  const goalSum = isAll ? sum(data.paycheques.filter((p) => p.paid_on.startsWith(curYear + "-"))) : sumY;
+  const goalIsCur = goalYear === curYear;
+  const goalPct = goal ? Math.min(100, (goalSum / goal) * 100) : 0;
+  const daysInYr = diffDays(`${goalYear}-01-01`, `${goalYear + 1}-01-01`);
+  const daysDone = goalIsCur && today ? diffDays(`${goalYear}-01-01`, today) + 1 : daysInYr;
+  const goalLeft = goal - goalSum;
   const monthsLeft = (daysInYr - daysDone) / 30.44;
+  const yearOptions = [
+    ["all", "All", sum(data.paycheques)],
+    ...years.map((y) => [y, String(y), sum(data.paycheques.filter((p) => p.paid_on.startsWith(y + "-")))]),
+  ];
 
   const allMonths = {};
   data.paycheques.forEach((p) => { const k = p.paid_on.slice(0, 7); allMonths[k] = (allMonths[k] || 0) + p.amount_cents; });
@@ -329,12 +402,164 @@ export default function PaydayPage() {
 
   const sparkValues = (sourceId) => {
     const base = today ? parse(today) : new Date(2026, 10, 1);
-    const vals = Array.from({ length: 12 }, (_, i) => {
-      const k = iso(new Date(base.getFullYear(), base.getMonth() - 11 + i, 1)).slice(0, 7);
-      return sum(data.paycheques.filter((p) => p.source_id === sourceId && p.paid_on.startsWith(k)));
+    const items = Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(base.getFullYear(), base.getMonth() - 11 + i, 1);
+      const y = d.getFullYear(), m = d.getMonth() + 1, k = `${y}-${pad(m)}`;
+      return { k, y, m, v: sum(data.paycheques.filter((p) => p.source_id === sourceId && p.paid_on.startsWith(k))) };
     });
-    return { vals, max: Math.max(...vals, 1) };
+    const yrs = [];
+    for (const it of items) {
+      if (yrs.at(-1)?.y === it.y) yrs.at(-1).span++;
+      else yrs.push({ y: it.y, span: 1 });
+    }
+    return { items, yrs, max: Math.max(...items.map((x) => x.v), 1) };
   };
+
+  // Source detail calculations
+  const activeSrc = useMemo(
+    () => data.sources.find((s) => s.id === activeSrcId) || null,
+    [data.sources, activeSrcId]
+  );
+  const srcAllPs = useMemo(
+    () => (activeSrc ? data.paycheques.filter((p) => p.source_id === activeSrc.id) : []),
+    [data.paycheques, activeSrc]
+  );
+  const srcYears = useMemo(() => {
+    const ys = new Set(srcAllPs.map((p) => +p.paid_on.slice(0, 4)));
+    if (!ys.size) ys.add(curYear);
+    return [...ys].sort((a, b) => b - a);
+  }, [srcAllPs, curYear]);
+  const srcIsAll = srcYear === "all";
+  const srcPs = useMemo(
+    () => (srcIsAll ? srcAllPs : srcAllPs.filter((p) => p.paid_on.startsWith(srcYear + "-"))),
+    [srcAllPs, srcYear, srcIsAll]
+  );
+  const srcSum = useMemo(() => sum(srcPs), [srcPs]);
+  const srcTotalPool = useMemo(
+    () => sum(srcIsAll ? data.paycheques : data.paycheques.filter((p) => p.paid_on.startsWith(srcYear + "-"))),
+    [data.paycheques, srcYear, srcIsAll]
+  );
+  const srcSharePct = srcTotalPool ? Math.round((srcSum / srcTotalPool) * 100) : 0;
+  const srcAvg = srcPs.length ? srcSum / srcPs.length : 0;
+  const srcMaxP = srcPs.reduce((m, p) => (!m || p.amount_cents > m.amount_cents ? p : m), null);
+  const srcMinP = srcPs.reduce((m, p) => (!m || p.amount_cents < m.amount_cents ? p : m), null);
+  const srcMedian = srcPs.length ? median(srcPs.map((p) => p.amount_cents)) : 0;
+  const srcTimed = srcPs.filter((p) => p.hours);
+  const srcHours = srcTimed.reduce((h, p) => h + p.hours, 0);
+  const srcTimedSum = sum(srcTimed);
+
+  const srcPeriodMonths = useMemo(() => {
+    const m = new Map();
+    srcPs.forEach((p) => {
+      const ym = p.paid_on.slice(0, 7);
+      m.set(ym, (m.get(ym) || 0) + p.amount_cents);
+    });
+    return m;
+  }, [srcPs]);
+  const srcActiveMonths = srcPeriodMonths.size;
+  const srcBestMonth = [...srcPeriodMonths].sort((a, b) => b[1] - a[1])[0];
+
+  const srcCadence = useMemo(() => {
+    if (!srcAllPs.length) return { weekday: null, gap: null };
+    const counts = {};
+    srcAllPs.forEach((p) => {
+      const w = dateLabel(p.paid_on, { weekday: "long" });
+      counts[w] = (counts[w] || 0) + 1;
+    });
+    const weekday = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+    const asc = [...srcAllPs].reverse();
+    const gaps = asc.slice(1).map((p, i) => diffDays(asc[i].paid_on, p.paid_on)).filter((g) => g > 0 && g <= 45);
+    const gap = gaps.length >= 2 ? Math.round(median(gaps)) : null;
+    return { weekday, gap };
+  }, [srcAllPs]);
+
+  const srcTimeline = useMemo(() => {
+    if (!srcAllPs.length) return MONTHS.map((_, m) => `${curYear}-${pad(m + 1)}`);
+    const [sy, sm] = srcAllPs.at(-1).paid_on.slice(0, 7).split("-").map(Number);
+    const [ey, em] = srcAllPs[0].paid_on.slice(0, 7).split("-").map(Number);
+    const out = [];
+    for (let y = sy, m = sm; y < ey || (y === ey && m <= em); m === 12 ? (y++, (m = 1)) : m++) {
+      out.push(`${y}-${pad(m)}`);
+    }
+    return out;
+  }, [srcAllPs, curYear]);
+
+  const srcFilteredRows = useMemo(() => {
+    const q = srcSearch.trim().toLowerCase();
+    return srcPs.filter(
+      (p) => !q || `${p.note} ${(p.amount_cents / 100).toFixed(2)} ${p.paid_on} ${dateLabel(p.paid_on)}`.toLowerCase().includes(q)
+    );
+  }, [srcPs, srcSearch]);
+
+  const srcMonthGroups = useMemo(() => {
+    const g = new Map();
+    srcFilteredRows.forEach((p) => {
+      const k = p.paid_on.slice(0, 7);
+      g.has(k) ? g.get(k).push(p) : g.set(k, [p]);
+    });
+    return [...g];
+  }, [srcFilteredRows]);
+
+  const srcYearOptions = useMemo(
+    () => [
+      ["all", "All", sum(srcAllPs)],
+      ...srcYears.map((y) => [y, String(y), sum(srcAllPs.filter((p) => p.paid_on.startsWith(y + "-")))]),
+    ],
+    [srcAllPs, srcYears]
+  );
+
+  useEffect(() => {
+    if (!ready || tab !== "source" || !activeSrc || !srcChartCanvas.current) return;
+    const fontSans = getComputedStyle(document.documentElement).getPropertyValue("--font-sans").trim();
+    Chart.defaults.color = "#5d6e76";
+    Chart.defaults.borderColor = "#e8edf0";
+    Chart.defaults.maintainAspectRatio = false;
+    Chart.defaults.font.family = `${fontSans || "'Outfit'"}, system-ui, sans-serif`;
+
+    const monthKeys = srcIsAll ? srcTimeline : MONTHS.map((_, m) => `${srcYear}-${pad(m + 1)}`);
+    const monthLabels = srcIsAll
+      ? srcTimeline.map((ym) => `${MONTHS[+ym.slice(5, 7) - 1]} '${ym.slice(2, 4)}`)
+      : MONTHS;
+    const monthBuckets = monthKeys.map((ym) => srcPs.filter((p) => p.paid_on.startsWith(ym)));
+
+    const chart = new Chart(srcChartCanvas.current, {
+      type: "bar",
+      data: {
+        labels: monthLabels,
+        datasets: [
+          {
+            label: activeSrc.name,
+            backgroundColor: activeSrc.color,
+            borderRadius: 5,
+            maxBarThickness: 44,
+            data: monthBuckets.map((ps) => sum(ps) / 100),
+          },
+        ],
+      },
+      options: {
+        interaction: { mode: "index", intersect: false },
+        scales: {
+          x: { grid: { display: false } },
+          y: { border: { display: false }, ticks: { callback: short } },
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (c) => ` ${CAD.format(c.raw)}`,
+              afterLabel: (c) => {
+                const ps = monthBuckets[c.dataIndex] || [];
+                if (!ps.length) return "";
+                const h = ps.reduce((t, p) => t + (p.hours || 0), 0);
+                return ` ${plural(ps.length, "paycheque")}${h ? ` · ${+h.toFixed(2)} h` : ""}`;
+              },
+            },
+          },
+        },
+      },
+    });
+    return () => chart.destroy();
+  }, [ready, tab, activeSrc, srcPs, srcIsAll, srcYear, srcTimeline]);
 
   // Dialog handlers
   const chipSources = data.sources.filter((s) => !s.archived || s.id === payForm.source_id);
@@ -384,10 +609,12 @@ export default function PaydayPage() {
 
   async function deleteSrc() {
     try {
-      await api("DELETE", "sources/" + srcForm.id);
+      const deletedId = srcForm.id;
+      await api("DELETE", "sources/" + deletedId);
       srcDlgRef.current?.close();
       toast("Source deleted");
       await reload();
+      if (activeSrcId === deletedId) location.hash = "#sources";
     } catch (err) {
       setSrcErr(err.message);
     }
@@ -412,11 +639,14 @@ export default function PaydayPage() {
           <a className="brand" href="#overview"><span className="mark" aria-hidden="true">P</span>Payday</a>
           <nav className="tabs" aria-label="Sections">
             {[["overview", "Overview"], ["paycheques", "Paycheques"], ["sources", "Sources"]].map(([id, label]) => (
-              <a key={id} href={`#${id}`} aria-current={tab === id ? "page" : undefined}>{label}</a>
+              <a key={id} href={`#${id}`} aria-current={tab === id || (id === "sources" && tab === "source") ? "page" : undefined}>{label}</a>
             ))}
           </nav>
           <button className="btn primary" type="button" onClick={() => openPay()}>
-            Add paycheque <kbd aria-hidden="true">N</kbd>
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+            Add paycheque
           </button>
         </div>
       </header>
@@ -425,10 +655,16 @@ export default function PaydayPage() {
         <section hidden={tab !== "overview"}>
           <div className="hero" data-enter={entered ? undefined : ""} onAnimationEnd={() => setEntered(true)}>
             <div>
-              <h1>{isCur ? `Earned so far in ${activeYear}` : `Earned in ${activeYear}`}</h1>
+              <h1>{isAll ? "Earned across all years" : isCur ? `Earned so far in ${activeYear}` : `Earned in ${activeYear}`}</h1>
               <p className="big" ref={bigTotalRef}>$0.00</p>
               <p className="delta">
-                {prevPct !== null ? (
+                {isAll ? (
+                  inY.length ? (
+                    `${plural(inY.length, "paycheque")} across ${plural(bySrc.size, "source")} since ${dateLabel(inY.at(-1).paid_on, { month: "short", year: "numeric" })}`
+                  ) : (
+                    "No paycheques recorded yet."
+                  )
+                ) : prevPct !== null ? (
                   <>
                     <b className={prevPct >= 0 ? "up" : "down"}>
                       {prevPct >= 0 ? "▲" : "▼"} {Math.abs(prevPct).toFixed(0)}%
@@ -441,11 +677,58 @@ export default function PaydayPage() {
               </p>
             </div>
             <div className="hero-side">
-              <label className="sr" htmlFor="ovYear">Year</label>
-              <select id="ovYear" value={activeYear} onChange={(e) => setOvYear(+e.target.value)}>
-                {years.map((y) => <option key={y} value={y}>{y}</option>)}
-              </select>
-              <p className="muted">{isCur ? `${fmt(thisMonthTotal)} so far this month` : plural(inY.length, "paycheque")}</p>
+              <div className="year-dd" ref={yearDdRef}>
+                <button
+                  type="button"
+                  className="year-btn"
+                  aria-haspopup="listbox"
+                  aria-expanded={yearOpen}
+                  aria-label={`Year: ${isAll ? "All" : activeYear}`}
+                  onClick={() => setYearOpen((o) => !o)}
+                >
+                  <span className="year-lbl">Year</span>
+                  <span className="year-val">{isAll ? "All" : activeYear}</span>
+                  <svg className="year-chev" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+                {yearOpen ? (
+                  <ul className="year-menu" role="listbox" aria-label="Select year">
+                    {yearOptions.map(([val, label, tot]) => {
+                      const selected = activeYear === val;
+                      return (
+                        <li key={val}>
+                          <button
+                            type="button"
+                            role="option"
+                            aria-selected={selected}
+                            className={selected ? "year-opt active" : "year-opt"}
+                            onClick={() => {
+                              setOvYear(val);
+                              setYearOpen(false);
+                            }}
+                          >
+                            <svg className="year-check" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                              <path d="M3.5 8.5 6.5 11.5 12.5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                            <span>{label}</span>
+                            <span className="num">{fmt(tot)}</span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : null}
+              </div>
+              <p className="muted">
+                {isAll
+                  ? paidYearCount
+                    ? `${plural(paidYearCount, "year")} · ${fmt(sumY / paidYearCount)} / yr avg`
+                    : "0 paycheques"
+                  : isCur
+                    ? `${fmt(thisMonthTotal)} so far this month`
+                    : plural(inY.length, "paycheque")}
+              </p>
             </div>
           </div>
 
@@ -457,8 +740,10 @@ export default function PaydayPage() {
             </article>
             <article className="card kpi s3">
               <p className="label">Best month</p>
-              <p className="val">{sumY ? dateLabel(`${activeYear}-${pad(bestIdx + 1)}-01`, { month: "long" }) : "—"}</p>
-              <p className="sub">{sumY ? fmt(byMonth[bestIdx]) : "No pay yet"}</p>
+              <p className="val">
+                {bestPeriodMonth ? dateLabel(bestPeriodMonth[0] + "-01", isAll ? { month: "short", year: "numeric" } : { month: "long" }) : "—"}
+              </p>
+              <p className="sub">{bestPeriodMonth ? fmt(bestPeriodMonth[1]) : "No pay yet"}</p>
             </article>
             <article className="card kpi s3">
               <p className="label">Paycheques</p>
@@ -468,7 +753,7 @@ export default function PaydayPage() {
             <article className="card kpi s3">
               <p className="label">Top source</p>
               <p className="val">{topSrc ? srcById(topSrc[0]).name : "—"}</p>
-              <p className="sub">{topSrc ? `${Math.round((topSrc[1] / sumY) * 100)}% of ${activeYear} income` : "None yet"}</p>
+              <p className="sub">{topSrc ? `${Math.round((topSrc[1] / sumY) * 100)}% of ${isAll ? "total" : activeYear} income` : "None yet"}</p>
             </article>
           </div>
 
@@ -502,13 +787,13 @@ export default function PaydayPage() {
                   ) : (
                     <>
                       <p className="goal-num">
-                        <span className="num">{fmt(sumY)}</span> <span className="muted">of <span className="num">{fmt(goal)}</span></span>
+                        <span className="num">{fmt(goalSum)}</span> <span className="muted">of <span className="num">{fmt(goal)}</span></span>
                       </p>
-                      <progress max="100" value={goalPct} aria-label={`Progress toward the ${activeYear} goal`}>{goalPct.toFixed(0)}%</progress>
-                      <p className="muted">{goalPct.toFixed(0)}% of the {activeYear} goal</p>
-                      {isCur && (
+                      <progress max="100" value={goalPct} aria-label={`Progress toward the ${goalYear} goal`}>{goalPct.toFixed(0)}%</progress>
+                      <p className="muted">{goalPct.toFixed(0)}% of the {goalYear} goal</p>
+                      {goalIsCur && (
                         <>
-                          <p>On pace for <b className="num">{fmt((sumY / daysDone) * daysInYr)}</b> by Dec 31.</p>
+                          <p>On pace for <b className="num">{fmt((goalSum / daysDone) * daysInYr)}</b> by Dec 31.</p>
                           {goalLeft <= 0 ? (
                             <p className="muted">Goal reached with {plural(daysInYr - daysDone, "day")} to spare.</p>
                           ) : monthsLeft > 0 ? (
@@ -549,8 +834,8 @@ export default function PaydayPage() {
 
           <div className="grid">
             <article className="card s5">
-              <h2>This year against last year</h2>
-              <div className="chart"><canvas ref={cumCanvas} role="img" aria-label="Running total this year compared with last year" /></div>
+              <h2>{isAll ? "Cumulative income" : `${activeYear} against ${activeYear - 1}`}</h2>
+              <div className="chart"><canvas ref={cumCanvas} role="img" aria-label={isAll ? "Cumulative income over time" : "Running total compared with prior year"} /></div>
             </article>
             <article className="card s3">
               <h2>Where it came from</h2>
@@ -688,23 +973,53 @@ export default function PaydayPage() {
                 const t = sum(ps);
                 const timed = ps.filter((p) => p.hours);
                 const hrs = timed.reduce((h, p) => h + p.hours, 0);
-                const { vals, max } = sparkValues(s.id);
+                const { items, yrs, max } = sparkValues(s.id);
+                const goDetail = () => { location.hash = `#source/${s.id}`; };
                 return (
-                  <article key={s.id} className="card src s4" style={{ "--c": s.color }}>
+                  <article
+                    key={s.id}
+                    className="card src clickable s4"
+                    style={{ "--c": s.color }}
+                    role="link"
+                    tabIndex={0}
+                    aria-label={`${s.name} — view source details`}
+                    onClick={goDetail}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        goDetail();
+                      }
+                    }}
+                  >
                     <div className="src-head">
                       <span className="swatch" />
                       <h2>{s.name}</h2>
                       <span className="tag">{KIND[s.kind]}</span>
                       {s.archived ? <span className="tag">Archived</span> : null}
                     </div>
-                    <div>
-                      <p className="muted" style={{ fontSize: 13, marginBottom: 6 }}>Last 12 months</p>
-                      <svg className="spark" viewBox="0 0 120 44" preserveAspectRatio="none" aria-hidden="true">
-                        {vals.map((v, i) => {
-                          const h = v ? Math.max(3, (v / max) * 44) : 2;
-                          return <rect key={i} className={v ? "" : "z"} x={i * 10 + 1} y={44 - h} width={8} height={h} rx={1.5} />;
-                        })}
-                      </svg>
+                    <div className="spark-wrap">
+                      <div className="spark-head">
+                        <span>Last 12 months</span>
+                        <span className="num">{yrs.map((g) => g.y).join(" – ")}</span>
+                      </div>
+                      <div className="spark-grid" role="img" aria-label={`Last 12 months income for ${s.name}`}>
+                        {items.map((it) => (
+                          <div key={it.k} className="spark-col" data-tip={fmt(it.v)} aria-label={`${MONTHS[it.m - 1]} ${it.y}: ${fmt(it.v)}`}>
+                            <div className="spark-track">
+                              <span
+                                className={it.v ? "spark-bar" : "spark-bar z"}
+                                style={{ height: it.v ? `${Math.max(8, (it.v / max) * 100)}%` : "3px" }}
+                              />
+                            </div>
+                            <span className="spark-m num">{it.m}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="spark-yrs num" aria-hidden="true">
+                        {yrs.map((g) => (
+                          <span key={g.y} style={{ gridColumn: `span ${g.span}` }}>{g.y}</span>
+                        ))}
+                      </div>
                     </div>
                     <dl className="stats">
                       <div><dt>All time</dt><dd className="num">{fmt(t)}</dd></div>
@@ -718,7 +1033,24 @@ export default function PaydayPage() {
                         </Fragment>
                       ) : null}
                     </dl>
-                    <button className="btn" type="button" onClick={() => openSrc(s)}>Edit {s.name}</button>
+                    <div className="src-foot">
+                      <span className="src-open">
+                        View details
+                        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                          <path d="M3.5 8h9M8.5 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </span>
+                      <button
+                        className="btn"
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openSrc(s);
+                        }}
+                      >
+                        Edit
+                      </button>
+                    </div>
                   </article>
                 );
               })
@@ -726,6 +1058,360 @@ export default function PaydayPage() {
               <p className="muted s12">No sources yet. Add your first job.</p>
             )}
           </div>
+        </section>
+
+        <section hidden={tab !== "source"}>
+          {activeSrc ? (
+            <Fragment>
+              <div className="detail-bar">
+                <a className="back-link" href="#sources">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                    <path d="M12.5 8h-9M7.5 4l-4 4 4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                  All sources
+                </a>
+                <div className="detail-actions">
+                  <button className="btn" type="button" onClick={() => openSrc(activeSrc)}>
+                    Edit {activeSrc.name}
+                  </button>
+                  <button
+                    className="btn primary"
+                    type="button"
+                    onClick={() => openPay(null, data, today || iso(new Date()), activeSrc.id)}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                      <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                    </svg>
+                    Add to {activeSrc.name}
+                  </button>
+                </div>
+              </div>
+
+              <div className="hero src-hero" style={{ "--c": activeSrc.color }}>
+                <div>
+                  <div className="src-hero-meta">
+                    <span className="swatch" />
+                    <h1>{activeSrc.name}</h1>
+                    <span className="hero-tag">{KIND[activeSrc.kind]}</span>
+                    {activeSrc.archived ? <span className="hero-tag">Archived</span> : null}
+                  </div>
+                  <p className="big">{fmt(srcSum)}</p>
+                  <p className="delta">
+                    {srcPs.length ? (
+                      <Fragment>
+                        <b>{plural(srcPs.length, "paycheque")}</b> · <b>{srcSharePct}%</b> of {srcIsAll ? "all-time" : srcYear} income ·{" "}
+                        {dateLabel(srcPs.at(-1).paid_on, { month: "short", day: "numeric", year: "numeric" })} –{" "}
+                        {dateLabel(srcPs[0].paid_on, { month: "short", day: "numeric", year: "numeric" })}
+                      </Fragment>
+                    ) : (
+                      `No paycheques recorded for ${activeSrc.name}${srcIsAll ? " yet" : ` in ${srcYear}`}.`
+                    )}
+                  </p>
+                </div>
+                <div className="hero-side">
+                  <div className="year-dd" ref={srcYearDdRef}>
+                    <button
+                      type="button"
+                      className="year-btn"
+                      aria-haspopup="listbox"
+                      aria-expanded={srcYearOpen}
+                      aria-label={`Year: ${srcIsAll ? "All" : srcYear}`}
+                      onClick={() => setSrcYearOpen((o) => !o)}
+                    >
+                      <span className="year-lbl">Year</span>
+                      <span className="year-val">{srcIsAll ? "All" : srcYear}</span>
+                      <svg className="year-chev" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                        <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </button>
+                    {srcYearOpen ? (
+                      <ul className="year-menu" role="listbox" aria-label="Select source year">
+                        {srcYearOptions.map(([val, label, tot]) => {
+                          const selected = srcYear === val;
+                          return (
+                            <li key={val}>
+                              <button
+                                type="button"
+                                role="option"
+                                aria-selected={selected}
+                                className={selected ? "year-opt active" : "year-opt"}
+                                onClick={() => {
+                                  setSrcYear(val);
+                                  setSrcYearOpen(false);
+                                }}
+                              >
+                                <svg className="year-check" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                                  <path d="M3.5 8.5 6.5 11.5 12.5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                                <span>{label}</span>
+                                <span className="num">{fmt(tot)}</span>
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : null}
+                  </div>
+                  <p className="muted">
+                    {(() => {
+                      const up = upcoming.find((u) => u.s.id === activeSrc.id);
+                      if (up) return `Next est. ${dateLabel(up.next, { month: "short", day: "numeric" })} · ~${fmt(up.amount)}`;
+                      if (srcCadence.weekday) {
+                        return `Usually paid on ${srcCadence.weekday}s${srcCadence.gap ? ` · ~${srcCadence.gap}d cycle` : ""}`;
+                      }
+                      return plural(srcYears.length, "active year");
+                    })()}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid">
+                <article className="card kpi s3">
+                  <p className="label">Average deposit</p>
+                  <p className="val num">{srcPs.length ? fmt(srcAvg) : "—"}</p>
+                  <p className="sub">
+                    {srcPs.length ? `Range ${fmt(srcMinP.amount_cents)} – ${fmt(srcMaxP.amount_cents)}` : "No pay yet"}
+                  </p>
+                </article>
+                <article className="card kpi s3">
+                  <p className="label">Monthly average</p>
+                  <p className="val num">{srcActiveMonths ? fmt(srcSum / srcActiveMonths) : "—"}</p>
+                  <p className="sub">
+                    {srcActiveMonths ? `across ${plural(srcActiveMonths, "month")} with pay` : "No pay yet"}
+                  </p>
+                </article>
+                <article className="card kpi s3">
+                  <p className="label">Best month</p>
+                  <p className="val">
+                    {srcBestMonth ? dateLabel(srcBestMonth[0] + "-01", { month: "short", year: "numeric" }) : "—"}
+                  </p>
+                  <p className="sub">{srcBestMonth ? fmt(srcBestMonth[1]) : "No pay yet"}</p>
+                </article>
+                <article className="card kpi s3">
+                  {srcHours > 0 ? (
+                    <Fragment>
+                      <p className="label">Take-home per hour</p>
+                      <p className="val num">{fmt(srcTimedSum / srcHours)}</p>
+                      <p className="sub">{+srcHours.toFixed(2)} h across {plural(srcTimed.length, "paycheque")}</p>
+                    </Fragment>
+                  ) : (
+                    <Fragment>
+                      <p className="label">Pay cadence</p>
+                      <p className="val">{srcCadence.gap ? `Every ~${srcCadence.gap} days` : srcCadence.weekday || "—"}</p>
+                      <p className="sub">{srcPs.length ? `Median deposit ${fmt(srcMedian)}` : "No pay yet"}</p>
+                    </Fragment>
+                  )}
+                </article>
+              </div>
+
+              <div className="grid">
+                <article className="card s8">
+                  <div className="card-h">
+                    <h2>Monthly income · {activeSrc.name}</h2>
+                    <span className="muted">{srcIsAll ? "All recorded months" : `Jan – Dec ${srcYear}`}</span>
+                  </div>
+                  <div className="chart tall">
+                    <canvas ref={srcChartCanvas} role="img" aria-label={`Monthly income chart for ${activeSrc.name}`} />
+                  </div>
+                </article>
+                <div className="s4 stack">
+                  <article className="card">
+                    <div className="card-h">
+                      <h2>By year</h2>
+                      {!srcIsAll ? (
+                        <button className="link muted" type="button" onClick={() => setSrcYear("all")}>
+                          Show all
+                        </button>
+                      ) : null}
+                    </div>
+                    <ul className="list">
+                      {srcYears.map((y) => {
+                        const yPs = srcAllPs.filter((p) => p.paid_on.startsWith(y + "-"));
+                        const yTot = sum(yPs);
+                        const allTot = Math.max(sum(srcAllPs), 1);
+                        const pct = Math.round((yTot / allTot) * 100);
+                        const isSel = srcYear === y;
+                        return (
+                          <li key={y}>
+                            <button
+                              type="button"
+                              className={isSel ? "item active-yr" : "item"}
+                              onClick={() => setSrcYear(isSel ? "all" : y)}
+                            >
+                              <span className="grow">
+                                <b>{y} <span className="muted">· {plural(yPs.length, "paycheque")}</span></b>
+                                <span className="yr-bar">
+                                  <i style={{ width: `${Math.max(4, pct)}%`, background: activeSrc.color }} />
+                                </span>
+                              </span>
+                              <span className="yr-right">
+                                <span className="num">{fmt(yTot)}</span>
+                                <span className="muted num">{pct}%</span>
+                              </span>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </article>
+
+                  <article className="card">
+                    <h2>Source records</h2>
+                    <ul className="list">
+                      {srcMaxP ? (
+                        <Fragment>
+                          <li>
+                            <button type="button" className="item" onClick={() => openPay(srcMaxP)}>
+                              <span className="grow">
+                                <b>Biggest deposit</b>
+                                <span className="muted">{dateLabel(srcMaxP.paid_on)}{srcMaxP.note ? ` · ${srcMaxP.note}` : ""}</span>
+                              </span>
+                              <span className="num">{fmt(srcMaxP.amount_cents)}</span>
+                            </button>
+                          </li>
+                          <li>
+                            <button type="button" className="item" onClick={() => openPay(srcMinP)}>
+                              <span className="grow">
+                                <b>Smallest deposit</b>
+                                <span className="muted">{dateLabel(srcMinP.paid_on)}{srcMinP.note ? ` · ${srcMinP.note}` : ""}</span>
+                              </span>
+                              <span className="num">{fmt(srcMinP.amount_cents)}</span>
+                            </button>
+                          </li>
+                          <li>
+                            <span className="grow">
+                              <b>Median deposit</b>
+                              <span className="muted">Middle paycheque in {srcIsAll ? "all years" : srcYear}</span>
+                            </span>
+                            <span className="num">{fmt(srcMedian)}</span>
+                          </li>
+                        </Fragment>
+                      ) : (
+                        <li className="muted">No paycheques recorded yet.</li>
+                      )}
+                    </ul>
+                  </article>
+                </div>
+              </div>
+
+              <div className="card table-wrap src-ledger">
+                <div className="ledger-head">
+                  <div>
+                    <h2>Paycheques from {activeSrc.name}</h2>
+                    <p className="muted">
+                      {plural(srcFilteredRows.length, "paycheque")} in {srcIsAll ? "all years" : srcYear} · click any row to edit
+                    </p>
+                  </div>
+                  <div className="ledger-tools">
+                    <input
+                      type="search"
+                      placeholder="Search notes, dates, or amounts…"
+                      aria-label={`Search ${activeSrc.name} paycheques`}
+                      value={srcSearch}
+                      onChange={(e) => setSrcSearch(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <table>
+                  <thead>
+                    <tr>
+                      <th scope="col">Date</th>
+                      <th scope="col">Note</th>
+                      <th scope="col" className="num">Hours</th>
+                      <th scope="col" className="num">vs. Avg</th>
+                      <th scope="col" className="num">Amount</th>
+                    </tr>
+                  </thead>
+                  {srcMonthGroups.length ? (
+                    srcMonthGroups.map(([ym, ps]) => {
+                      const mHrs = ps.reduce((t, p) => t + (p.hours || 0), 0);
+                      return (
+                        <tbody key={ym}>
+                          <tr className="month">
+                            <th scope="rowgroup" colSpan={2}>
+                              {monthLabel(ym)} <span className="muted">· {plural(ps.length, "paycheque")}</span>
+                            </th>
+                            <td className="num muted">{mHrs ? `${+mHrs.toFixed(2)} h` : ""}</td>
+                            <td />
+                            <td className="num">{fmt(sum(ps))}</td>
+                          </tr>
+                          {ps.map((p) => {
+                            const diff = p.amount_cents - srcAvg;
+                            const pctDiff = srcAvg ? Math.round((diff / srcAvg) * 100) : 0;
+                            return (
+                              <tr key={p.id} className="row" onClick={() => openPay(p)}>
+                                <td>
+                                  <button
+                                    className="link"
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openPay(p);
+                                    }}
+                                  >
+                                    {dateLabel(p.paid_on, { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
+                                  </button>
+                                </td>
+                                <td className="muted">{p.note || "—"}</td>
+                                <td className="num muted">
+                                  {p.hours ? (
+                                    <span>
+                                      {p.hours} h <small className="rate-sub">({fmt(p.amount_cents / p.hours)}/h)</small>
+                                    </span>
+                                  ) : (
+                                    "—"
+                                  )}
+                                </td>
+                                <td className="num">
+                                  {Math.abs(pctDiff) < 1 ? (
+                                    <span className="vs-avg">Avg</span>
+                                  ) : (
+                                    <span className={diff > 0 ? "vs-avg up" : "vs-avg down"}>
+                                      {diff > 0 ? "+" : ""}
+                                      {pctDiff}%
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="num">{fmt(p.amount_cents)}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      );
+                    })
+                  ) : (
+                    <tbody>
+                      <tr>
+                        <td colSpan={5} className="empty">
+                          No paycheques match this filter.
+                        </td>
+                      </tr>
+                    </tbody>
+                  )}
+                  <tfoot>
+                    <tr>
+                      <th colSpan={2}>{plural(srcFilteredRows.length, "paycheque")}</th>
+                      <td className="num muted">
+                        {(() => {
+                          const totH = srcFilteredRows.reduce((t, p) => t + (p.hours || 0), 0);
+                          return totH ? `${+totH.toFixed(2)} h` : "";
+                        })()}
+                      </td>
+                      <td />
+                      <td className="num">{fmt(sum(srcFilteredRows))}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </Fragment>
+          ) : (
+            <div className="card empty">
+              <p>Source not found.</p>
+              <p style={{ marginTop: 12 }}>
+                <a className="btn" href="#sources">Back to Sources</a>
+              </p>
+            </div>
+          )}
         </section>
       </main>
 
