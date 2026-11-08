@@ -250,3 +250,89 @@ dialog h2 { font-size: 22px; font-weight: 500; letter-spacing: -.02em; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 
+/* Gross-to-Net & Tax Intelligence Components */
+.paystub-drawer-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--accent, #3b82f6);
+  background: transparent;
+  border: none;
+  padding: 0.25rem 0;
+  cursor: pointer;
+}
+
+.paystub-drawer-toggle:hover {
+  text-decoration: underline;
+}
+
+.paystub-drawer {
+  margin-top: 0.5rem;
+  padding: 0.875rem;
+  border-radius: 0.625rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border, var(--line, rgba(255, 255, 255, 0.08)));
+  display: grid;
+  gap: 0.75rem;
+}
+
+.paystub-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.625rem;
+}
+
+@media (max-width: 720px) {
+  .paystub-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.retention-bar-track {
+  width: 100%;
+  height: 0.625rem;
+  border-radius: 999px;
+  background: var(--surface, rgba(255, 255, 255, 0.08));
+  overflow: hidden;
+  display: flex;
+  margin: 0.75rem 0;
+}
+
+.retention-seg-net {
+  background: var(--success, #10b981);
+  height: 100%;
+}
+
+.retention-seg-reserve {
+  background: var(--warning, #f59e0b);
+  height: 100%;
+}
+
+.retention-seg-withheld {
+  background: var(--danger, #f43f5e);
+  height: 100%;
+}
+
+.pill-reserve {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-family: var(--font-mono, monospace);
+  background: rgba(245, 158, 11, 0.14);
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.gross-subtext {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--muted, #94a3b8);
+  font-family: var(--font-mono, monospace);
+  margin-top: 0.125rem;
+}
+
+

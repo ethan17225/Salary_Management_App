@@ -26,6 +26,9 @@ async def create_paycheque(db: AsyncSession, payload: PaychequeCreate) -> Payche
         source_id=payload.source_id,
         paid_on=payload.paid_on,
         amount_cents=payload.amount_cents,
+        gross_cents=payload.gross_cents,
+        tax_cents=payload.tax_cents,
+        deductions_cents=payload.deductions_cents,
         hours=payload.hours,
         note=payload.note,
     )
@@ -45,6 +48,9 @@ async def update_paycheque(
     paycheque.source_id = payload.source_id
     paycheque.paid_on = payload.paid_on
     paycheque.amount_cents = payload.amount_cents
+    paycheque.gross_cents = payload.gross_cents
+    paycheque.tax_cents = payload.tax_cents
+    paycheque.deductions_cents = payload.deductions_cents
     paycheque.hours = payload.hours
     paycheque.note = payload.note
     try:
@@ -67,6 +73,11 @@ async def build_export_csv(db: AsyncSession) -> bytes:
             Paycheque.paid_on,
             Source.name,
             Paycheque.amount_cents,
+            Paycheque.gross_cents,
+            Paycheque.tax_cents,
+            Paycheque.deductions_cents,
+            Source.is_tax_withheld,
+            Source.tax_reserve_bps,
             Paycheque.hours,
             Paycheque.note,
         )
@@ -76,13 +87,45 @@ async def build_export_csv(db: AsyncSession) -> bytes:
     result = await db.execute(stmt)
     buf = io.StringIO()
     writer = csv.writer(buf)
-    writer.writerow(["date", "source", "amount", "hours", "note"])
-    for paid_on, source_name, amount_cents, hours, note in result.all():
+    writer.writerow(
+        [
+            "date",
+            "source",
+            "amount",
+            "gross",
+            "tax",
+            "deductions",
+            "tax_reserve",
+            "hours",
+            "note",
+        ]
+    )
+    for (
+        paid_on,
+        source_name,
+        amount_cents,
+        gross_cents,
+        tax_cents,
+        deductions_cents,
+        is_tax_withheld,
+        tax_reserve_bps,
+        hours,
+        note,
+    ) in result.all():
+        reserve_cents = (
+            (amount_cents * tax_reserve_bps + 5000) // 10000
+            if not is_tax_withheld and tax_reserve_bps > 0 and not tax_cents
+            else 0
+        )
         writer.writerow(
             [
                 paid_on,
                 source_name,
-                f"{amount_cents // 100}.{amount_cents % 100:02d}",
+                f"{amount_cents / 100:.2f}",
+                "" if gross_cents is None else f"{gross_cents / 100:.2f}",
+                "" if tax_cents is None else f"{tax_cents / 100:.2f}",
+                "" if deductions_cents is None else f"{deductions_cents / 100:.2f}",
+                f"{reserve_cents / 100:.2f}",
                 "" if hours is None else hours,
                 note,
             ]

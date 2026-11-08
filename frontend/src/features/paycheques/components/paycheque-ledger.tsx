@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type CSSProperties } from 'react';
 import { useDialogs } from '@/components/ui/dialog-provider';
+import { computePaychequeBreakdown } from '@/lib/tax-intelligence';
 import { dateLabel, fmt, monthLabel, plural, sumCents } from '@/lib/utils';
 import type { Paycheque, Source } from '@/types/payday';
 import type { PaychequeFilterParams } from '../types/paycheque-types';
@@ -118,6 +119,10 @@ export function PaychequeLedger({
                 </tr>
                 {ps.map((p) => {
                   const s = srcById(p.source_id);
+                  const b = computePaychequeBreakdown(
+                    p,
+                    'id' in s ? s : undefined
+                  );
                   return (
                     <tr key={p.id} className="row" onClick={() => openPaychequeDialog(p)}>
                       <td>
@@ -145,7 +150,20 @@ export function PaychequeLedger({
                       </td>
                       <td className="muted">{p.note}</td>
                       <td className="num muted">{p.hours ? `${p.hours} h` : ''}</td>
-                      <td className="num">{fmt(p.amount_cents)}</td>
+                      <td className="num">
+                        {fmt(p.amount_cents)}
+                        {b.hasGrossBreakdown ? (
+                          <span className="gross-subtext">
+                            Gross {fmt(b.effectiveGrossCents)} · -
+                            {((10000 - b.netRetentionBps) / 100).toFixed(1)}% withheld
+                          </span>
+                        ) : null}
+                        {b.contractorTaxReserveCents > 0 ? (
+                          <span className="pill-reserve">
+                            Reserve {fmt(b.contractorTaxReserveCents)}
+                          </span>
+                        ) : null}
+                      </td>
                     </tr>
                   );
                 })}

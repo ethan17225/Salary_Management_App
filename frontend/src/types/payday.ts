@@ -6,6 +6,8 @@ export interface Source {
   kind: SourceKind;
   color: string;
   archived: number;
+  is_tax_withheld?: number;
+  tax_reserve_bps?: number;
 }
 
 export interface Paycheque {
@@ -13,6 +15,9 @@ export interface Paycheque {
   source_id: number;
   paid_on: string;
   amount_cents: number;
+  gross_cents?: number | null;
+  tax_cents?: number | null;
+  deductions_cents?: number | null;
   hours: number | null;
   note: string;
 }

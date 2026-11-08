@@ -134,6 +134,48 @@ async def seed_database(session: AsyncSession) -> None:
     await session.commit()
 
 
+def ensure_schema_migrations(conn: Any) -> None:
+    """Idempotently adds Gross-to-Net and Tax Intelligence columns to existing databases."""
+    raw = getattr(conn, "driver_connection", None) or getattr(conn, "connection", conn)
+    cur = raw.cursor()
+
+    source_cols = {
+        row[1] for row in cur.execute("PRAGMA table_info(sources)").fetchall()
+    }
+    if "is_tax_withheld" not in source_cols:
+        cur.execute(
+            "ALTER TABLE sources ADD COLUMN is_tax_withheld INTEGER NOT NULL DEFAULT 1 "
+            "CHECK (is_tax_withheld IN (0, 1))"
+        )
+    if "tax_reserve_bps" not in source_cols:
+        cur.execute(
+            "ALTER TABLE sources ADD COLUMN tax_reserve_bps INTEGER NOT NULL DEFAULT 0 "
+            "CHECK (tax_reserve_bps >= 0 AND tax_reserve_bps <= 6000)"
+        )
+
+    paycheque_cols = {
+        row[1] for row in cur.execute("PRAGMA table_info(paycheques)").fetchall()
+    }
+    if "gross_cents" not in paycheque_cols:
+        cur.execute(
+            "ALTER TABLE paycheques ADD COLUMN gross_cents INTEGER NULL "
+            "CHECK (gross_cents IS NULL OR gross_cents >= amount_cents)"
+        )
+    if "tax_cents" not in paycheque_cols:
+        cur.execute(
+            "ALTER TABLE paycheques ADD COLUMN tax_cents INTEGER NULL "
+            "CHECK (tax_cents IS NULL OR tax_cents >= 0)"
+        )
+    if "deductions_cents" not in paycheque_cols:
+        cur.execute(
+            "ALTER TABLE paycheques ADD COLUMN deductions_cents INTEGER NULL "
+            "CHECK (deductions_cents IS NULL OR deductions_cents >= 0)"
+        )
+
+    if hasattr(raw, "commit"):
+        raw.commit()
+
+
 async def init_db(
     target_engine: AsyncEngine = engine,
     session_factory: async_sessionmaker[AsyncSession] = SessionFactory,
@@ -142,5 +184,6 @@ async def init_db(
         Path(settings.DB_PATH).parent.mkdir(parents=True, exist_ok=True)
     async with target_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(ensure_schema_migrations)
     async with session_factory() as session:
         await seed_database(session)

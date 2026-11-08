@@ -23,6 +23,8 @@ async def create_source(db: AsyncSession, payload: SourceCreate) -> Source:
         kind=payload.kind.value,
         color=payload.color,
         archived=payload.archived,
+        is_tax_withheld=payload.is_tax_withheld,
+        tax_reserve_bps=payload.tax_reserve_bps,
     )
     db.add(source)
     try:
@@ -39,6 +41,8 @@ async def update_source(db: AsyncSession, source: Source, payload: SourceUpdate)
     source.kind = payload.kind.value
     source.color = payload.color
     source.archived = payload.archived
+    source.is_tax_withheld = payload.is_tax_withheld
+    source.tax_reserve_bps = payload.tax_reserve_bps
     try:
         await db.commit()
     except IntegrityError as exc:

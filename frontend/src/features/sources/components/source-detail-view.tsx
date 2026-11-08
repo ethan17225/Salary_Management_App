@@ -1,6 +1,7 @@
 import { Fragment, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { YearDropdown } from '@/components/ui/year-dropdown';
+import { computeAggregateTaxSummary } from '@/lib/tax-intelligence';
 import { dateLabel, fmt, KIND_LABELS, plural, sumCents } from '@/lib/utils';
 import {
   SourceDetailHeaderActions,
@@ -41,6 +42,8 @@ export function SourceDetailView({
     upcomingForSource,
   } = data;
 
+  const taxSum = computeAggregateTaxSummary(srcPs, new Map([[source.id, source]]));
+
   return (
     <section>
       <div className="detail-bar">
@@ -66,6 +69,12 @@ export function SourceDetailView({
             <h1>{source.name}</h1>
             <span className="hero-tag">{KIND_LABELS[source.kind]}</span>
             {source.archived ? <span className="hero-tag">Archived</span> : null}
+            {source.is_tax_withheld === 0 ? (
+              <span className="pill-reserve">
+                Tax Reserve: {((source.tax_reserve_bps ?? 0) / 100).toFixed(0)}% (
+                {fmt(taxSum.totalContractorTaxReserveCents)} set aside)
+              </span>
+            ) : null}
           </div>
           <p className="big">{fmt(srcSum)}</p>
           <p className="delta">
@@ -141,8 +150,12 @@ export function SourceDetailView({
           {srcHours > 0 ? (
             <Fragment>
               <p className="label">Take-home per hour</p>
-              <p className="val num">{fmt(srcTimedSum / srcHours)}</p>
+              <p className="val num">{fmt(srcTimedSum / srcHours)}/h net</p>
               <p className="sub">
+                {taxSum.effectiveGrossHourlyCents &&
+                taxSum.effectiveGrossHourlyCents > Math.round(srcTimedSum / srcHours)
+                  ? `${fmt(taxSum.effectiveGrossHourlyCents)}/h gross · `
+                  : ''}
                 {+srcHours.toFixed(2)} h across {plural(srcTimedCount, 'paycheque')}
               </p>
             </Fragment>

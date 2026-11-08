@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useDialogs } from '@/components/ui/dialog-provider';
+import { computePaychequeBreakdown } from '@/lib/tax-intelligence';
 import { dateLabel, fmt, monthLabel, plural, sumCents } from '@/lib/utils';
 import type { Paycheque, Source } from '@/types/payday';
 
@@ -101,6 +102,7 @@ export function SourcePaychequeLedger({
                 {ps.map((p) => {
                   const diff = p.amount_cents - srcAvg;
                   const pctDiff = srcAvg ? Math.round((diff / srcAvg) * 100) : 0;
+                  const b = computePaychequeBreakdown(p, source);
                   return (
                     <tr key={p.id} className="row" onClick={() => openPaychequeDialog(p)}>
                       <td>
@@ -125,7 +127,13 @@ export function SourcePaychequeLedger({
                         {p.hours ? (
                           <span>
                             {p.hours} h{' '}
-                            <small className="rate-sub">({fmt(p.amount_cents / p.hours)}/h)</small>
+                            <small className="rate-sub">
+                              ({fmt(p.amount_cents / p.hours)}/h net
+                              {b.hasGrossBreakdown && b.grossHourlyCents
+                                ? ` · ${fmt(b.grossHourlyCents)}/h gross`
+                                : ''}
+                              )
+                            </small>
                           </span>
                         ) : (
                           '—'
@@ -141,7 +149,20 @@ export function SourcePaychequeLedger({
                           </span>
                         )}
                       </td>
-                      <td className="num">{fmt(p.amount_cents)}</td>
+                      <td className="num">
+                        {fmt(p.amount_cents)}
+                        {b.hasGrossBreakdown ? (
+                          <span className="gross-subtext">
+                            Gross {fmt(b.effectiveGrossCents)} · -
+                            {((10000 - b.netRetentionBps) / 100).toFixed(1)}% withheld
+                          </span>
+                        ) : null}
+                        {b.contractorTaxReserveCents > 0 ? (
+                          <span className="pill-reserve">
+                            Reserve {fmt(b.contractorTaxReserveCents)}
+                          </span>
+                        ) : null}
+                      </td>
                     </tr>
                   );
                 })}

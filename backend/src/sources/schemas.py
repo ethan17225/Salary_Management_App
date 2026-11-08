@@ -1,9 +1,10 @@
 import re
 from typing import Any
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 
 from src.models import CustomModel
+from src.paycheques.utils import parse_tax_reserve_bps
 from src.sources.constants import (
     DEFAULT_SOURCE_COLOR,
     HEX_COLOR_PATTERN,
@@ -18,6 +19,8 @@ class SourcePayload(CustomModel):
     kind: SourceKind = SourceKind.JOB
     color: str = DEFAULT_SOURCE_COLOR
     archived: int = 0
+    is_tax_withheld: int = 1
+    tax_reserve_bps: int = 0
 
     @field_validator("name", mode="before")
     @classmethod
@@ -51,6 +54,24 @@ class SourcePayload(CustomModel):
     def validate_archived(cls, value: Any) -> int:
         return int(bool(value))
 
+    @field_validator("is_tax_withheld", mode="before")
+    @classmethod
+    def validate_is_tax_withheld(cls, value: Any) -> int:
+        if value is None:
+            return 1
+        return int(bool(value))
+
+    @field_validator("tax_reserve_bps", mode="before")
+    @classmethod
+    def validate_tax_reserve_bps(cls, value: Any) -> int:
+        return parse_tax_reserve_bps(value)
+
+    @model_validator(mode="after")
+    def sync_tax_reserve(self) -> "SourcePayload":
+        if self.is_tax_withheld:
+            self.tax_reserve_bps = 0
+        return self
+
 
 class SourceCreate(SourcePayload):
     pass
@@ -66,4 +87,6 @@ class SourceResponse(CustomModel):
     kind: SourceKind
     color: str
     archived: int
+    is_tax_withheld: int = 1
+    tax_reserve_bps: int = 0
 

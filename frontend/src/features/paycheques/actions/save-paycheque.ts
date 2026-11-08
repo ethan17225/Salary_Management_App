@@ -19,7 +19,7 @@ export async function savePaychequeAction(
     };
   }
 
-  const { id, source_id, amount, paid_on, hours, note } = parsed.data;
+  const { id, source_id, amount, gross, tax, deductions, paid_on, hours, note } = parsed.data;
 
   try {
     const result = await db.request<{ id?: number }>(
@@ -28,6 +28,9 @@ export async function savePaychequeAction(
       {
         source_id,
         amount,
+        gross,
+        tax,
+        deductions,
         paid_on,
         hours: hours === '' ? null : Number(hours),
         note,

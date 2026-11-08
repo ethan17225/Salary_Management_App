@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { YearDropdown } from '@/components/ui/year-dropdown';
+import { computeAggregateTaxSummary } from '@/lib/tax-intelligence';
 import { dateLabel, diffDays, fmt, monthLabel, plural, sumCents } from '@/lib/utils';
 import { GoalDialogTrigger } from './goal-dialog';
 import { HeroTotalCounter } from './hero-total-counter';
@@ -48,6 +49,15 @@ export function OverviewDashboard({ data }: { data: OverviewData }) {
 
   const srcById = (id: number) =>
     sources.find((s) => s.id === id) || { name: 'Unknown', color: '#94a3b8' };
+
+  const taxSummary = computeAggregateTaxSummary(
+    inY,
+    new Map(sources.map((s) => [s.id, s]))
+  );
+  const grossBase = Math.max(taxSummary.totalEffectiveGrossCents, 1);
+  const segNetPct = (taxSummary.totalTrueSpendableNetCents / grossBase) * 100;
+  const segResPct = (taxSummary.totalContractorTaxReserveCents / grossBase) * 100;
+  const segWithheldPct = (taxSummary.totalWithheldCents / grossBase) * 100;
 
   return (
     <section>
@@ -135,6 +145,76 @@ export function OverviewDashboard({ data }: { data: OverviewData }) {
                 } income`
               : 'None yet'}
           </p>
+        </article>
+      </div>
+
+      <div className="grid">
+        <article className="card s12">
+          <div className="card-h">
+            <h2>Gross-to-Net &amp; Tax Intelligence</h2>
+            {taxSummary.breakdownCoverageCount > 0 ? (
+              <span className="tag">
+                {Math.round(
+                  (taxSummary.breakdownCoverageCount /
+                    Math.max(taxSummary.totalPaychequeCount, 1)) *
+                    100
+                )}
+                % stubs tracked
+              </span>
+            ) : null}
+          </div>
+          <div
+            className="retention-bar-track"
+            role="img"
+            aria-label="Income retention breakdown"
+          >
+            <span className="retention-seg-net" style={{ width: `${segNetPct}%` }} />
+            {taxSummary.totalContractorTaxReserveCents > 0 ? (
+              <span className="retention-seg-reserve" style={{ width: `${segResPct}%` }} />
+            ) : null}
+            {taxSummary.totalWithheldCents > 0 ? (
+              <span className="retention-seg-withheld" style={{ width: `${segWithheldPct}%` }} />
+            ) : null}
+          </div>
+          <div className="grid">
+            <div className="kpi s3">
+              <p className="label">Effective Gross Income</p>
+              <p className="val num">{fmt(taxSummary.totalEffectiveGrossCents)}</p>
+              <p className="sub">
+                {taxSummary.breakdownCoverageCount} of {taxSummary.totalPaychequeCount} with stub
+                data
+              </p>
+            </div>
+            <div className="kpi s3">
+              <p className="label">Withheld at Source</p>
+              <p className="val num">{fmt(taxSummary.totalWithheldCents)}</p>
+              <p className="sub">
+                Tax {fmt(taxSummary.totalExplicitTaxCents)} · Ded.{' '}
+                {fmt(taxSummary.totalExplicitDeductionsCents)}
+              </p>
+            </div>
+            <div className="kpi s3">
+              <p className="label">Net Retention Rate</p>
+              <p className="val num">{(taxSummary.netRetentionRateBps / 100).toFixed(1)}%</p>
+              <p className="sub">
+                {taxSummary.breakdownCoverageCount
+                  ? `${(taxSummary.effectiveDeductionRateBps / 100).toFixed(1)}% withheld on tracked stubs`
+                  : '100% retained (net-only stubs)'}
+              </p>
+            </div>
+            <div className="kpi s3">
+              <p className="label">Untaxed Reserve Required</p>
+              <p className="val num">
+                {fmt(taxSummary.totalContractorTaxReserveCents)}{' '}
+                {taxSummary.totalContractorTaxReserveCents > 0 ? (
+                  <span className="pill-reserve">Set aside</span>
+                ) : null}
+              </p>
+              <p className="sub">
+                True Spendable Net: {fmt(taxSummary.totalTrueSpendableNetCents)}
+              </p>
+            </div>
+          </div>
         </article>
       </div>
 
