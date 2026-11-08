@@ -1,0 +1,21 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "${BACKEND_PORT:-8001}:8000"
+    volumes:
+      - payday-data:/data   # SQLite database lives here; survives rebuilds and `down`
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "${PAYDAY_PORT:-8080}:3000"
+    environment:
+      - BACKEND_URL=http://backend:8000
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  payday-data:
