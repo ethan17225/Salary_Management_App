@@ -44,7 +44,7 @@ h1, h2, p, dl, dd { margin: 0; }
 
 /* layout */
 main { padding-block: 32px 80px; }
-.head { display: flex; align-items: end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+.head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
 .eyebrow { font-size: 14px; font-weight: 500; color: var(--muted); }
 .head h1 { font-size: clamp(28px, 3.4vw, 40px); font-weight: 500; letter-spacing: -.03em; line-height: 1.15; }
 .grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
@@ -118,7 +118,7 @@ progress::-moz-progress-bar { background: var(--accent); border-radius: 99px; }
 .stats dd { font-size: 16px; }
 
 /* table */
-.filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; padding: 16px; }
+.filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; padding: 16px; }
 .filters .field { flex: 1 1 180px; }
 .filters .field.search { flex: 3 1 260px; }
 .table-wrap { overflow-x: auto; padding: 0; margin-top: 16px; }
