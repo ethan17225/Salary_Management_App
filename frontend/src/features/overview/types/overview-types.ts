@@ -1,4 +1,5 @@
 import type { AllocationRule } from '@/lib/allocation-engine';
+import type { ScheduleForecastReport } from '@/lib/forecast-engine';
 import type { Paycheque, Source, UpcomingPayday } from '@/types/payday';
 import type { YearOption } from '@/components/ui/year-dropdown';
 
@@ -6,6 +7,7 @@ export interface OverviewData {
   sources: Source[];
   paycheques: Paycheque[];
   allocations: AllocationRule[];
+  forecast: ScheduleForecastReport | null;
   today: string;
   curYear: number;
   activeYear: 'all' | number;

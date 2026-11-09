@@ -414,5 +414,88 @@ dialog h2 { font-size: 22px; font-weight: 500; letter-spacing: -.02em; }
   margin-top: 0.5rem;
 }
 
+/* Feature 3: Schedule-Aware Forecast & Raise Simulator */
+.forecast-comparison-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.forecast-metric-box {
+  padding: 0.75rem 0.875rem;
+  border-radius: 0.625rem;
+  background: var(--surface, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--border, var(--line, rgba(255, 255, 255, 0.08)));
+}
+
+.sim-controls-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+@media (max-width: 720px) {
+  .forecast-comparison-grid,
+  .sim-controls-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sim-slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.75rem;
+  border-radius: 0.625rem;
+  background: var(--surface, rgba(255, 255, 255, 0.025));
+  border: 1px solid var(--border, var(--line, rgba(255, 255, 255, 0.07)));
+}
+
+.sim-slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8125rem;
+}
+
+.sim-range-input {
+  width: 100%;
+  accent-color: var(--accent, #3b82f6);
+  cursor: pointer;
+}
+
+.sim-impact-banner {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: radial-gradient(circle at top left, rgba(16, 185, 129, 0.14), var(--surface, rgba(15, 23, 42, 0.6)));
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  margin-top: 0.75rem;
+}
+
+@media (max-width: 720px) {
+  .sim-impact-banner {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pill-goal-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-family: var(--font-mono, monospace);
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--up, #0f7a4a);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+
 
 

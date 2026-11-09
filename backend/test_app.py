@@ -15,8 +15,11 @@ from sqlalchemy.pool import StaticPool
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from datetime import date
+
 from src.allocations import allocate_cents_largest_remainder
-from src.database import ensure_schema_migrations, get_db, seed_database
+from src.database import ensure_forecast_schema, ensure_schema_migrations, get_db, seed_database
+from src.forecast import compute_schedule_forecast
 from src.main import app
 from src.models import Base
 from src.paycheques.utils import parse_cents
@@ -215,7 +218,13 @@ def test_idempotent_schema_migration() -> None:
 
     src_cols = {r[1] for r in conn.execute("PRAGMA table_info(sources)").fetchall()}
     pay_cols = {r[1] for r in conn.execute("PRAGMA table_info(paycheques)").fetchall()}
-    assert {"is_tax_withheld", "tax_reserve_bps"} <= src_cols
+    assert {
+        "is_tax_withheld",
+        "tax_reserve_bps",
+        "expected_cadence_days",
+        "active_until",
+        "target_hourly_cents",
+    } <= src_cols
     assert {"gross_cents", "tax_cents", "deductions_cents"} <= pay_cols
 
 
@@ -412,6 +421,141 @@ async def test_state_endpoint_includes_allocations(client: AsyncClient) -> None:
     assert "allocations" in data
     assert isinstance(data["allocations"], list)
     assert len(data["allocations"]) == 3
+
+
+def test_schedule_forecast_biweekly_cadence_and_goal_crossover() -> None:
+    sources = [
+        {
+            "id": 1,
+            "name": "Softchoice Co-op",
+            "kind": "job",
+            "color": "#c2410c",
+            "archived": 0,
+            "expected_cadence_days": None,
+            "active_until": None,
+            "target_hourly_cents": None,
+        }
+    ]
+    paycheques = [
+        {"id": 1, "source_id": 1, "paid_on": "2026-09-04", "amount_cents": 150000, "hours": 80.0},
+        {"id": 2, "source_id": 1, "paid_on": "2026-09-18", "amount_cents": 150000, "hours": 80.0},
+        {"id": 3, "source_id": 1, "paid_on": "2026-10-02", "amount_cents": 150000, "hours": 80.0},
+    ]
+    report = compute_schedule_forecast(
+        sources, paycheques, goal_cents=900000, reference_date=date(2026, 10, 5)
+    )
+    assert len(report["streams"]) == 1
+    stream = report["streams"][0]
+    assert stream["cadence_days"] == 14
+    assert stream["remaining_paycheques"] == 6
+    assert stream["upcoming_dates"] == [
+        "2026-10-16",
+        "2026-10-30",
+        "2026-11-13",
+        "2026-11-27",
+        "2026-12-11",
+        "2026-12-25",
+    ]
+    assert report["schedule_projected_remaining_cents"] == 900000
+    assert report["schedule_projected_year_end_cents"] == 1350000
+    assert report["predicted_goal_date"] == "2026-11-13"
+
+
+def test_schedule_forecast_respects_active_until_contract_end_date() -> None:
+    sources = [
+        {
+            "id": 1,
+            "name": "Softchoice Co-op",
+            "kind": "job",
+            "color": "#c2410c",
+            "archived": 0,
+            "expected_cadence_days": None,
+            "active_until": "2026-10-31",
+            "target_hourly_cents": None,
+        }
+    ]
+    paycheques = [
+        {"id": 1, "source_id": 1, "paid_on": "2026-09-04", "amount_cents": 150000, "hours": 80.0},
+        {"id": 2, "source_id": 1, "paid_on": "2026-09-18", "amount_cents": 150000, "hours": 80.0},
+        {"id": 3, "source_id": 1, "paid_on": "2026-10-02", "amount_cents": 150000, "hours": 80.0},
+    ]
+    report = compute_schedule_forecast(
+        sources, paycheques, goal_cents=900000, reference_date=date(2026, 10, 5)
+    )
+    stream = report["streams"][0]
+    assert stream["remaining_paycheques"] == 2
+    assert stream["upcoming_dates"] == ["2026-10-16", "2026-10-30"]
+
+
+def test_archived_and_stale_sources_excluded_from_forecast() -> None:
+    sources = [
+        {
+            "id": 1,
+            "name": "Archived Job",
+            "kind": "job",
+            "color": "#0d7480",
+            "archived": 1,
+            "expected_cadence_days": None,
+            "active_until": None,
+            "target_hourly_cents": None,
+        },
+        {
+            "id": 2,
+            "name": "Stale Summer Job",
+            "kind": "job",
+            "color": "#2563eb",
+            "archived": 0,
+            "expected_cadence_days": None,
+            "active_until": None,
+            "target_hourly_cents": None,
+        },
+    ]
+    paycheques = [
+        {"id": 1, "source_id": 1, "paid_on": "2026-09-18", "amount_cents": 100000, "hours": None},
+        {"id": 2, "source_id": 1, "paid_on": "2026-10-02", "amount_cents": 100000, "hours": None},
+        {"id": 3, "source_id": 2, "paid_on": "2026-07-01", "amount_cents": 100000, "hours": None},
+        {"id": 4, "source_id": 2, "paid_on": "2026-07-15", "amount_cents": 100000, "hours": None},
+    ]
+    report = compute_schedule_forecast(
+        sources, paycheques, goal_cents=500000, reference_date=date(2026, 10, 5)
+    )
+    assert report["total_remaining_paycheques"] == 0
+    assert report["streams"] == []
+
+
+@pytest.mark.asyncio
+async def test_forecast_api_endpoint_and_source_schedule_fields(client: AsyncClient) -> None:
+    upd = await client.put(
+        "/api/sources/1",
+        json={
+            "name": "Kung Fu Tea",
+            "kind": "job",
+            "color": "#0d7480",
+            "expected_cadence_days": 14,
+            "active_until": "2026-12-15",
+            "target_hourly": "28.50",
+        },
+    )
+    assert upd.status_code == 200
+
+    fc_resp = await client.get("/api/forecast?date=2026-10-05")
+    assert fc_resp.status_code == 200
+    fc = fc_resp.json()
+    assert fc["reference_date"] == "2026-10-05"
+    kft_stream = next(s for s in fc["streams"] if s["source_id"] == 1)
+    assert kft_stream["cadence_days"] == 14
+    assert kft_stream["is_manual_cadence"] is True
+    assert kft_stream["active_until"] == "2026-12-15"
+
+    state_resp = await client.get("/api/state")
+    assert state_resp.status_code == 200
+    state = state_resp.json()
+    src1 = next(s for s in state["sources"] if s["id"] == 1)
+    assert src1["expected_cadence_days"] == 14
+    assert src1["active_until"] == "2026-12-15"
+    assert src1["target_hourly_cents"] == 2850
+    assert "forecast" in state
+    assert isinstance(state["forecast"]["streams"], list)
 
 
 if __name__ == "__main__":

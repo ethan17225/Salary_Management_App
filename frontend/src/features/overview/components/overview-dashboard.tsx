@@ -12,6 +12,7 @@ import {
   MonthlyIncomeChart,
   SourceSplitChart,
 } from './overview-charts';
+import { RaiseSimulatorCard } from './raise-simulator-card';
 import type { OverviewData } from '../types/overview-types';
 
 export function OverviewDashboard({ data }: { data: OverviewData }) {
@@ -19,6 +20,7 @@ export function OverviewDashboard({ data }: { data: OverviewData }) {
     sources,
     paycheques,
     allocations = [],
+    forecast,
     today,
     activeYear,
     isAll,
@@ -339,7 +341,48 @@ export function OverviewDashboard({ data }: { data: OverviewData }) {
                   <p className="muted">
                     {goalPct.toFixed(0)}% of the {goalYear} goal
                   </p>
-                  {goalIsCur ? (
+                  {goalIsCur && forecast ? (
+                    <>
+                      <div className="forecast-comparison-grid">
+                        <div className="forecast-metric-box">
+                          <p className="label" style={{ fontSize: '12px' }}>
+                            Schedule-Aware
+                          </p>
+                          <p className="val num" style={{ fontSize: '16px', margin: '2px 0' }}>
+                            {fmt(forecast.schedule_projected_year_end_cents)}
+                          </p>
+                          <p className="muted" style={{ fontSize: '12px' }}>
+                            {plural(forecast.total_remaining_paycheques, 'cheque')} left
+                          </p>
+                        </div>
+                        <div className="forecast-metric-box">
+                          <p className="label" style={{ fontSize: '12px' }}>
+                            Linear Daily Pace
+                          </p>
+                          <p className="val num" style={{ fontSize: '16px', margin: '2px 0' }}>
+                            {fmt(forecast.linear_projected_year_end_cents)}
+                          </p>
+                          <p className="muted" style={{ fontSize: '12px' }}>
+                            YTD daily velocity
+                          </p>
+                        </div>
+                      </div>
+                      {forecast.goal_achieved_or_on_track && forecast.predicted_goal_date ? (
+                        <p style={{ marginTop: '8px' }}>
+                          <span className="pill-goal-date">
+                            On track to hit goal on {forecast.predicted_goal_date}
+                          </span>
+                        </p>
+                      ) : forecast.goal_shortfall_cents > 0 ? (
+                        <p className="muted" style={{ marginTop: '8px', fontSize: '13px' }}>
+                          Shortfall: <b className="num">{fmt(forecast.goal_shortfall_cents)}</b>
+                          {forecast.total_remaining_paycheques > 0
+                            ? ` (+${fmt(forecast.extra_per_cheque_needed_cents)}/cheque across ${forecast.total_remaining_paycheques} remaining paycheques to hit target)`
+                            : ''}
+                        </p>
+                      ) : null}
+                    </>
+                  ) : goalIsCur ? (
                     <>
                       <p>
                         On pace for <b className="num">{fmt((goalSum / daysDone) * daysInYr)}</b> by
@@ -403,6 +446,12 @@ export function OverviewDashboard({ data }: { data: OverviewData }) {
           </article>
         </div>
       </div>
+
+      {forecast ? (
+        <div className="grid">
+          <RaiseSimulatorCard forecast={forecast} />
+        </div>
+      ) : null}
 
       <div className="grid">
         <article className="card s5">
