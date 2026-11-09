@@ -5,6 +5,7 @@ from typing import Any
 from fastapi import FastAPI, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 
+from src.allocations import router as allocations_router
 from src.config import settings
 from src.database import init_db
 from src.exceptions import register_exception_handlers
@@ -57,6 +58,7 @@ app.include_router(sources_router)
 app.include_router(paycheques_router)
 app.include_router(paycheques_export_router)
 app.include_router(settings_router)
+app.include_router(allocations_router)
 
 
 @app.get(

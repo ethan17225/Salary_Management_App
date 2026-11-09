@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type CSSProperties } from 'react';
 import { useDialogs } from '@/components/ui/dialog-provider';
+import { allocateCentsLargestRemainder, type AllocationRule } from '@/lib/allocation-engine';
 import { computePaychequeBreakdown } from '@/lib/tax-intelligence';
 import { dateLabel, fmt, monthLabel, plural, sumCents } from '@/lib/utils';
 import type { Paycheque, Source } from '@/types/payday';
@@ -10,6 +11,7 @@ import type { PaychequeFilterParams } from '../types/paycheque-types';
 interface PaychequeLedgerProps {
   sources: Source[];
   paycheques: Paycheque[];
+  allocations?: AllocationRule[];
   years: number[];
   initialFilters?: PaychequeFilterParams;
 }
@@ -17,13 +19,19 @@ interface PaychequeLedgerProps {
 export function PaychequeLedger({
   sources,
   paycheques,
+  allocations = [],
   years,
   initialFilters,
 }: PaychequeLedgerProps) {
   const [fYear, setFYear] = useState(initialFilters?.year || '');
   const [fSource, setFSource] = useState(initialFilters?.source || '');
   const [fSearch, setFSearch] = useState(initialFilters?.q || '');
+  const [expandedSplitId, setExpandedSplitId] = useState<number | null>(null);
   const { openPaychequeDialog } = useDialogs();
+  const hasActiveAllocations = useMemo(
+    () => allocations.some((r) => Boolean(r.active) && r.weight_bps > 0),
+    [allocations]
+  );
 
   const srcById = useMemo(() => {
     const map = new Map(sources.map((s) => [s.id, s]));
@@ -162,6 +170,58 @@ export function PaychequeLedger({
                           <span className="pill-reserve">
                             Reserve {fmt(b.contractorTaxReserveCents)}
                           </span>
+                        ) : null}
+                        {hasActiveAllocations ? (
+                          <div style={{ marginTop: 4 }}>
+                            <button
+                              type="button"
+                              className="pill-reserve"
+                              style={{
+                                cursor: 'pointer',
+                                background: 'var(--accent-soft)',
+                                color: 'var(--accent-2)',
+                                borderColor: 'transparent',
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setExpandedSplitId((prev) => (prev === p.id ? null : p.id));
+                              }}
+                            >
+                              {expandedSplitId === p.id ? 'Hide split' : 'Split'}
+                            </button>
+                            {expandedSplitId === p.id ? (
+                              <div
+                                style={{
+                                  marginTop: 6,
+                                  display: 'grid',
+                                  gap: 3,
+                                  fontSize: 12,
+                                  textAlign: 'right',
+                                }}
+                              >
+                                {allocateCentsLargestRemainder(
+                                  b.trueSpendableNetCents,
+                                  allocations,
+                                  b.contractorTaxReserveCents
+                                ).buckets.map((bucket) => (
+                                  <span key={bucket.rule_id} className="muted">
+                                    <span
+                                      className="dot"
+                                      style={
+                                        {
+                                          '--c': bucket.color,
+                                          width: 7,
+                                          height: 7,
+                                          marginRight: 4,
+                                        } as CSSProperties
+                                      }
+                                    />
+                                    {bucket.name}: <b className="num">{fmt(bucket.allocated_cents)}</b>
+                                  </span>
+                                ))}
+                              </div>
+                            ) : null}
+                          </div>
                         ) : null}
                       </td>
                     </tr>

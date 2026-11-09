@@ -335,4 +335,84 @@ dialog h2 { font-size: 22px; font-weight: 500; letter-spacing: -.02em; }
   margin-top: 0.125rem;
 }
 
+/* Feature 2: Pay Yourself First Allocation Engine */
+.allocation-bar-track {
+  width: 100%;
+  height: 0.75rem;
+  border-radius: 999px;
+  background: var(--surface, rgba(255, 255, 255, 0.08));
+  overflow: hidden;
+  display: flex;
+  gap: 2px;
+  margin: 0.875rem 0;
+}
+
+.allocation-bar-seg {
+  height: 100%;
+  transition: width 0.25s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .allocation-bar-seg {
+    transition: none;
+  }
+}
+
+.bucket-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.bucket-card {
+  padding: 1.125rem;
+  border-radius: 0.75rem;
+  background: var(--surface, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--border, var(--line, rgba(255, 255, 255, 0.08)));
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.bucket-card-inactive {
+  opacity: 0.55;
+}
+
+.preset-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.875rem;
+  margin-top: 0.75rem;
+}
+
+.simulator-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 720px) {
+  .preset-grid,
+  .simulator-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.split-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--surface, rgba(255, 255, 255, 0.025));
+  border: 1px solid var(--border, var(--line, rgba(255, 255, 255, 0.06)));
+}
+
+.split-row + .split-row {
+  margin-top: 0.5rem;
+}
+
+
 

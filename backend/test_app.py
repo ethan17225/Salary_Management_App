@@ -15,6 +15,7 @@ from sqlalchemy.pool import StaticPool
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from src.allocations import allocate_cents_largest_remainder
 from src.database import ensure_schema_migrations, get_db, seed_database
 from src.main import app
 from src.models import Base
@@ -297,6 +298,120 @@ async def test_untaxed_source_and_csv_export(client: AsyncClient) -> None:
     assert lines[0] == "date,source,amount,gross,tax,deductions,tax_reserve,hours,note"
     row = next(line for line in lines if "Freelance Design" in line)
     assert "250.00" in row.split(",")
+
+
+def test_largest_remainder_exact_cent_invariant() -> None:
+    rules_100 = [
+        {"id": 1, "name": "A", "category": "essentials", "color": "#3b82f6", "weight_bps": 3334},
+        {"id": 2, "name": "B", "category": "investments", "color": "#10b981", "weight_bps": 3333},
+        {"id": 3, "name": "C", "category": "lifestyle", "color": "#8b5cf6", "weight_bps": 3333},
+    ]
+    res1 = allocate_cents_largest_remainder(100000, rules_100)
+    allocs1 = [b["allocated_cents"] for b in res1["buckets"]]
+    assert allocs1 == [33340, 33330, 33330]
+    assert sum(allocs1) + res1["unallocated_cents"] == 100000
+
+    rules_9999 = [
+        {"id": 1, "name": "A", "category": "essentials", "color": "#3b82f6", "weight_bps": 3333},
+        {"id": 2, "name": "B", "category": "investments", "color": "#10b981", "weight_bps": 3333},
+        {"id": 3, "name": "C", "category": "lifestyle", "color": "#8b5cf6", "weight_bps": 3333},
+    ]
+    res2 = allocate_cents_largest_remainder(100, rules_9999)
+    allocs2 = [b["allocated_cents"] for b in res2["buckets"]]
+    assert allocs2 == [33, 33, 33]
+    assert res2["unallocated_cents"] == 1
+    assert sum(allocs2) + res2["unallocated_cents"] == 100
+
+    rules_50_30_20 = [
+        {"id": 1, "name": "A", "category": "essentials", "color": "#3b82f6", "weight_bps": 5000},
+        {"id": 2, "name": "B", "category": "lifestyle", "color": "#8b5cf6", "weight_bps": 3000},
+        {"id": 3, "name": "C", "category": "investments", "color": "#10b981", "weight_bps": 2000},
+    ]
+    res3 = allocate_cents_largest_remainder(1337, rules_50_30_20)
+    allocs3 = [b["allocated_cents"] for b in res3["buckets"]]
+    assert sum(allocs3) + res3["unallocated_cents"] == 1337
+    assert res3["unallocated_cents"] == 0
+
+
+@pytest.mark.asyncio
+async def test_allocation_crud_and_100_percent_cap(client: AsyncClient) -> None:
+    r1 = await client.post(
+        "/api/allocations",
+        json={
+            "name": "Essentials",
+            "category": "essentials",
+            "weight_bps": 6000,
+            "color": "#3b82f6",
+        },
+    )
+    assert r1.status_code in (200, 201)
+    id1 = r1.json()["id"]
+
+    r2 = await client.post(
+        "/api/allocations",
+        json={
+            "name": "Investments",
+            "category": "investments",
+            "weight_bps": 5000,
+            "color": "#10b981",
+        },
+    )
+    assert r2.status_code == 400
+    assert "100%" in r2.json()["error"]
+
+    r3 = await client.post(
+        "/api/allocations",
+        json={
+            "name": "Paused Bucket",
+            "category": "lifestyle",
+            "weight_bps": 5000,
+            "color": "#8b5cf6",
+            "active": 0,
+        },
+    )
+    assert r3.status_code in (200, 201)
+    id3 = r3.json()["id"]
+
+    upd = await client.put(
+        f"/api/allocations/{id1}",
+        json={
+            "name": "Essentials Updated",
+            "category": "essentials",
+            "weight_bps": 5500,
+            "color": "#3b82f6",
+            "active": 1,
+        },
+    )
+    assert upd.status_code == 200
+
+    del_resp = await client.delete(f"/api/allocations/{id3}")
+    assert del_resp.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_allocation_presets_endpoint(client: AsyncClient) -> None:
+    resp = await client.post("/api/allocations/presets", json={"preset": "student-coop"})
+    assert resp.status_code == 200
+    assert resp.json()["count"] == 4
+
+    list_resp = await client.get("/api/allocations")
+    assert list_resp.status_code == 200
+    payload = list_resp.json()
+    assert len(payload["allocations"]) == 4
+    assert sum(r["weight_bps"] for r in payload["allocations"]) == 10000
+    assert payload["total_active_bps"] == 10000
+    assert payload["unallocated_bps"] == 0
+
+
+@pytest.mark.asyncio
+async def test_state_endpoint_includes_allocations(client: AsyncClient) -> None:
+    await client.post("/api/allocations/presets", json={"preset": "50-30-20"})
+    resp = await client.get("/api/state")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "allocations" in data
+    assert isinstance(data["allocations"], list)
+    assert len(data["allocations"]) == 3
 
 
 if __name__ == "__main__":

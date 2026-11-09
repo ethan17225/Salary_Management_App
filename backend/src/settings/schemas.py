@@ -2,6 +2,7 @@ from typing import Any
 
 from pydantic import field_validator
 
+from src.allocations import AllocationRuleResponse
 from src.models import CustomModel
 from src.paycheques.schemas import PaychequeResponse
 from src.paycheques.utils import parse_cents
@@ -21,4 +22,5 @@ class StateResponse(CustomModel):
     sources: list[SourceResponse]
     paycheques: list[PaychequeResponse]
     settings: dict[str, str]
+    allocations: list[AllocationRuleResponse] = []
 

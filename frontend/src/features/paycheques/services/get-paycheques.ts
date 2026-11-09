@@ -14,6 +14,7 @@ export const getPaychequesData = cache(async (): Promise<PaychequesPageData> => 
   return {
     sources: state.sources,
     paycheques: state.paycheques,
+    allocations: state.allocations ?? [],
     years,
   };
 });

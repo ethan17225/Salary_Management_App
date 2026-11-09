@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import Link from 'next/link';
 import { YearDropdown } from '@/components/ui/year-dropdown';
+import { computeAggregateAllocations } from '@/lib/allocation-engine';
 import { computeAggregateTaxSummary } from '@/lib/tax-intelligence';
 import { dateLabel, diffDays, fmt, monthLabel, plural, sumCents } from '@/lib/utils';
 import { GoalDialogTrigger } from './goal-dialog';
@@ -17,6 +18,7 @@ export function OverviewDashboard({ data }: { data: OverviewData }) {
   const {
     sources,
     paycheques,
+    allocations = [],
     today,
     activeYear,
     isAll,
@@ -50,10 +52,9 @@ export function OverviewDashboard({ data }: { data: OverviewData }) {
   const srcById = (id: number) =>
     sources.find((s) => s.id === id) || { name: 'Unknown', color: '#94a3b8' };
 
-  const taxSummary = computeAggregateTaxSummary(
-    inY,
-    new Map(sources.map((s) => [s.id, s]))
-  );
+  const srcMap = new Map(sources.map((s) => [s.id, s]));
+  const taxSummary = computeAggregateTaxSummary(inY, srcMap);
+  const allocReport = computeAggregateAllocations(inY, allocations, srcMap);
   const grossBase = Math.max(taxSummary.totalEffectiveGrossCents, 1);
   const segNetPct = (taxSummary.totalTrueSpendableNetCents / grossBase) * 100;
   const segResPct = (taxSummary.totalContractorTaxReserveCents / grossBase) * 100;
@@ -215,6 +216,84 @@ export function OverviewDashboard({ data }: { data: OverviewData }) {
               </p>
             </div>
           </div>
+        </article>
+      </div>
+
+      <div className="grid">
+        <article className="card s12">
+          <div className="card-h">
+            <h2>Pay Yourself First Split</h2>
+            <Link className="btn" href="/allocations">
+              Manage rules →
+            </Link>
+          </div>
+          {allocReport.buckets.length === 0 ? (
+            <p className="muted">
+              No active allocation buckets configured yet. Set up automatic paycheque splits in{' '}
+              <Link className="link" href="/allocations">
+                Allocations
+              </Link>
+              .
+            </p>
+          ) : (
+            <>
+              <div
+                className="allocation-bar-track"
+                role="img"
+                aria-label="Pay yourself first allocation split"
+              >
+                {allocReport.buckets.map((b) => (
+                  <span
+                    key={b.rule_id}
+                    className="allocation-bar-seg"
+                    style={{
+                      width: `${b.weight_bps / 100}%`,
+                      background: b.color,
+                    }}
+                    title={`${b.name}: ${(b.weight_bps / 100).toFixed(1)}%`}
+                  />
+                ))}
+                {allocReport.unallocatedBps > 0 ? (
+                  <span
+                    className="allocation-bar-seg"
+                    style={{
+                      width: `${allocReport.unallocatedBps / 100}%`,
+                      background: 'var(--line)',
+                    }}
+                  />
+                ) : null}
+              </div>
+              <div className="grid">
+                <div className="kpi s3">
+                  <p className="label">Investments</p>
+                  <p className="val num">{fmt(allocReport.byCategoryCents.investments)}</p>
+                  <p className="sub">Long-term wealth buckets</p>
+                </div>
+                <div className="kpi s3">
+                  <p className="label">Essentials</p>
+                  <p className="val num">{fmt(allocReport.byCategoryCents.essentials)}</p>
+                  <p className="sub">Fixed living &amp; tuition</p>
+                </div>
+                <div className="kpi s3">
+                  <p className="label">Savings</p>
+                  <p className="val num">{fmt(allocReport.byCategoryCents.savings)}</p>
+                  <p className="sub">Emergency &amp; cash reserves</p>
+                </div>
+                <div className="kpi s3">
+                  <p className="label">Lifestyle &amp; Buffer</p>
+                  <p className="val num">
+                    {fmt(
+                      allocReport.byCategoryCents.lifestyle +
+                        allocReport.totalUnallocatedCents
+                    )}
+                  </p>
+                  <p className="sub">
+                    Unallocated: {fmt(allocReport.totalUnallocatedCents)}
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
         </article>
       </div>
 

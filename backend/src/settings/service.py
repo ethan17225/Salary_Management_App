@@ -1,6 +1,7 @@
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.allocations import AllocationRuleResponse, list_allocations
 from src.paycheques import service as paycheques_service
 from src.paycheques.schemas import PaychequeResponse
 from src.settings.models import Setting
@@ -34,9 +35,11 @@ async def get_full_state(db: AsyncSession) -> StateResponse:
     sources = await sources_service.list_sources(db)
     paycheques = await paycheques_service.list_paycheques(db)
     settings_map = await get_settings_dict(db)
+    allocations = await list_allocations(db)
     return StateResponse(
         sources=[SourceResponse.model_validate(s) for s in sources],
         paycheques=[PaychequeResponse.model_validate(p) for p in paycheques],
         settings=settings_map,
+        allocations=[AllocationRuleResponse.model_validate(a) for a in allocations],
     )
 

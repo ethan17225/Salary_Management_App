@@ -172,6 +172,34 @@ def ensure_schema_migrations(conn: Any) -> None:
             "CHECK (deductions_cents IS NULL OR deductions_cents >= 0)"
         )
 
+    ensure_allocation_schema(raw)
+
+    if hasattr(raw, "commit"):
+        raw.commit()
+
+
+def ensure_allocation_schema(conn: Any) -> None:
+    """Idempotently creates the allocation_rules table."""
+    raw = getattr(conn, "driver_connection", None) or getattr(conn, "connection", conn)
+    cur = raw.cursor()
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS allocation_rules (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            name        TEXT NOT NULL COLLATE NOCASE UNIQUE
+                        CHECK (length(trim(name)) BETWEEN 1 AND 50),
+            category    TEXT NOT NULL
+                        CHECK (category IN ('essentials', 'investments', 'savings', 'lifestyle')),
+            weight_bps  INTEGER NOT NULL
+                        CHECK (weight_bps > 0 AND weight_bps <= 10000),
+            color       TEXT NOT NULL
+                        CHECK (color GLOB '#[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]'),
+            sort_order  INTEGER NOT NULL DEFAULT 0,
+            active      INTEGER NOT NULL DEFAULT 1
+                        CHECK (active IN (0, 1))
+        )
+        """
+    )
     if hasattr(raw, "commit"):
         raw.commit()
 
@@ -180,6 +208,8 @@ async def init_db(
     target_engine: AsyncEngine = engine,
     session_factory: async_sessionmaker[AsyncSession] = SessionFactory,
 ) -> None:
+    import src.allocations  # noqa: F401
+
     if settings.DB_PATH != ":memory:":
         Path(settings.DB_PATH).parent.mkdir(parents=True, exist_ok=True)
     async with target_engine.begin() as conn:

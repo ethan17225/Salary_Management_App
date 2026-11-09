@@ -8,6 +8,7 @@ import { useDialogs } from '@/components/ui/dialog-provider';
 const NAV_ITEMS = [
   { href: '/', label: 'Overview', match: (p: string) => p === '/' },
   { href: '/paycheques', label: 'Paycheques', match: (p: string) => p.startsWith('/paycheques') },
+  { href: '/allocations', label: 'Allocations', match: (p: string) => p.startsWith('/allocations') },
   { href: '/sources', label: 'Sources', match: (p: string) => p.startsWith('/sources') },
 ] as const;
 

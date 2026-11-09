@@ -1,9 +1,11 @@
+import type { AllocationRule } from '@/lib/allocation-engine';
 import type { Paycheque, Source, UpcomingPayday } from '@/types/payday';
 import type { YearOption } from '@/components/ui/year-dropdown';
 
 export interface OverviewData {
   sources: Source[];
   paycheques: Paycheque[];
+  allocations: AllocationRule[];
   today: string;
   curYear: number;
   activeYear: 'all' | number;

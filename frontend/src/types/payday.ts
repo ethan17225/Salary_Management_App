@@ -1,3 +1,5 @@
+import type { AllocationRule } from '@/lib/allocation-engine';
+
 export type SourceKind = 'job' | 'government' | 'other';
 
 export interface Source {
@@ -31,6 +33,7 @@ export interface PaydayState {
   sources: Source[];
   paycheques: Paycheque[];
   settings: PaydaySettings;
+  allocations: AllocationRule[];
 }
 
 export interface UpcomingPayday {

@@ -22,6 +22,7 @@ export function PaychequesView({
       <PaychequeLedger
         sources={data.sources}
         paycheques={data.paycheques}
+        allocations={data.allocations}
         years={data.years}
         initialFilters={filters}
       />

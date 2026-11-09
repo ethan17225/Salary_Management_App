@@ -101,6 +101,7 @@ export const getOverviewData = cache(async (yearParam?: string): Promise<Overvie
   return {
     sources: state.sources,
     paycheques: state.paycheques,
+    allocations: state.allocations ?? [],
     today,
     curYear,
     activeYear,
