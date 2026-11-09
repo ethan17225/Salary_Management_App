@@ -134,55 +134,62 @@ async def seed_database(session: AsyncSession) -> None:
     await session.commit()
 
 
+def _exec_sql(conn: Any, sql: str) -> Any:
+    if hasattr(conn, "exec_driver_sql"):
+        return conn.exec_driver_sql(sql)
+    return conn.execute(sql)
+
+
 def ensure_schema_migrations(conn: Any) -> None:
     """Idempotently adds Gross-to-Net and Tax Intelligence columns to existing databases."""
-    raw = getattr(conn, "driver_connection", None) or getattr(conn, "connection", conn)
-    cur = raw.cursor()
-
     source_cols = {
-        row[1] for row in cur.execute("PRAGMA table_info(sources)").fetchall()
+        row[1] for row in _exec_sql(conn, "PRAGMA table_info(sources)").fetchall()
     }
     if "is_tax_withheld" not in source_cols:
-        cur.execute(
+        _exec_sql(
+            conn,
             "ALTER TABLE sources ADD COLUMN is_tax_withheld INTEGER NOT NULL DEFAULT 1 "
-            "CHECK (is_tax_withheld IN (0, 1))"
+            "CHECK (is_tax_withheld IN (0, 1))",
         )
     if "tax_reserve_bps" not in source_cols:
-        cur.execute(
+        _exec_sql(
+            conn,
             "ALTER TABLE sources ADD COLUMN tax_reserve_bps INTEGER NOT NULL DEFAULT 0 "
-            "CHECK (tax_reserve_bps >= 0 AND tax_reserve_bps <= 6000)"
+            "CHECK (tax_reserve_bps >= 0 AND tax_reserve_bps <= 6000)",
         )
 
     paycheque_cols = {
-        row[1] for row in cur.execute("PRAGMA table_info(paycheques)").fetchall()
+        row[1] for row in _exec_sql(conn, "PRAGMA table_info(paycheques)").fetchall()
     }
     if "gross_cents" not in paycheque_cols:
-        cur.execute(
+        _exec_sql(
+            conn,
             "ALTER TABLE paycheques ADD COLUMN gross_cents INTEGER NULL "
-            "CHECK (gross_cents IS NULL OR gross_cents >= amount_cents)"
+            "CHECK (gross_cents IS NULL OR gross_cents >= amount_cents)",
         )
     if "tax_cents" not in paycheque_cols:
-        cur.execute(
+        _exec_sql(
+            conn,
             "ALTER TABLE paycheques ADD COLUMN tax_cents INTEGER NULL "
-            "CHECK (tax_cents IS NULL OR tax_cents >= 0)"
+            "CHECK (tax_cents IS NULL OR tax_cents >= 0)",
         )
     if "deductions_cents" not in paycheque_cols:
-        cur.execute(
+        _exec_sql(
+            conn,
             "ALTER TABLE paycheques ADD COLUMN deductions_cents INTEGER NULL "
-            "CHECK (deductions_cents IS NULL OR deductions_cents >= 0)"
+            "CHECK (deductions_cents IS NULL OR deductions_cents >= 0)",
         )
 
-    ensure_allocation_schema(raw)
+    ensure_allocation_schema(conn)
 
-    if hasattr(raw, "commit"):
-        raw.commit()
+    if not hasattr(conn, "exec_driver_sql") and hasattr(conn, "commit"):
+        conn.commit()
 
 
 def ensure_allocation_schema(conn: Any) -> None:
     """Idempotently creates the allocation_rules table."""
-    raw = getattr(conn, "driver_connection", None) or getattr(conn, "connection", conn)
-    cur = raw.cursor()
-    cur.execute(
+    _exec_sql(
+        conn,
         """
         CREATE TABLE IF NOT EXISTS allocation_rules (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -198,10 +205,10 @@ def ensure_allocation_schema(conn: Any) -> None:
             active      INTEGER NOT NULL DEFAULT 1
                         CHECK (active IN (0, 1))
         )
-        """
+        """,
     )
-    if hasattr(raw, "commit"):
-        raw.commit()
+    if not hasattr(conn, "exec_driver_sql") and hasattr(conn, "commit"):
+        conn.commit()
 
 
 async def init_db(
