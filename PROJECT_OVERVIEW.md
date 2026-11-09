@@ -97,37 +97,7 @@ A comprehensive, searchable, and exportable ledger of every individual deposit.
 
 ---
 
-### 3.3. Income Sources Management (`/sources`)
-
-Dedicated management hub for employers, government benefit programs, freelance clients, and side hustles.
-
-| Feature Component | Description |
-| :--- | :--- |
-| **Source Card Grid** | Each source is rendered as an interactive card branded with its custom accent color. |
-| **12-Month Sparkline Bars** | Custom CSS-grid rolling 12-month activity bar chart embedded directly inside each source card, complete with year span indicators and hover tooltips showing exact monthly earnings. |
-| **Source Statistics** | Highlights all-time cumulative earnings, total paycheques received, average deposit amount, and last paid date. |
-| **Hourly Rate Intelligence** | When hours are logged on deposits, the app calculates the effective net take-home wage per hour (`timedCents / timedHours`) and total hours logged. |
-| **Categorization & Archival** | Sources are categorized as `Job`, `Government`, or `Other`. Inactive or finished positions can be marked as `Archived`, preserving historical records while removing them from quick-entry menus. |
-
----
-
-### 3.4. Source Detail & Analytics (`/sources/[id]`)
-
-A deep-dive view into a specific income stream with granular performance analytics.
-
-| Feature Component | Description |
-| :--- | :--- |
-| **Source Branded Hero** | Dynamic color gradient banner displaying total source earnings, percentage share of total income, active date range, and year-specific filtering. |
-| **Cadence & Schedule Analysis** | Determines day-of-the-week deposit patterns (e.g., "Usually paid on Fridays") and median recurring cycles (e.g., "~14-day cycle"). |
-| **Performance KPIs** | Key metrics tailored to the source: Average deposit, deposit range (minimum to maximum deposit), monthly average, and best month ever recorded. |
-| **Source Monthly Bar Chart** | Dedicated monthly chart illustrating seasonal or monthly variations for that specific payer, including tooltip metrics for paycheque counts and hours worked. |
-| **Yearly Breakdown Comparison** | List showing total income per year with horizontal percentage progress bars and quick links to toggle year-specific source views. |
-| **Milestone Quick Actions** | Clickable buttons highlighting the "Biggest Deposit" and "Smallest Deposit" that instantly open the respective paycheque for inspection or modification. |
-| **Source-Specific Ledger** | Ledger filtered exclusively to this source with:<ul><li>In-ledger search bar.</li><li>Monthly groupings with monthly hour subtotals.</li><li>**"vs. Avg" Delta Analysis**: Custom pill indicator comparing each deposit to the source average (`+X%` green, `-X%` red, or `Avg`).</li><li>Effective hourly wage pill per cheque (`$X.XX/h`).</li></ul> |
-
----
-
-### 3.5. Interactive Dialogs & CRUD Workflows
+### 3.3. Interactive Dialogs & CRUD Workflows
 
 | Modal Dialog | Functionality & UX Innovations |
 | :--- | :--- |
@@ -137,7 +107,7 @@ A deep-dive view into a specific income stream with granular performance analyti
 
 ---
 
-### 3.6. Productivity, Accessibility & UX Details
+### 3.4. Productivity, Accessibility & UX Details
 
 - **Global Keyboard Shortcut**: Press <kbd>N</kbd> on any screen (when not typing in an input field or viewing an open modal) to immediately trigger the "Add paycheque" dialog.
 - **Accessible Toast System**: Non-intrusive floating toast notifications with ARIA live regions (`role="status"`, `aria-live="polite"`), auto-dismissing after 3 seconds (or 7 seconds when an Undo action is available).
