@@ -173,35 +173,6 @@ def ensure_schema_migrations(conn: Any) -> None:
         )
 
     ensure_allocation_schema(raw)
-    ensure_forecast_schema(raw)
-
-    if hasattr(raw, "commit"):
-        raw.commit()
-
-
-def ensure_forecast_schema(conn: Any) -> None:
-    """Idempotently adds schedule-aware forecasting columns to `sources`."""
-    raw = getattr(conn, "driver_connection", None) or getattr(conn, "connection", conn)
-    cur = raw.cursor()
-    source_cols = {
-        row[1] for row in cur.execute("PRAGMA table_info(sources)").fetchall()
-    }
-
-    if "expected_cadence_days" not in source_cols:
-        cur.execute(
-            "ALTER TABLE sources ADD COLUMN expected_cadence_days INTEGER NULL "
-            "CHECK (expected_cadence_days IS NULL OR (expected_cadence_days >= 1 AND expected_cadence_days <= 366))"
-        )
-    if "active_until" not in source_cols:
-        cur.execute(
-            "ALTER TABLE sources ADD COLUMN active_until TEXT NULL "
-            "CHECK (active_until IS NULL OR date(active_until) = active_until)"
-        )
-    if "target_hourly_cents" not in source_cols:
-        cur.execute(
-            "ALTER TABLE sources ADD COLUMN target_hourly_cents INTEGER NULL "
-            "CHECK (target_hourly_cents IS NULL OR target_hourly_cents > 0)"
-        )
 
     if hasattr(raw, "commit"):
         raw.commit()

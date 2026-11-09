@@ -13,18 +13,6 @@ class Source(Base):
         CheckConstraint(
             "tax_reserve_bps >= 0 AND tax_reserve_bps <= 6000", name="tax_reserve_bps"
         ),
-        CheckConstraint(
-            "expected_cadence_days IS NULL OR (expected_cadence_days >= 1 AND expected_cadence_days <= 366)",
-            name="expected_cadence_days",
-        ),
-        CheckConstraint(
-            "active_until IS NULL OR date(active_until) = active_until",
-            name="active_until",
-        ),
-        CheckConstraint(
-            "target_hourly_cents IS NULL OR target_hourly_cents > 0",
-            name="target_hourly_cents",
-        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -34,6 +22,3 @@ class Source(Base):
     archived: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     is_tax_withheld: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     tax_reserve_bps: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    expected_cadence_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    active_until: Mapped[str | None] = mapped_column(Text, nullable=True)
-    target_hourly_cents: Mapped[int | None] = mapped_column(Integer, nullable=True)

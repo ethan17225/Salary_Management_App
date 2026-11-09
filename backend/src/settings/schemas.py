@@ -23,5 +23,4 @@ class StateResponse(CustomModel):
     paycheques: list[PaychequeResponse]
     settings: dict[str, str]
     allocations: list[AllocationRuleResponse] = []
-    forecast: dict[str, Any] | None = None
 

@@ -16,9 +16,6 @@ interface SourceFormState {
   archived: boolean;
   is_tax_withheld: boolean;
   tax_reserve_percent: string;
-  expected_cadence_days: string;
-  active_until: string;
-  target_hourly: string;
 }
 
 export function SourceDialog({ sources }: { sources: Source[] }) {
@@ -36,9 +33,6 @@ export function SourceDialog({ sources }: { sources: Source[] }) {
     archived: false,
     is_tax_withheld: true,
     tax_reserve_percent: '25',
-    expected_cadence_days: '',
-    active_until: '',
-    target_hourly: '',
   });
   const [srcErr, setSrcErr] = useState('');
 
@@ -64,11 +58,6 @@ export function SourceDialog({ sources }: { sources: Source[] }) {
       archived: Boolean(s?.archived),
       is_tax_withheld: isWithheld,
       tax_reserve_percent: isWithheld ? '0' : reservePct,
-      expected_cadence_days: s?.expected_cadence_days ? String(s.expected_cadence_days) : '',
-      active_until: s?.active_until ?? '',
-      target_hourly: s?.target_hourly_cents
-        ? (s.target_hourly_cents / 100).toFixed(2)
-        : '',
     });
     if (!dlgRef.current?.open) {
       dlgRef.current?.showModal();
@@ -198,67 +187,6 @@ export function SourceDialog({ sources }: { sources: Source[] }) {
             </p>
           </div>
         ) : null}
-        <div className="paystub-drawer">
-          <p className="label" style={{ fontWeight: 500 }}>
-            Schedule &amp; Contract Window (Forecasting)
-          </p>
-          <div className="row2">
-            <label className="field">
-              Pay Cadence
-              <select
-                value={srcForm.expected_cadence_days}
-                onChange={(e) =>
-                  setSrcForm((f) => ({ ...f, expected_cadence_days: e.target.value }))
-                }
-              >
-                <option value="">Auto-detect from history</option>
-                <option value="7">Weekly (7d)</option>
-                <option value="14">Bi-weekly (14d)</option>
-                <option value="30">Monthly (30d)</option>
-                <option value="90">Quarterly (90d)</option>
-              </select>
-            </label>
-            <label className="field">
-              <span>
-                Target Net Hourly Rate <span className="opt">($/h)</span>
-              </span>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                className="num"
-                placeholder="e.g. 28.50"
-                value={srcForm.target_hourly}
-                onChange={(e) =>
-                  setSrcForm((f) => ({ ...f, target_hourly: e.target.value }))
-                }
-              />
-            </label>
-          </div>
-          <div className="field">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <label htmlFor="srcActiveUntil">
-                Contract / Co-op End Date <span className="opt">(optional)</span>
-              </label>
-              {srcForm.active_until ? (
-                <button
-                  type="button"
-                  className="link muted"
-                  style={{ fontSize: '12px' }}
-                  onClick={() => setSrcForm((f) => ({ ...f, active_until: '' }))}
-                >
-                  Clear
-                </button>
-              ) : null}
-            </div>
-            <input
-              id="srcActiveUntil"
-              type="date"
-              value={srcForm.active_until}
-              onChange={(e) => setSrcForm((f) => ({ ...f, active_until: e.target.value }))}
-            />
-          </div>
-        </div>
         <label className="check">
           <input
             type="checkbox"

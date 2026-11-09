@@ -1,5 +1,4 @@
 import type { AllocationRule } from '@/lib/allocation-engine';
-import type { ScheduleForecastReport } from '@/lib/forecast-engine';
 
 export type SourceKind = 'job' | 'government' | 'other';
 
@@ -11,9 +10,6 @@ export interface Source {
   archived: number;
   is_tax_withheld?: number;
   tax_reserve_bps?: number;
-  expected_cadence_days?: number | null;
-  active_until?: string | null;
-  target_hourly_cents?: number | null;
 }
 
 export interface Paycheque {
@@ -38,7 +34,6 @@ export interface PaydayState {
   paycheques: Paycheque[];
   settings: PaydaySettings;
   allocations: AllocationRule[];
-  forecast?: ScheduleForecastReport | null;
 }
 
 export interface UpcomingPayday {
