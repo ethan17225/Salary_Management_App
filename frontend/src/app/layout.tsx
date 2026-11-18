@@ -28,7 +28,9 @@ export const viewport: Viewport = { themeColor: '#f7f9fa' };
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${outfit.variable} ${dmMono.variable}`}>
-      <body>{children}</body>
+      <body className="m-0 bg-bg text-ink font-sans text-base leading-normal antialiased">
+        {children}
+      </body>
     </html>
   );
 }

@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from 'react';
 import type { Paycheque, Source } from '@/types/payday';
+import { cn } from '@/lib/utils';
 
 interface PaychequeDialogRequest {
   paycheque?: Paycheque | null;
@@ -92,13 +93,24 @@ export function DialogProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-      <div id="toast" className={toastState ? 'show' : undefined} role="status" aria-live="polite">
+      <div
+        id="toast"
+        className={cn(
+          'fixed left-1/2 bottom-6 z-60 -translate-x-1/2 flex items-center gap-2 max-w-[calc(100%-32px)] bg-ink text-white py-2 pr-2 pl-[18px] rounded-xl shadow-[0_12px_30px_rgb(31_48_56/.3)] transition-all duration-200 min-h-[52px]',
+          toastState
+            ? 'opacity-100 translate-y-0 pointer-events-auto'
+            : 'opacity-0 translate-y-4 pointer-events-none'
+        )}
+        role="status"
+        aria-live="polite"
+      >
         {toastState ? (
           <>
             <span>{toastState.msg}</span>
             {toastState.undo ? (
               <button
                 type="button"
+                className="cursor-pointer text-[#7fd6dd] font-medium px-3 min-h-[44px] inline-flex items-center rounded-lg hover:bg-white/10 transition-colors"
                 onClick={() => {
                   const fn = toastState.undo;
                   setToastState(null);

@@ -1,6 +1,9 @@
 import type { Paycheque, Source, SourceKind, UpcomingPayday } from '@/types/payday';
 import type { YearOption } from '@/components/ui/year-dropdown';
 
+export const cn = (...inputs: (string | false | null | undefined)[]): string =>
+  inputs.filter(Boolean).join(' ');
+
 const CAD = new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' });
 
 export const fmt = (cents: number): string => CAD.format(cents / 100);

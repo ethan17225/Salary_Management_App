@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useDialogs } from '@/components/ui/dialog-provider';
+import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
   { href: '/', label: 'Overview', match: (p: string) => p === '/' },
@@ -52,30 +53,49 @@ export function Navbar() {
 
   return (
     <>
-      <a className="skip" href="#main">
+      <a
+        className="absolute left-3 -top-20 focus:top-3 z-50 bg-ink text-white px-4 py-2.5 rounded transition-[top]"
+        href="#main"
+      >
         Skip to content
       </a>
-      <header className="top">
-        <div className="wrap top-in">
-          <Link className="brand" href="/">
-            <span className="mark" aria-hidden="true">
+      <header className="sticky top-0 z-10 bg-bg/85 backdrop-blur-md border-b border-line">
+        <div className="mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8 flex flex-wrap md:flex-nowrap items-center gap-x-3 gap-y-2 md:gap-7 min-h-[68px] py-2.5 md:py-0">
+          <Link
+            className="flex items-center gap-2.5 font-semibold text-[19px] tracking-[-0.02em] text-inherit no-underline"
+            href="/"
+          >
+            <span
+              className="size-7 rounded-lg bg-accent text-white grid place-items-center text-[15px]"
+              aria-hidden="true"
+            >
               P
             </span>
             Payday
           </Link>
-          <nav className="tabs" aria-label="Sections">
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={item.match(pathname) ? 'page' : undefined}
-              >
-                {item.label}
-              </Link>
-            ))}
+          <nav
+            className="order-3 md:order-none w-full md:w-auto flex gap-1"
+            aria-label="Sections"
+          >
+            {NAV_ITEMS.map((item) => {
+              const active = item.match(pathname);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn(
+                    'flex-1 md:flex-initial inline-flex items-center justify-center min-h-[44px] px-2 md:px-4 rounded-full font-medium no-underline transition-colors duration-150',
+                    active ? 'bg-ink text-white' : 'text-muted hover:text-ink hover:bg-surface'
+                  )}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
           <button
-            className="btn primary"
+            className="btn primary ml-auto"
             type="button"
             onClick={() => openPaychequeDialog(null, activeSourceId)}
           >

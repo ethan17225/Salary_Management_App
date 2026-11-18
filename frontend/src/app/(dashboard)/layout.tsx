@@ -12,7 +12,11 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   return (
     <DialogProvider>
       <Navbar />
-      <main id="main" className="wrap" tabIndex={-1}>
+      <main
+        id="main"
+        className="mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8 pt-8 pb-20 outline-none"
+        tabIndex={-1}
+      >
         {children}
       </main>
       <PaychequeDialog sources={sources} paycheques={paycheques} />
