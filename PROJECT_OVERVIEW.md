@@ -53,9 +53,8 @@ flowchart TD
   - **Validation**: [Zod](https://zod.dev/) schemas enforcing type safety on every server mutation.
   - **Design System**: Bespoke vanilla CSS fintech design system (Outfit typography, DM Mono tabular numerals, custom CSS variables, dark radial hero banners, responsive mobile-first grid, accessible `:focus-visible` styling, and `prefers-reduced-motion` compliance).
 - **Backend**:
-  - **Core Service**: High-speed, zero-dependency Python standard library server (`http.server`, `sqlite3`, `decimal`, `csv`, `json`), running with sub-millisecond execution overhead.
-  - **Modern Architecture Extension**: Modular FastAPI architecture with SQLAlchemy 2.0 Async, Pydantic v2, and Aiosqlite (`backend/src/`).
-  - **Database**: SQLite with Write-Ahead Logging (`PRAGMA journal_mode = WAL`) and strict foreign key enforcement (`PRAGMA foreign_keys = ON`).
+  - **Framework**: Modular FastAPI architecture with SQLAlchemy 2.0 Async, Pydantic v2, and Aiosqlite (`backend/src/`).
+  - **Database**: SQLite with Write-Ahead Logging (`PRAGMA journal_mode = WAL`), `PRAGMA busy_timeout = 5000`, and strict foreign key enforcement (`PRAGMA foreign_keys = ON`).
 - **Containerization**:
   - **Docker Compose**: Orchestrates multi-container frontend and backend services with persistent named Docker volume (`payday-data`).
 
@@ -151,6 +150,11 @@ All endpoints return JSON responses (with the exception of `/api/export.csv`) an
 | `PUT` | `/api/sources/:id` | Update an existing income source | `{"name": string, "kind": "job"\|"government"\|"other", "color": "#hex", "archived": int\|bool}` | `{"ok": true}` |
 | `DELETE` | `/api/sources/:id` | Delete an income source (blocked if paycheques exist) | *None* | `{"ok": true}` |
 | `PUT` | `/api/settings` | Set or remove annual income goal | `{"goal": string\|number\|null}` | `{"ok": true}` |
+| `GET` | `/api/allocations` | List pay-yourself-first allocation rules | *None* | `{"allocations": [...], "total_active_bps": int, "unallocated_bps": int}` |
+| `POST` | `/api/allocations` | Create an allocation rule | `{"name": string, "category": string, "weight_bps"\|"percentage": number, "color": "#hex", "active": int}` | `{"id": int}` |
+| `PUT` | `/api/allocations/:id` | Update an allocation rule | `{"name": string, "category": string, "weight_bps"\|"percentage": number, "color": "#hex", "active": int}` | `{"ok": true}` |
+| `DELETE` | `/api/allocations/:id` | Delete an allocation rule | *None* | `{"ok": true}` |
+| `POST` | `/api/allocations/presets` | Apply an allocation rule preset | `{"preset": "50-30-20"\|"student-coop"\|"aggressive-saver"}` | `{"ok": true, "count": int}` |
 
 ---
 
@@ -159,15 +163,18 @@ All endpoints return JSON responses (with the exception of `/api/export.csv`) an
 ```
 Salary_Management_App/
 ├── backend/
-│   ├── app.py                  # Zero-dependency Python HTTP & SQLite service
-│   ├── test_app.py             # Backend integrity and seeding tests
-│   ├── Dockerfile              # Minimal Python 3.13-slim container
-│   ├── pyproject.toml          # FastAPI/SQLAlchemy project configuration
+│   ├── test_app.py             # Async backend integration & invariant tests
+│   ├── Dockerfile              # Non-root Python 3.13-slim container with healthcheck
+│   ├── pyproject.toml          # FastAPI/SQLAlchemy/Ruff/Pytest project configuration
 │   └── src/                    # Domain-driven FastAPI modules
+│       ├── main.py             # FastAPI app, lifespan, CORS, health check
 │       ├── config.py           # Application settings & DB URLs
+│       ├── database.py         # Async SQLite engine, WAL pragmas, migrations & seeding
 │       ├── models.py           # SQLAlchemy declarative bases & Pydantic models
-│       ├── paycheques/         # Paycheque domain models, schemas, and utils
-│       └── sources/            # Source domain models, schemas, and services
+│       ├── allocations.py      # Pay-yourself-first allocation rules & Largest Remainder
+│       ├── paycheques/         # Paycheque domain models, schemas, router, service, utils
+│       ├── settings/           # Settings & full-state snapshot domain
+│       └── sources/            # Source domain models, schemas, router, and service
 ├── frontend/
 │   ├── Dockerfile              # Multi-stage Next.js production build container
 │   ├── package.json            # Node.js dependencies (Next.js, Chart.js, Zod)
@@ -179,6 +186,8 @@ Salary_Management_App/
 │       │   │   ├── layout.tsx                  # Dashboard layout, dialogs & navigation
 │       │   │   ├── page.tsx                    # Overview dashboard page
 │       │   │   ├── paycheques/page.tsx         # Paycheques ledger page
+│       │   │   ├── taxes/page.tsx              # Gross-to-Net & Tax Intelligence page
+│       │   │   ├── allocations/page.tsx        # Pay-Yourself-First Allocations page
 │       │   │   └── sources/
 │       │   │       ├── page.tsx                # Sources grid page
 │       │   │       └── [id]/page.tsx           # Source drilldown detail page
@@ -187,13 +196,14 @@ Salary_Management_App/
 │       │   ├── layout/navbar.tsx               # Navigation bar & quick add button
 │       │   └── ui/                             # YearDropdown, DialogProvider, toasts
 │       ├── features/
+│       │   ├── allocations/                    # Allocation buckets, presets & simulator
 │       │   ├── overview/                       # Overview charts, KPIs, and goal actions
 │       │   ├── paycheques/                     # Paycheque ledger, dialog, and actions
-│       │   └── sources/                        # Source cards, detail views, and charts
-│       ├── lib/                                # DB client, env validation, formatting utils
+│       │   ├── sources/                        # Source cards, detail views, and charts
+│       │   └── taxes/                          # Tax intelligence & retention breakdowns
+│       ├── lib/                                # DB client, allocation & tax engines, utils
 │       └── styles/globals.css                  # Modern fintech styling & responsive design
 ├── docker-compose.yml          # Containerized multi-service configuration
-├── Salary.pdf                  # Historical salary source reference
 └── PROJECT_OVERVIEW.md         # Full application documentation
 ```
 
@@ -203,7 +213,7 @@ Salary_Management_App/
 
 ### Option A: Running with Docker Compose (Recommended)
 ```bash
-docker-compose up --build
+docker compose up --build
 ```
 - Frontend will be accessible at: `http://localhost:8080` (or `$PAYDAY_PORT`)
 - Backend will be accessible at: `http://localhost:8001` (or `$BACKEND_PORT`)
@@ -214,13 +224,15 @@ docker-compose up --build
 1. **Start Backend**:
    ```bash
    cd backend
-   python app.py
-   # Runs on http://localhost:8000 (seeds database automatically from Salary.pdf data)
+   pip install -e ".[dev]"
+   fastapi dev src/main.py --port 8001
    ```
 
-2. **Verify Backend Tests**:
+2. **Verify Backend Tests & Lint**:
    ```bash
-   python backend/test_app.py
+   cd backend
+   pytest
+   ruff check .
    ```
 
 3. **Start Frontend**:
