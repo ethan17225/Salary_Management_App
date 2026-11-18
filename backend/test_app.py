@@ -170,7 +170,7 @@ async def test_sources_Settings_and_export(client: AsyncClient) -> None:
     assert dup.status_code == 409
     assert dup.json()["error"] == "A source with that name already exists."
 
-    # Create and delete a fresh source
+    # Create, update, list, and delete a fresh source
     new_src = await client.post(
         "/api/sources",
         json={"name": "Freelance", "kind": "other", "color": "#123456"},
@@ -178,8 +178,24 @@ async def test_sources_Settings_and_export(client: AsyncClient) -> None:
     assert new_src.status_code == 201
     new_id = new_src.json()["id"]
 
+    upd_src = await client.put(
+        f"/api/sources/{new_id}",
+        json={"name": "Freelance Pro", "kind": "other", "color": "#123456", "archived": 1},
+    )
+    assert upd_src.status_code == 200
+    sources_list = await client.get("/api/sources")
+    assert sources_list.status_code == 200
+    assert any(s["name"] == "Freelance Pro" and s["archived"] == 1 for s in sources_list.json())
+
     del_new = await client.delete(f"/api/sources/{new_id}")
     assert del_new.status_code == 200
+
+    # 404 Not Found checks
+    for missing_url in ("/api/sources/99999", "/api/paycheques/99999", "/api/allocations/99999"):
+        assert (await client.delete(missing_url)).status_code == 404
+    assert (await client.get("/api/does-not-exist")).status_code == 404
+    assert (await client.get("/api/health")).json() == {"ok": True}
+    assert len((await client.get("/api/paycheques")).json()) == 63
 
     # Goal settings update and clear
     set_goal = await client.put("/api/settings", json={"goal": "50,000"})
@@ -205,10 +221,13 @@ def test_idempotent_schema_migration() -> None:
 
     conn = sqlite3.connect(":memory:")
     conn.execute(
-        "CREATE TABLE sources (id INTEGER PRIMARY KEY, name TEXT, kind TEXT, color TEXT, archived INTEGER)"
+        "CREATE TABLE sources ("
+        "id INTEGER PRIMARY KEY, name TEXT, kind TEXT, color TEXT, archived INTEGER)"
     )
     conn.execute(
-        "CREATE TABLE paycheques (id INTEGER PRIMARY KEY, source_id INTEGER, paid_on TEXT, amount_cents INTEGER, hours REAL, note TEXT)"
+        "CREATE TABLE paycheques ("
+        "id INTEGER PRIMARY KEY, source_id INTEGER, paid_on TEXT, "
+        "amount_cents INTEGER, hours REAL, note TEXT)"
     )
     ensure_schema_migrations(conn)
     ensure_schema_migrations(conn)
@@ -242,6 +261,28 @@ async def test_create_paycheque_with_paystub_breakdown(client: AsyncClient) -> N
     assert p["gross_cents"] == 200000
     assert p["tax_cents"] == 35000
     assert p["deductions_cents"] == 15000
+
+    # Auto-derive gross_cents when only tax and deductions are supplied
+    auto_resp = await client.post(
+        "/api/paycheques",
+        json={
+            "source_id": 1,
+            "paid_on": "2026-03-20",
+            "amount": "1000.00",
+            "tax": "200.00",
+            "deductions": "50.00",
+            "note": "=SUM(A1:A2)",
+        },
+    )
+    assert auto_resp.status_code == 201
+    auto_id = auto_resp.json()["id"]
+    state2 = (await client.get("/api/state")).json()
+    p2 = next(x for x in state2["paycheques"] if x["id"] == auto_id)
+    assert p2["gross_cents"] == 125000
+
+    # Verify CSV formula injection protection prefixes leading '=' with "'"
+    csv_text = (await client.get("/api/export.csv")).text
+    assert "'=SUM(A1:A2)" in csv_text
 
 
 @pytest.mark.asyncio
@@ -364,13 +405,25 @@ async def test_allocation_crud_and_100_percent_cap(client: AsyncClient) -> None:
         json={
             "name": "Paused Bucket",
             "category": "lifestyle",
-            "weight_bps": 5000,
-            "color": "#8b5cf6",
+            "percentage": "50",
+            "color": "#0e7490",
             "active": 0,
         },
     )
     assert r3.status_code in (200, 201)
     id3 = r3.json()["id"]
+
+    # Duplicate bucket name returns 409
+    dup_alloc = await client.post(
+        "/api/allocations",
+        json={
+            "name": "essentials",
+            "category": "essentials",
+            "percentage": 10,
+            "color": "#2563eb",
+        },
+    )
+    assert dup_alloc.status_code == 409
 
     upd = await client.put(
         f"/api/allocations/{id1}",

@@ -13,23 +13,6 @@ from src.paycheques.utils import (
 )
 
 
-def _parse_int_cents(val: Any, field_name: str, allow_zero: bool = True) -> int | None:
-    if val is None or val == "":
-        return None
-    if isinstance(val, bool) or not isinstance(val, int):
-        try:
-            c = int(val)
-        except (TypeError, ValueError) as exc:
-            raise ValueError(f"Invalid monetary amount for {field_name}") from exc
-    else:
-        c = val
-    if allow_zero and c < 0:
-        raise ValueError(f"{field_name} cannot be negative")
-    if not allow_zero and c <= 0:
-        raise ValueError(f"{field_name} must be greater than zero")
-    return c
-
-
 class PaychequePayload(CustomModel):
     source_id: int
     paid_on: str
@@ -37,9 +20,6 @@ class PaychequePayload(CustomModel):
     gross: int | None = None
     tax: int | None = None
     deductions: int | None = None
-    gross_cents: int | None = None
-    tax_cents: int | None = None
-    deductions_cents: int | None = None
     hours: float | None = None
     note: str = ""
 
@@ -84,21 +64,6 @@ class PaychequePayload(CustomModel):
     def validate_deductions(cls, value: Any) -> int | None:
         return parse_optional_cents(value, "Deductions", allow_zero=True)
 
-    @field_validator("gross_cents", mode="before")
-    @classmethod
-    def validate_gross_cents(cls, value: Any) -> int | None:
-        return _parse_int_cents(value, "Gross", allow_zero=False)
-
-    @field_validator("tax_cents", mode="before")
-    @classmethod
-    def validate_tax_cents(cls, value: Any) -> int | None:
-        return _parse_int_cents(value, "Tax", allow_zero=True)
-
-    @field_validator("deductions_cents", mode="before")
-    @classmethod
-    def validate_deductions_cents(cls, value: Any) -> int | None:
-        return _parse_int_cents(value, "Deductions", allow_zero=True)
-
     @field_validator("hours", mode="before")
     @classmethod
     def validate_hours(cls, value: Any) -> float | None:
@@ -124,26 +89,30 @@ class PaychequePayload(CustomModel):
 
     @model_validator(mode="after")
     def validate_breakdown_invariants(self) -> "PaychequePayload":
-        g = self.gross_cents if self.gross_cents is not None else self.gross
-        t = self.tax_cents if self.tax_cents is not None else self.tax
-        d = self.deductions_cents if self.deductions_cents is not None else self.deductions
-        g, t, d = validate_paystub_breakdown(self.amount, g, t, d)
-        self.gross_cents = g
-        self.tax_cents = t
-        self.deductions_cents = d
+        self.gross, self.tax, self.deductions = validate_paystub_breakdown(
+            self.amount, self.gross, self.tax, self.deductions
+        )
         return self
 
     @property
     def amount_cents(self) -> int:
         return self.amount
 
+    @property
+    def gross_cents(self) -> int | None:
+        return self.gross
 
-class PaychequeCreate(PaychequePayload):
-    pass
+    @property
+    def tax_cents(self) -> int | None:
+        return self.tax
+
+    @property
+    def deductions_cents(self) -> int | None:
+        return self.deductions
 
 
-class PaychequeUpdate(PaychequePayload):
-    pass
+PaychequeCreate = PaychequePayload
+PaychequeUpdate = PaychequePayload
 
 
 class PaychequeResponse(CustomModel):

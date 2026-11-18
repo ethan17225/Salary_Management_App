@@ -2,6 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.exceptions import BadRequestError
 from src.sources.exceptions import DuplicateSourceName, SourceHasPaycheques
 from src.sources.models import Source
 from src.sources.schemas import SourceCreate, SourceUpdate
@@ -17,6 +18,18 @@ async def get_by_id(db: AsyncSession, source_id: int) -> Source | None:
     return await db.get(Source, source_id)
 
 
+async def _commit_source(db: AsyncSession, source: Source) -> Source:
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        if "UNIQUE" in str(exc.orig).upper():
+            raise DuplicateSourceName() from exc
+        raise BadRequestError("Invalid source data.") from exc
+    await db.refresh(source)
+    return source
+
+
 async def create_source(db: AsyncSession, payload: SourceCreate) -> Source:
     source = Source(
         name=payload.name,
@@ -27,13 +40,7 @@ async def create_source(db: AsyncSession, payload: SourceCreate) -> Source:
         tax_reserve_bps=payload.tax_reserve_bps,
     )
     db.add(source)
-    try:
-        await db.commit()
-    except IntegrityError as exc:
-        await db.rollback()
-        raise DuplicateSourceName() from exc
-    await db.refresh(source)
-    return source
+    return await _commit_source(db, source)
 
 
 async def update_source(db: AsyncSession, source: Source, payload: SourceUpdate) -> Source:
@@ -43,13 +50,7 @@ async def update_source(db: AsyncSession, source: Source, payload: SourceUpdate)
     source.archived = payload.archived
     source.is_tax_withheld = payload.is_tax_withheld
     source.tax_reserve_bps = payload.tax_reserve_bps
-    try:
-        await db.commit()
-    except IntegrityError as exc:
-        await db.rollback()
-        raise DuplicateSourceName() from exc
-    await db.refresh(source)
-    return source
+    return await _commit_source(db, source)
 
 
 async def delete_source(db: AsyncSession, source: Source) -> None:

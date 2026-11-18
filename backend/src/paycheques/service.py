@@ -5,10 +5,17 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.exceptions import BadRequestError
 from src.paycheques.exceptions import InvalidSourceReference
 from src.paycheques.models import Paycheque
 from src.paycheques.schemas import PaychequeCreate, PaychequeUpdate
 from src.sources.models import Source
+
+_CSV_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _safe_csv_cell(text: str) -> str:
+    return f"'{text}" if text.startswith(_CSV_FORMULA_PREFIXES) else text
 
 
 async def list_paycheques(db: AsyncSession) -> list[Paycheque]:
@@ -19,6 +26,18 @@ async def list_paycheques(db: AsyncSession) -> list[Paycheque]:
 
 async def get_by_id(db: AsyncSession, paycheque_id: int) -> Paycheque | None:
     return await db.get(Paycheque, paycheque_id)
+
+
+async def _commit_paycheque(db: AsyncSession, paycheque: Paycheque) -> Paycheque:
+    try:
+        await db.commit()
+    except IntegrityError as exc:
+        await db.rollback()
+        if "FOREIGN KEY" in str(exc.orig).upper():
+            raise InvalidSourceReference() from exc
+        raise BadRequestError("Invalid paycheque data.") from exc
+    await db.refresh(paycheque)
+    return paycheque
 
 
 async def create_paycheque(db: AsyncSession, payload: PaychequeCreate) -> Paycheque:
@@ -33,13 +52,7 @@ async def create_paycheque(db: AsyncSession, payload: PaychequeCreate) -> Payche
         note=payload.note,
     )
     db.add(paycheque)
-    try:
-        await db.commit()
-    except IntegrityError as exc:
-        await db.rollback()
-        raise InvalidSourceReference() from exc
-    await db.refresh(paycheque)
-    return paycheque
+    return await _commit_paycheque(db, paycheque)
 
 
 async def update_paycheque(
@@ -53,13 +66,7 @@ async def update_paycheque(
     paycheque.deductions_cents = payload.deductions_cents
     paycheque.hours = payload.hours
     paycheque.note = payload.note
-    try:
-        await db.commit()
-    except IntegrityError as exc:
-        await db.rollback()
-        raise InvalidSourceReference() from exc
-    await db.refresh(paycheque)
-    return paycheque
+    return await _commit_paycheque(db, paycheque)
 
 
 async def delete_paycheque(db: AsyncSession, paycheque: Paycheque) -> None:
@@ -120,14 +127,14 @@ async def build_export_csv(db: AsyncSession) -> bytes:
         writer.writerow(
             [
                 paid_on,
-                source_name,
+                _safe_csv_cell(source_name),
                 f"{amount_cents / 100:.2f}",
                 "" if gross_cents is None else f"{gross_cents / 100:.2f}",
                 "" if tax_cents is None else f"{tax_cents / 100:.2f}",
                 "" if deductions_cents is None else f"{deductions_cents / 100:.2f}",
                 f"{reserve_cents / 100:.2f}",
                 "" if hours is None else hours,
-                note,
+                _safe_csv_cell(note),
             ]
         )
     return buf.getvalue().encode("utf-8")

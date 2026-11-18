@@ -1,25 +1,12 @@
-from collections.abc import AsyncIterator, Mapping
 from datetime import date
 
-from fastapi import APIRouter, status
-from fastapi.responses import StreamingResponse
+from fastapi import APIRouter, Response, status
 
 from src.database import DBDep
 from src.models import CreatedResponse, ErrorResponse, OkResponse
 from src.paycheques import service
 from src.paycheques.dependencies import ValidPaychequeDep
 from src.paycheques.schemas import PaychequeCreate, PaychequeResponse, PaychequeUpdate
-
-
-class CSVStreamingResponse(StreamingResponse):
-    media_type = "text/csv; charset=utf-8"
-
-    def init_headers(self, headers: Mapping[str, str] | None = None) -> None:
-        filename = f"paycheques-{date.today().isoformat()}.csv"
-        merged = dict(headers or {})
-        merged.setdefault("Content-Disposition", f'attachment; filename="{filename}"')
-        super().init_headers(merged)
-
 
 router = APIRouter(
     prefix="/api/paycheques",
@@ -118,10 +105,14 @@ async def delete_paycheque(
 
 @export_router.get(
     "/export.csv",
-    response_class=CSVStreamingResponse,
     status_code=status.HTTP_200_OK,
     summary="Export paycheques as CSV",
     description="Streams all paycheques joined with their source name in CSV format.",
 )
-async def export_paycheques_csv(db: DBDep) -> AsyncIterator[bytes]:
-    yield await service.build_export_csv(db)
+async def export_paycheques_csv(db: DBDep) -> Response:
+    filename = f"paycheques-{date.today().isoformat()}.csv"
+    return Response(
+        content=await service.build_export_csv(db),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

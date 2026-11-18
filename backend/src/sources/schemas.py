@@ -73,12 +73,8 @@ class SourcePayload(CustomModel):
         return self
 
 
-class SourceCreate(SourcePayload):
-    pass
-
-
-class SourceUpdate(SourcePayload):
-    pass
+SourceCreate = SourcePayload
+SourceUpdate = SourcePayload
 
 
 class SourceResponse(CustomModel):

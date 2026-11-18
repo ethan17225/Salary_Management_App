@@ -1,6 +1,6 @@
-from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 import re
-from typing import Any
+from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Path, status
 from pydantic import field_validator, model_validator
@@ -18,42 +18,107 @@ VALID_ALLOCATION_CATEGORIES = {"essentials", "investments", "savings", "lifestyl
 
 ALLOCATION_PRESETS: dict[str, list[dict[str, Any]]] = {
     "50-30-20": [
-        {"name": "Essentials & Bills", "category": "essentials", "weight_bps": 5000, "color": "#3b82f6", "sort_order": 1},
-        {"name": "Long-Term Investments", "category": "investments", "weight_bps": 2000, "color": "#10b981", "sort_order": 2},
-        {"name": "Guilt-Free Lifestyle", "category": "lifestyle", "weight_bps": 3000, "color": "#8b5cf6", "sort_order": 3},
+        {
+            "name": "Essentials & Bills",
+            "category": "essentials",
+            "weight_bps": 5000,
+            "color": "#2563eb",
+            "sort_order": 1,
+        },
+        {
+            "name": "Long-Term Investments",
+            "category": "investments",
+            "weight_bps": 2000,
+            "color": "#0d7480",
+            "sort_order": 2,
+        },
+        {
+            "name": "Guilt-Free Lifestyle",
+            "category": "lifestyle",
+            "weight_bps": 3000,
+            "color": "#c2410c",
+            "sort_order": 3,
+        },
     ],
     "student-coop": [
-        {"name": "Tuition & Rent Reserve", "category": "essentials", "weight_bps": 5000, "color": "#3b82f6", "sort_order": 1},
-        {"name": "TFSA / FHSA Index Funds", "category": "investments", "weight_bps": 2500, "color": "#10b981", "sort_order": 2},
-        {"name": "Emergency Buffer", "category": "savings", "weight_bps": 1000, "color": "#f59e0b", "sort_order": 3},
-        {"name": "Campus & Personal Spending", "category": "lifestyle", "weight_bps": 1500, "color": "#ec4899", "sort_order": 4},
+        {
+            "name": "Tuition & Rent Reserve",
+            "category": "essentials",
+            "weight_bps": 5000,
+            "color": "#2563eb",
+            "sort_order": 1,
+        },
+        {
+            "name": "TFSA / FHSA Index Funds",
+            "category": "investments",
+            "weight_bps": 2500,
+            "color": "#0d7480",
+            "sort_order": 2,
+        },
+        {
+            "name": "Emergency Buffer",
+            "category": "savings",
+            "weight_bps": 1000,
+            "color": "#b45309",
+            "sort_order": 3,
+        },
+        {
+            "name": "Campus & Personal Spending",
+            "category": "lifestyle",
+            "weight_bps": 1500,
+            "color": "#c2410c",
+            "sort_order": 4,
+        },
     ],
     "aggressive-saver": [
-        {"name": "Index & Retirement Portfolio", "category": "investments", "weight_bps": 4500, "color": "#10b981", "sort_order": 1},
-        {"name": "Fixed Living Costs", "category": "essentials", "weight_bps": 3500, "color": "#3b82f6", "sort_order": 2},
-        {"name": "High-Yield Cash Reserve", "category": "savings", "weight_bps": 1000, "color": "#06b6d4", "sort_order": 3},
-        {"name": "Discretionary Fun", "category": "lifestyle", "weight_bps": 1000, "color": "#8b5cf6", "sort_order": 4},
+        {
+            "name": "Index & Retirement Portfolio",
+            "category": "investments",
+            "weight_bps": 4500,
+            "color": "#0d7480",
+            "sort_order": 1,
+        },
+        {
+            "name": "Fixed Living Costs",
+            "category": "essentials",
+            "weight_bps": 3500,
+            "color": "#2563eb",
+            "sort_order": 2,
+        },
+        {
+            "name": "High-Yield Cash Reserve",
+            "category": "savings",
+            "weight_bps": 1000,
+            "color": "#0e7490",
+            "sort_order": 3,
+        },
+        {
+            "name": "Discretionary Fun",
+            "category": "lifestyle",
+            "weight_bps": 1000,
+            "color": "#c2410c",
+            "sort_order": 4,
+        },
     ],
 }
 
 
 def parse_weight_bps(payload: dict[str, Any]) -> int:
-    """
-    Extracts integer basis points from `weight_bps` (int) or `percentage` (float/str).
-    Validates 1 <= weight_bps <= 10000.
-    """
-    if "weight_bps" in payload and payload["weight_bps"] is not None:
-        if isinstance(payload["weight_bps"], bool):
+    """Extracts integer basis points (1..10000) from `weight_bps` or `percentage`."""
+    if payload.get("weight_bps") is not None:
+        raw = payload["weight_bps"]
+        if isinstance(raw, bool):
             raise ValueError("weight_bps must be an integer")
         try:
-            bps = int(payload["weight_bps"])
+            bps = int(raw)
         except (ValueError, TypeError) as exc:
             raise ValueError("weight_bps must be an integer") from exc
-    elif "percentage" in payload and payload["percentage"] is not None:
-        if isinstance(payload["percentage"], bool):
+    elif payload.get("percentage") is not None:
+        raw = payload["percentage"]
+        if isinstance(raw, bool):
             raise ValueError("Invalid percentage value")
         try:
-            pct = Decimal(str(payload["percentage"])).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            pct = Decimal(str(raw)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             bps = int(pct * 100)
         except (InvalidOperation, ValueError) as exc:
             raise ValueError("Invalid percentage value") from exc
@@ -61,7 +126,9 @@ def parse_weight_bps(payload: dict[str, Any]) -> int:
         raise ValueError("Either weight_bps or percentage is required")
 
     if not (1 <= bps <= 10000):
-        raise ValueError("Allocation weight must be between 0.01% (1 bps) and 100.00% (10000 bps)")
+        raise ValueError(
+            "Allocation weight must be between 0.01% (1 bps) and 100.00% (10000 bps)"
+        )
     return bps
 
 
@@ -69,67 +136,39 @@ def allocate_cents_largest_remainder(
     amount_cents: int,
     active_rules: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    """
-    Splits `amount_cents` across `active_rules` using the Largest Remainder Method.
-    Guarantees sum(b['allocated_cents'] for b in buckets) + unallocated_cents == amount_cents.
-    """
-    if amount_cents <= 0 or not active_rules:
-        return {
-            "distributable_cents": max(0, amount_cents),
-            "allocated_total_cents": 0,
-            "unallocated_cents": max(0, amount_cents),
-            "buckets": [
-                {
-                    "rule_id": r["id"],
-                    "name": r["name"],
-                    "category": r["category"],
-                    "color": r["color"],
-                    "weight_bps": int(r["weight_bps"]),
-                    "allocated_cents": 0,
-                }
-                for r in active_rules
-            ],
-        }
-
-    total_bps = sum(int(r["weight_bps"]) for r in active_rules)
-    if total_bps > 10000:
-        raise ValueError(f"Active allocation rules sum to {total_bps} bps, exceeding 10000 bps (100%)")
-
-    pool_cents = (amount_cents * total_bps) // 10000
-    unallocated_cents = amount_cents - pool_cents
-
-    quotients: list[int] = []
-    remainders: list[tuple[int, int]] = []
-
-    for idx, rule in enumerate(active_rules):
-        w = int(rule["weight_bps"])
-        q, rem = divmod(amount_cents * w, 10000)
-        quotients.append(q)
-        remainders.append((rem, idx))
-
-    shortfall = pool_cents - sum(quotients)
-    remainders.sort(key=lambda item: (-item[0], item[1]))
-    for i in range(shortfall):
-        _, target_idx = remainders[i]
-        quotients[target_idx] += 1
-
-    buckets = [
-        {
-            "rule_id": rule["id"],
-            "name": rule["name"],
-            "category": rule["category"],
-            "color": rule["color"],
-            "weight_bps": int(rule["weight_bps"]),
-            "allocated_cents": quotients[idx],
-        }
-        for idx, rule in enumerate(active_rules)
-    ]
+    """Splits `amount_cents` across `active_rules` using the Largest Remainder Method."""
+    safe_amount = max(0, amount_cents)
+    if safe_amount == 0 or not active_rules:
+        quotients = [0] * len(active_rules)
+        pool_cents = 0
+    else:
+        total_bps = sum(int(r["weight_bps"]) for r in active_rules)
+        if total_bps > 10000:
+            raise ValueError(
+                f"Active allocation rules sum to {total_bps} bps, exceeding 10000 bps (100%)"
+            )
+        pool_cents = (safe_amount * total_bps) // 10000
+        pairs = [divmod(safe_amount * int(r["weight_bps"]), 10000) for r in active_rules]
+        quotients = [q for q, _ in pairs]
+        order = sorted(range(len(pairs)), key=lambda i: (-pairs[i][1], i))
+        for idx in order[: pool_cents - sum(quotients)]:
+            quotients[idx] += 1
 
     return {
-        "distributable_cents": amount_cents,
+        "distributable_cents": safe_amount,
         "allocated_total_cents": pool_cents,
-        "unallocated_cents": unallocated_cents,
-        "buckets": buckets,
+        "unallocated_cents": safe_amount - pool_cents,
+        "buckets": [
+            {
+                "rule_id": r["id"],
+                "name": r["name"],
+                "category": r["category"],
+                "color": r["color"],
+                "weight_bps": int(r["weight_bps"]),
+                "allocated_cents": quotients[i],
+            }
+            for i, r in enumerate(active_rules)
+        ],
     }
 
 
@@ -268,14 +307,16 @@ async def get_active_bps_sum(db: AsyncSession, exclude_id: int | None = None) ->
 
 
 async def valid_allocation_rule(
+    rule_id: Annotated[int, Path(ge=1)],
     db: DBDep,
-    rule_id: int = Path(..., ge=1),
 ) -> AllocationRule:
     rule = await db.get(AllocationRule, rule_id)
     if not rule:
         raise NotFoundError()
     return rule
 
+
+ValidAllocationRuleDep = Annotated[AllocationRule, Depends(valid_allocation_rule)]
 
 router = APIRouter(prefix="/api/allocations", tags=["allocations"])
 
@@ -293,16 +334,16 @@ async def get_allocations(db: DBDep) -> AllocationsListResponse:
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def create_allocation(payload: AllocationRulePayload, db: DBDep) -> CreatedResponse:
-    assert payload.weight_bps is not None
+    weight_bps = payload.weight_bps or 0
     if payload.active == 1:
         current_active = await get_active_bps_sum(db)
-        if current_active + payload.weight_bps > 10000:
+        if current_active + weight_bps > 10000:
             raise BadRequestError("Total active allocations cannot exceed 100% (10000 bps).")
 
     rule = AllocationRule(
         name=payload.name,
         category=payload.category,
-        weight_bps=payload.weight_bps,
+        weight_bps=weight_bps,
         color=payload.color,
         sort_order=payload.sort_order,
         active=payload.active,
@@ -321,17 +362,17 @@ async def create_allocation(payload: AllocationRulePayload, db: DBDep) -> Create
 async def update_allocation(
     payload: AllocationRulePayload,
     db: DBDep,
-    rule: AllocationRule = Depends(valid_allocation_rule),
+    rule: ValidAllocationRuleDep,
 ) -> OkResponse:
-    assert payload.weight_bps is not None
+    weight_bps = payload.weight_bps or 0
     if payload.active == 1:
         other_active = await get_active_bps_sum(db, exclude_id=rule.id)
-        if other_active + payload.weight_bps > 10000:
+        if other_active + weight_bps > 10000:
             raise BadRequestError("Total active allocations cannot exceed 100% (10000 bps).")
 
     rule.name = payload.name
     rule.category = payload.category
-    rule.weight_bps = payload.weight_bps
+    rule.weight_bps = weight_bps
     rule.color = payload.color
     rule.sort_order = payload.sort_order
     rule.active = payload.active
@@ -346,7 +387,7 @@ async def update_allocation(
 @router.delete("/{rule_id}", status_code=status.HTTP_200_OK)
 async def delete_allocation(
     db: DBDep,
-    rule: AllocationRule = Depends(valid_allocation_rule),
+    rule: ValidAllocationRuleDep,
 ) -> OkResponse:
     await db.delete(rule)
     await db.commit()
