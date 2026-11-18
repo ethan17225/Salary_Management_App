@@ -1,6 +1,5 @@
 import 'server-only';
 import { cache } from 'react';
-import { headers } from 'next/headers';
 import { env } from '@/lib/env';
 import type { PaydayState } from '@/types/payday';
 
@@ -27,11 +26,6 @@ async function fetchBackend(path: string, init?: RequestInit): Promise<Response>
     }
   }
   throw lastError instanceof Error ? lastError : new Error('Could not reach the Payday backend');
-}
-
-export async function verifySession(): Promise<{ authenticated: true }> {
-  await headers();
-  return { authenticated: true };
 }
 
 export const db = {

@@ -30,7 +30,12 @@ export const savePaychequeSchema = z
     deductions: optionalMoneySchema.optional().default(null),
     paid_on: z
       .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must look like 2026-11-08'),
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must look like 2026-11-08')
+      .refine((s) => {
+        const [y, m, d] = s.split('-').map(Number);
+        const dt = new Date(y, m - 1, d);
+        return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d;
+      }, 'Date must be a valid calendar date'),
     hours: z
       .union([z.string(), z.number(), z.null(), z.undefined()])
       .transform((v) => (v === null || v === undefined ? '' : String(v).trim()))

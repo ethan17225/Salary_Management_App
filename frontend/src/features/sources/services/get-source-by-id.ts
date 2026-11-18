@@ -6,12 +6,11 @@ import {
   computeUpcomingPaydays,
   dateLabel,
   diffDays,
-  iso,
   median,
+  resolveYearFilter,
   sumCents,
 } from '@/lib/utils';
 import type { SourceDetailData } from '../types/source-types';
-import type { YearOption } from '@/components/ui/year-dropdown';
 
 export const getSourceById = cache(
   async (id: number, yearParam?: string): Promise<SourceDetailData | null> => {
@@ -21,23 +20,16 @@ export const getSourceById = cache(
     const source = state.sources.find((s) => s.id === id);
     if (!source) return null;
 
-    const today = iso(new Date());
-    const curYear = +today.slice(0, 4);
     const srcAllPs = state.paycheques.filter((p) => p.source_id === source.id);
-
-    const ys = new Set(srcAllPs.map((p) => +p.paid_on.slice(0, 4)));
-    if (!ys.size) ys.add(curYear);
-    const srcYears = [...ys].sort((a, b) => b - a);
-
-    let srcYear: 'all' | number = 'all';
-    if (yearParam && /^\d{4}$/.test(yearParam)) {
-      srcYear = Number(yearParam);
-    }
-
-    const srcIsAll = srcYear === 'all';
-    const srcPs = srcIsAll
-      ? srcAllPs
-      : srcAllPs.filter((p) => p.paid_on.startsWith(`${srcYear}-`));
+    const {
+      today,
+      curYear,
+      years: srcYears,
+      activeYear: srcYear,
+      isAll: srcIsAll,
+      inY: srcPs,
+      yearOptions: srcYearOptions,
+    } = resolveYearFilter(srcAllPs, yearParam, true);
     const srcSum = sumCents(srcPs);
     const srcTotalPool = sumCents(
       srcIsAll
@@ -85,16 +77,6 @@ export const getSourceById = cache(
     }
 
     const srcTimeline = buildTimelineMonths(srcAllPs, curYear);
-    const srcYearOptions: YearOption[] = [
-      ['all', 'All', sumCents(srcAllPs)],
-      ...srcYears.map(
-        (y): YearOption => [
-          y,
-          String(y),
-          sumCents(srcAllPs.filter((p) => p.paid_on.startsWith(`${y}-`))),
-        ]
-      ),
-    ];
 
     const upcoming = computeUpcomingPaydays(state.sources, state.paycheques, today);
     const upcomingForSource = upcoming.find((u) => u.source.id === source.id) ?? null;

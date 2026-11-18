@@ -1,5 +1,8 @@
 // frontend/src/lib/allocation-engine.ts
 
+import { computePaychequeBreakdown } from '@/lib/tax-intelligence';
+import type { Source } from '@/types/payday';
+
 export type AllocationCategory = 'essentials' | 'investments' | 'savings' | 'lifestyle';
 
 export interface AllocationRule {
@@ -171,18 +174,17 @@ export function computeAggregateAllocations(
 
   for (const p of paycheques) {
     const src = sourcesById?.get(p.source_id);
-    const isWithheld =
-      src?.is_tax_withheld === undefined ? true : Boolean(src.is_tax_withheld);
-    const reserveBps = src?.tax_reserve_bps ?? 0;
-    const explicitTax = p.tax_cents ?? 0;
+    const { contractorTaxReserveCents: taxReserveCents, trueSpendableNetCents } =
+      computePaychequeBreakdown(
+        { id: p.id, source_id: p.source_id, paid_on: '', amount_cents: p.amount_cents, tax_cents: p.tax_cents },
+        src as Source | undefined
+      );
 
-    const taxReserveCents =
-      !isWithheld && reserveBps > 0 && explicitTax === 0
-        ? Math.floor((p.amount_cents * reserveBps + 5000) / 10000)
-        : 0;
-
-    const distributable = Math.max(0, p.amount_cents - taxReserveCents);
-    const split = allocateCentsLargestRemainder(distributable, activeRules, taxReserveCents);
+    const split = allocateCentsLargestRemainder(
+      Math.max(0, trueSpendableNetCents),
+      activeRules,
+      taxReserveCents
+    );
 
     totalNetCents += p.amount_cents;
     totalTaxReserveCents += taxReserveCents;

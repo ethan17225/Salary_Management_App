@@ -1,4 +1,5 @@
 import type { Paycheque, Source, SourceKind, UpcomingPayday } from '@/types/payday';
+import type { YearOption } from '@/components/ui/year-dropdown';
 
 const CAD = new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' });
 
@@ -120,5 +121,50 @@ export function buildTimelineMonths(paycheques: Paycheque[], fallbackYear: numbe
     out.push(`${y}-${pad(m)}`);
   }
   return out;
+}
+
+export function resolveYearFilter(
+  paycheques: Paycheque[],
+  yearParam?: string,
+  defaultAll = false
+): {
+  today: string;
+  curYear: number;
+  years: number[];
+  activeYear: 'all' | number;
+  isAll: boolean;
+  inY: Paycheque[];
+  yearOptions: YearOption[];
+} {
+  const today = iso(new Date());
+  const curYear = +today.slice(0, 4);
+  const ys = new Set(paycheques.map((p) => +p.paid_on.slice(0, 4)));
+  if (!defaultAll || !ys.size) ys.add(curYear);
+  const years = [...ys].sort((a, b) => b - a);
+
+  let activeYear: 'all' | number = defaultAll ? 'all' : curYear;
+  if (yearParam === 'all') {
+    activeYear = 'all';
+  } else if (yearParam && /^\d{4}$/.test(yearParam)) {
+    activeYear = Number(yearParam);
+  }
+
+  const isAll = activeYear === 'all';
+  const inY = isAll
+    ? paycheques
+    : paycheques.filter((p) => p.paid_on.startsWith(`${activeYear}-`));
+
+  const yearOptions: YearOption[] = [
+    ['all', 'All', sumCents(paycheques)],
+    ...years.map(
+      (y): YearOption => [
+        y,
+        String(y),
+        sumCents(paycheques.filter((p) => p.paid_on.startsWith(`${y}-`))),
+      ]
+    ),
+  ];
+
+  return { today, curYear, years, activeYear, isAll, inY, yearOptions };
 }
 

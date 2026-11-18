@@ -1,13 +1,11 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { db, verifySession } from '@/lib/db';
+import { db } from '@/lib/db';
 import { deletePaychequeSchema } from '../schemas/paycheque-schema';
 import type { ActionState } from '@/types/payday';
 
 export async function deletePaychequeAction(rawInput: unknown): Promise<ActionState> {
-  await verifySession();
-
   const parsed = deletePaychequeSchema.safeParse(rawInput);
   if (!parsed.success) {
     return {

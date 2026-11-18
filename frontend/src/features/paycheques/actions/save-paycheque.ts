@@ -1,15 +1,13 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { db, verifySession } from '@/lib/db';
+import { db } from '@/lib/db';
 import { savePaychequeSchema } from '../schemas/paycheque-schema';
 import type { ActionState } from '@/types/payday';
 
 export async function savePaychequeAction(
   rawInput: unknown
 ): Promise<ActionState<{ id?: number }>> {
-  await verifySession();
-
   const parsed = savePaychequeSchema.safeParse(rawInput);
   if (!parsed.success) {
     return {

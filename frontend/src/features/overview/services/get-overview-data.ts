@@ -5,33 +5,18 @@ import {
   buildTimelineMonths,
   computeUpcomingPaydays,
   diffDays,
-  iso,
+  resolveYearFilter,
   sumCents,
 } from '@/lib/utils';
 import type { OverviewData } from '../types/overview-types';
-import type { YearOption } from '@/components/ui/year-dropdown';
 
 export const getOverviewData = cache(async (yearParam?: string): Promise<OverviewData> => {
   const state = await db.getState();
-  const today = iso(new Date());
-  const curYear = +today.slice(0, 4);
-
-  const yearsSet = new Set(state.paycheques.map((p) => +p.paid_on.slice(0, 4)));
-  yearsSet.add(curYear);
-  const years = [...yearsSet].sort((a, b) => b - a);
-
-  let activeYear: 'all' | number = curYear;
-  if (yearParam === 'all') {
-    activeYear = 'all';
-  } else if (yearParam && /^\d{4}$/.test(yearParam)) {
-    activeYear = Number(yearParam);
-  }
-
-  const isAll = activeYear === 'all';
+  const { today, curYear, activeYear, isAll, inY, yearOptions } = resolveYearFilter(
+    state.paycheques,
+    yearParam
+  );
   const isCur = !isAll && activeYear === curYear;
-  const inY = isAll
-    ? state.paycheques
-    : state.paycheques.filter((p) => p.paid_on.startsWith(`${activeYear}-`));
   const sumY = sumCents(inY);
 
   const bySrc = new Map<number, number>();
@@ -73,17 +58,6 @@ export const getOverviewData = cache(async (yearParam?: string): Promise<Overvie
   const daysDone = goalIsCur ? diffDays(`${goalYear}-01-01`, today) + 1 : daysInYr;
   const goalLeft = goal - goalSum;
   const monthsLeft = (daysInYr - daysDone) / 30.44;
-
-  const yearOptions: YearOption[] = [
-    ['all', 'All', sumCents(state.paycheques)],
-    ...years.map(
-      (y): YearOption => [
-        y,
-        String(y),
-        sumCents(state.paycheques.filter((p) => p.paid_on.startsWith(`${y}-`))),
-      ]
-    ),
-  ];
 
   const allMonths: Record<string, number> = {};
   state.paycheques.forEach((p) => {

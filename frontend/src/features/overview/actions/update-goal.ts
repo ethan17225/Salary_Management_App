@@ -1,13 +1,11 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { db, verifySession } from '@/lib/db';
+import { db } from '@/lib/db';
 import { updateGoalSchema } from '../schemas/goal-schema';
 import type { ActionState } from '@/types/payday';
 
 export async function updateGoalAction(rawInput: unknown): Promise<ActionState> {
-  await verifySession();
-
   const parsed = updateGoalSchema.safeParse(rawInput);
   if (!parsed.success) {
     return {

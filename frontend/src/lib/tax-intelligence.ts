@@ -1,24 +1,7 @@
-export interface PaychequeRecord {
-  id: number;
-  source_id: number;
-  paid_on: string;
-  amount_cents: number;
-  gross_cents?: number | null;
-  tax_cents?: number | null;
-  deductions_cents?: number | null;
-  hours?: number | null;
-  note?: string;
-}
+import type { Paycheque, Source } from '@/types/payday';
 
-export interface SourceRecord {
-  id: number;
-  name: string;
-  kind: 'job' | 'government' | 'other';
-  color: string;
-  archived: number | boolean;
-  is_tax_withheld?: number | boolean;
-  tax_reserve_bps?: number;
-}
+export type PaychequeRecord = Paycheque;
+export type SourceRecord = Source;
 
 export interface PaychequeTaxBreakdown {
   netCents: number;

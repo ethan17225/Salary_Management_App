@@ -7,8 +7,8 @@ export interface Source {
   name: string;
   kind: SourceKind;
   color: string;
-  archived: number;
-  is_tax_withheld?: number;
+  archived: number | boolean;
+  is_tax_withheld?: number | boolean;
   tax_reserve_bps?: number;
 }
 
@@ -20,8 +20,8 @@ export interface Paycheque {
   gross_cents?: number | null;
   tax_cents?: number | null;
   deductions_cents?: number | null;
-  hours: number | null;
-  note: string;
+  hours?: number | null;
+  note?: string;
 }
 
 export interface PaydaySettings {

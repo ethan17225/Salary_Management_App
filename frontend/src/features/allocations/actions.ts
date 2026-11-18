@@ -1,21 +1,13 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { db, verifySession } from '@/lib/db';
+import { db } from '@/lib/db';
 import { allocationPresetSchema, allocationRuleFormSchema } from './schemas';
 import type { ActionState } from '@/types/payday';
-
-function revalidateAllocationPaths() {
-  revalidatePath('/');
-  revalidatePath('/allocations');
-  revalidatePath('/paycheques');
-}
 
 export async function saveAllocationRuleAction(
   rawInput: unknown
 ): Promise<ActionState<{ id?: number }>> {
-  await verifySession();
-
   const parsed = allocationRuleFormSchema.safeParse(rawInput);
   if (!parsed.success) {
     return {
@@ -41,7 +33,7 @@ export async function saveAllocationRuleAction(
         active: active ? 1 : 0,
       }
     );
-    revalidateAllocationPaths();
+    revalidatePath('/', 'layout');
     return { success: true, data: { id: res.id ?? id } };
   } catch (err) {
     return {
@@ -52,10 +44,9 @@ export async function saveAllocationRuleAction(
 }
 
 export async function deleteAllocationRuleAction(id: number): Promise<ActionState> {
-  await verifySession();
   try {
     await db.request('DELETE', `allocations/${id}`);
-    revalidateAllocationPaths();
+    revalidatePath('/', 'layout');
     return { success: true };
   } catch (err) {
     return {
@@ -68,7 +59,6 @@ export async function deleteAllocationRuleAction(id: number): Promise<ActionStat
 export async function applyAllocationPresetAction(
   rawPreset: unknown
 ): Promise<ActionState<{ count: number }>> {
-  await verifySession();
   const payload = typeof rawPreset === 'string' ? { preset: rawPreset } : rawPreset;
   const parsed = allocationPresetSchema.safeParse(payload);
   if (!parsed.success) {
@@ -82,7 +72,7 @@ export async function applyAllocationPresetAction(
     const res = await db.request<{ count: number }>('POST', 'allocations/presets', {
       preset: parsed.data.preset,
     });
-    revalidateAllocationPaths();
+    revalidatePath('/', 'layout');
     return { success: true, data: { count: res.count } };
   } catch (err) {
     return {

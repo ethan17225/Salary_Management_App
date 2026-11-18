@@ -1,13 +1,11 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { db, verifySession } from '@/lib/db';
+import { db } from '@/lib/db';
 import { deleteSourceSchema } from '../schemas/source-schema';
 import type { ActionState } from '@/types/payday';
 
 export async function deleteSourceAction(rawInput: unknown): Promise<ActionState> {
-  await verifySession();
-
   const parsed = deleteSourceSchema.safeParse(rawInput);
   if (!parsed.success) {
     return {
