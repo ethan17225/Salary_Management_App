@@ -18,6 +18,7 @@ class Paycheque(Base):
         ),
         CheckConstraint("hours IS NULL OR hours > 0", name="hours"),
         Index("paycheques_paid_on", "paid_on"),
+        Index("paycheques_source_id_paid_on", "source_id", "paid_on"),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)

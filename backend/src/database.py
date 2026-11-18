@@ -94,6 +94,8 @@ SEED: dict[tuple[str, str, str], str] = {
 def _set_sqlite_pragma(dbapi_connection: Any, _connection_record: Any) -> None:
     cursor = dbapi_connection.cursor()
     cursor.execute("PRAGMA journal_mode = WAL")
+    cursor.execute("PRAGMA synchronous = NORMAL")
+    cursor.execute("PRAGMA busy_timeout = 5000")
     cursor.execute("PRAGMA foreign_keys = ON")
     cursor.close()
 
@@ -180,14 +182,11 @@ def ensure_schema_migrations(conn: Any) -> None:
             "CHECK (deductions_cents IS NULL OR deductions_cents >= 0)",
         )
 
-    ensure_allocation_schema(conn)
-
-    if not hasattr(conn, "exec_driver_sql") and hasattr(conn, "commit"):
-        conn.commit()
-
-
-def ensure_allocation_schema(conn: Any) -> None:
-    """Idempotently creates the allocation_rules table."""
+    _exec_sql(
+        conn,
+        "CREATE INDEX IF NOT EXISTS paycheques_source_id_paid_on "
+        "ON paycheques (source_id, paid_on)",
+    )
     _exec_sql(
         conn,
         """
@@ -200,13 +199,17 @@ def ensure_allocation_schema(conn: Any) -> None:
             weight_bps  INTEGER NOT NULL
                         CHECK (weight_bps > 0 AND weight_bps <= 10000),
             color       TEXT NOT NULL
-                        CHECK (color GLOB '#[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]'),
+                        CHECK (
+                            color GLOB
+                            '#[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]'
+                        ),
             sort_order  INTEGER NOT NULL DEFAULT 0,
             active      INTEGER NOT NULL DEFAULT 1
                         CHECK (active IN (0, 1))
         )
         """,
     )
+
     if not hasattr(conn, "exec_driver_sql") and hasattr(conn, "commit"):
         conn.commit()
 

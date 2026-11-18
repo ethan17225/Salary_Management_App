@@ -22,11 +22,7 @@ async def update_goal(db: AsyncSession, payload: GoalUpdate) -> None:
     if payload.goal is None:
         await db.execute(delete(Setting).where(Setting.key == GOAL_KEY))
     else:
-        existing = await db.get(Setting, GOAL_KEY)
-        if existing is None:
-            db.add(Setting(key=GOAL_KEY, value=str(payload.goal)))
-        else:
-            existing.value = str(payload.goal)
+        await db.merge(Setting(key=GOAL_KEY, value=str(payload.goal)))
     await db.commit()
 
 
