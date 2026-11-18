@@ -13,6 +13,14 @@ const NAV_ITEMS = [
   { href: '/sources', label: 'Sources', match: (p: string) => p.startsWith('/sources') },
 ] as const;
 
+const HASH_ROUTES: Record<string, string> = {
+  overview: '/',
+  paycheques: '/paycheques',
+  taxes: '/taxes',
+  allocations: '/allocations',
+  sources: '/sources',
+};
+
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -30,26 +38,12 @@ export function Navbar() {
         openPaychequeDialog(null, activeSourceId);
         return;
       }
-      if (h === 'overview') {
-        router.replace('/');
-        return;
-      }
-      if (h === 'paycheques') {
-        router.replace('/paycheques');
-        return;
-      }
-      if (h === 'taxes') {
-        router.replace('/taxes');
-        return;
-      }
-      if (h === 'sources') {
-        router.replace('/sources');
+      if (HASH_ROUTES[h]) {
+        router.replace(HASH_ROUTES[h]);
         return;
       }
       const m = h.match(/^source\/(\d+)$/);
-      if (m) {
-        router.replace(`/sources/${m[1]}`);
-      }
+      if (m) router.replace(`/sources/${m[1]}`);
     };
     handleHash();
     window.addEventListener('hashchange', handleHash);

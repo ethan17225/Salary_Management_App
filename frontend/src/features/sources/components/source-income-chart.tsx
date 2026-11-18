@@ -1,8 +1,12 @@
 'use client';
 
-import Chart from 'chart.js/auto';
+import { Chart } from 'chart.js';
 import { useEffect, useRef } from 'react';
-import { formatDollars, MONTHS, pad, plural, shortCurrency, sumCents } from '@/lib/utils';
+import {
+  configureChartDefaults,
+  getChartMonths,
+} from '@/features/overview/components/overview-charts';
+import { formatDollars, plural, shortCurrency, sumCents } from '@/lib/utils';
 import type { Paycheque, Source } from '@/types/payday';
 
 interface SourceIncomeChartProps {
@@ -24,20 +28,8 @@ export function SourceIncomeChart({
 
   useEffect(() => {
     if (!canvasRef.current) return;
-    const fontSans = getComputedStyle(document.documentElement)
-      .getPropertyValue('--font-sans')
-      .trim();
-    Chart.defaults.color = '#5d6e76';
-    Chart.defaults.borderColor = '#e8edf0';
-    Chart.defaults.maintainAspectRatio = false;
-    Chart.defaults.font.family = `${fontSans || "'Outfit'"}, system-ui, sans-serif`;
-
-    const monthKeys = srcIsAll
-      ? srcTimeline
-      : MONTHS.map((_, m) => `${srcYear}-${pad(m + 1)}`);
-    const monthLabels = srcIsAll
-      ? srcTimeline.map((ym) => `${MONTHS[+ym.slice(5, 7) - 1]} '${ym.slice(2, 4)}`)
-      : [...MONTHS];
+    configureChartDefaults();
+    const { monthKeys, monthLabels } = getChartMonths(srcIsAll, srcYear, srcTimeline);
     const monthBuckets = monthKeys.map((ym) => srcPs.filter((p) => p.paid_on.startsWith(ym)));
 
     const chart = new Chart(canvasRef.current, {

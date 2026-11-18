@@ -255,9 +255,10 @@ dialog h2 { font-size: 22px; font-weight: 500; letter-spacing: -.02em; }
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.8125rem;
+  min-height: 36px;
+  font-size: 0.875rem;
   font-weight: 500;
-  color: var(--accent, #3b82f6);
+  color: var(--accent);
   background: transparent;
   border: none;
   padding: 0.25rem 0;
@@ -271,9 +272,9 @@ dialog h2 { font-size: 22px; font-weight: 500; letter-spacing: -.02em; }
 .paystub-drawer {
   margin-top: 0.5rem;
   padding: 0.875rem;
-  border-radius: 0.625rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border, var(--line, rgba(255, 255, 255, 0.08)));
+  border-radius: var(--r);
+  background: var(--bg);
+  border: 1px solid var(--line);
   display: grid;
   gap: 0.75rem;
 }
@@ -294,44 +295,45 @@ dialog h2 { font-size: 22px; font-weight: 500; letter-spacing: -.02em; }
   width: 100%;
   height: 0.625rem;
   border-radius: 999px;
-  background: var(--surface, rgba(255, 255, 255, 0.08));
+  background: var(--surface);
   overflow: hidden;
   display: flex;
   margin: 0.75rem 0;
 }
 
 .retention-seg-net {
-  background: var(--success, #10b981);
+  background: var(--up);
   height: 100%;
 }
 
 .retention-seg-reserve {
-  background: var(--warning, #f59e0b);
+  background: #d97706;
   height: 100%;
 }
 
 .retention-seg-withheld {
-  background: var(--danger, #f43f5e);
+  background: var(--down);
   height: 100%;
 }
 
 .pill-reserve {
   display: inline-flex;
   align-items: center;
-  padding: 0.125rem 0.45rem;
+  min-height: 24px;
+  padding: 0.125rem 0.5rem;
   border-radius: 999px;
-  font-size: 0.72rem;
-  font-family: var(--font-mono, monospace);
-  background: rgba(245, 158, 11, 0.14);
-  color: #b45309;
-  border: 1px solid rgba(245, 158, 11, 0.3);
+  font-size: 0.75rem;
+  font-family: var(--mono);
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
 }
 
 .gross-subtext {
   display: block;
-  font-size: 0.72rem;
-  color: var(--muted, #94a3b8);
-  font-family: var(--font-mono, monospace);
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-family: var(--mono);
   margin-top: 0.125rem;
 }
 
@@ -340,7 +342,7 @@ dialog h2 { font-size: 22px; font-weight: 500; letter-spacing: -.02em; }
   width: 100%;
   height: 0.75rem;
   border-radius: 999px;
-  background: var(--surface, rgba(255, 255, 255, 0.08));
+  background: var(--surface);
   overflow: hidden;
   display: flex;
   gap: 2px;
@@ -350,12 +352,6 @@ dialog h2 { font-size: 22px; font-weight: 500; letter-spacing: -.02em; }
 .allocation-bar-seg {
   height: 100%;
   transition: width 0.25s ease;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .allocation-bar-seg {
-    transition: none;
-  }
 }
 
 .bucket-grid {
@@ -368,8 +364,8 @@ dialog h2 { font-size: 22px; font-weight: 500; letter-spacing: -.02em; }
 .bucket-card {
   padding: 1.125rem;
   border-radius: 0.75rem;
-  background: var(--surface, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--border, var(--line, rgba(255, 255, 255, 0.08)));
+  background: var(--bg);
+  border: 1px solid var(--line);
   display: flex;
   flex-direction: column;
   gap: 0.625rem;
@@ -406,8 +402,8 @@ dialog h2 { font-size: 22px; font-weight: 500; letter-spacing: -.02em; }
   justify-content: space-between;
   padding: 0.625rem 0.75rem;
   border-radius: 0.5rem;
-  background: var(--surface, rgba(255, 255, 255, 0.025));
-  border: 1px solid var(--border, var(--line, rgba(255, 255, 255, 0.06)));
+  background: var(--bg);
+  border: 1px solid var(--line);
 }
 
 .split-row + .split-row {

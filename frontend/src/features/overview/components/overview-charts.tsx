@@ -1,18 +1,61 @@
 'use client';
 
-import Chart from 'chart.js/auto';
+import {
+  ArcElement,
+  BarController,
+  BarElement,
+  CategoryScale,
+  Chart,
+  DoughnutController,
+  Filler,
+  Legend,
+  LinearScale,
+  LineController,
+  LineElement,
+  PointElement,
+  Tooltip,
+} from 'chart.js';
 import { useEffect, useMemo, useRef } from 'react';
-import { formatDollars, MONTHS, pad, shortCurrency, sumCents } from '@/lib/utils';
+import { formatDollars, MONTHS, pad, shortCurrency } from '@/lib/utils';
 import type { Paycheque, Source } from '@/types/payday';
 
-function configureChartDefaults() {
+Chart.register(
+  ArcElement,
+  BarController,
+  BarElement,
+  CategoryScale,
+  DoughnutController,
+  Filler,
+  Legend,
+  LinearScale,
+  LineController,
+  LineElement,
+  PointElement,
+  Tooltip
+);
+
+export function configureChartDefaults() {
   const fontSans = getComputedStyle(document.documentElement)
     .getPropertyValue('--font-sans')
     .trim();
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   Chart.defaults.color = '#5d6e76';
   Chart.defaults.borderColor = '#e8edf0';
   Chart.defaults.maintainAspectRatio = false;
   Chart.defaults.font.family = `${fontSans || "'Outfit'"}, system-ui, sans-serif`;
+  Chart.defaults.animation = reducedMotion ? false : { duration: 400 };
+}
+
+export function getChartMonths(
+  isAll: boolean,
+  activeYear: 'all' | number,
+  timelineMonths: string[]
+): { monthKeys: string[]; monthLabels: string[] } {
+  const monthKeys = isAll ? timelineMonths : MONTHS.map((_, m) => `${activeYear}-${pad(m + 1)}`);
+  const monthLabels = isAll
+    ? timelineMonths.map((ym) => `${MONTHS[+ym.slice(5, 7) - 1]} '${ym.slice(2, 4)}`)
+    : [...MONTHS];
+  return { monthKeys, monthLabels };
 }
 
 interface MonthlyChartProps {
@@ -39,10 +82,13 @@ export function MonthlyIncomeChart({
     if (!canvasRef.current) return;
     configureChartDefaults();
     const used = sources.filter((s) => bySrc.has(s.id));
-    const monthKeys = isAll ? timelineMonths : MONTHS.map((_, m) => `${activeYear}-${pad(m + 1)}`);
-    const monthLabels = isAll
-      ? timelineMonths.map((ym) => `${MONTHS[+ym.slice(5, 7) - 1]} '${ym.slice(2, 4)}`)
-      : [...MONTHS];
+    const { monthKeys, monthLabels } = getChartMonths(isAll, activeYear, timelineMonths);
+
+    const bySourceMonth = new Map<string, number>();
+    for (const p of inY) {
+      const key = `${p.source_id}:${p.paid_on.slice(0, 7)}`;
+      bySourceMonth.set(key, (bySourceMonth.get(key) || 0) + p.amount_cents);
+    }
 
     const chart = new Chart(canvasRef.current, {
       type: 'bar',
@@ -53,10 +99,7 @@ export function MonthlyIncomeChart({
           backgroundColor: s.color,
           borderRadius: 4,
           maxBarThickness: 46,
-          data: monthKeys.map(
-            (ym) =>
-              sumCents(inY.filter((p) => p.source_id === s.id && p.paid_on.startsWith(ym))) / 100
-          ),
+          data: monthKeys.map((ym) => (bySourceMonth.get(`${s.id}:${ym}`) || 0) / 100),
         })),
       },
       options: {
@@ -117,15 +160,19 @@ export function CumulativeIncomeChart({
     if (!canvasRef.current) return;
     configureChartDefaults();
     const curMonth = today ? +today.slice(5, 7) - 1 : 11;
-    const monthLabels = isAll
-      ? timelineMonths.map((ym) => `${MONTHS[+ym.slice(5, 7) - 1]} '${ym.slice(2, 4)}`)
-      : [...MONTHS];
+    const { monthLabels } = getChartMonths(isAll, activeYear, timelineMonths);
+
+    const byMonthAll = new Map<string, number>();
+    for (const p of paycheques) {
+      const ym = p.paid_on.slice(0, 7);
+      byMonthAll.set(ym, (byMonthAll.get(ym) || 0) + p.amount_cents);
+    }
 
     const run = (yr: number, stop: number) => {
       let t = 0;
       return MONTHS.map((_, m) => {
         if (m > stop) return null;
-        t += sumCents(paycheques.filter((p) => p.paid_on.startsWith(`${yr}-${pad(m + 1)}`)));
+        t += byMonthAll.get(`${yr}-${pad(m + 1)}`) || 0;
         return t / 100;
       });
     };
@@ -138,7 +185,7 @@ export function CumulativeIncomeChart({
             {
               label: 'All-time cumulative',
               data: timelineMonths.map(
-                (ym) => ((allRun += sumCents(inY.filter((p) => p.paid_on.startsWith(ym)))), allRun / 100)
+                (ym) => ((allRun += byMonthAll.get(ym) || 0), allRun / 100)
               ),
               borderColor: '#0d7480',
               backgroundColor: 'rgba(13,116,128,.09)',

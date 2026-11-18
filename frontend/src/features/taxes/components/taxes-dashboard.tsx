@@ -240,7 +240,16 @@ export function TaxesDashboard({
                     <td>
                       <span className="who">
                         <span className="dot" style={{ '--c': s.color } as CSSProperties} />
-                        <b>{s.name}</b>
+                        <button
+                          type="button"
+                          className="link"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openSourceDialog(s);
+                          }}
+                        >
+                          <b>{s.name}</b>
+                        </button>
                         <span className="tag">{KIND_LABELS[s.kind]}</span>
                         <span className="muted" style={{ fontSize: 13 }}>
                           {plural(count, 'cheque')}

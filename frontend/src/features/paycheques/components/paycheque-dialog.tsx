@@ -201,6 +201,7 @@ export function PaychequeDialog({
           <button
             type="button"
             className="paystub-drawer-toggle"
+            aria-expanded={showDrawer}
             onClick={() => setShowDrawer((v) => !v)}
           >
             {showDrawer

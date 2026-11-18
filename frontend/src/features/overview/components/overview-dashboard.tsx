@@ -307,7 +307,7 @@ export function OverviewDashboard({ data }: { data: OverviewData }) {
               See all paycheques
             </Link>
           </div>
-          <LatestPaychequesList paycheques={paycheques} sources={sources} />
+          <LatestPaychequesList paycheques={paycheques.slice(0, 5)} sources={sources} />
         </article>
       </div>
     </section>

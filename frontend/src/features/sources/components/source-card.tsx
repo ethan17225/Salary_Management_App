@@ -1,6 +1,7 @@
 'use client';
 
 import type { CSSProperties, ReactNode } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useDialogs } from '@/components/ui/dialog-provider';
 import type { Source } from '@/types/payday';
@@ -14,26 +15,22 @@ export function SourceCardShell({
 }) {
   const router = useRouter();
   const { openSourceDialog } = useDialogs();
-  const goDetail = () => router.push(`/sources/${source.id}`);
+  const href = `/sources/${source.id}`;
 
   return (
     <article
       className="card src clickable s4"
       style={{ '--c': source.color } as CSSProperties}
-      role="link"
-      tabIndex={0}
-      aria-label={`${source.name} — view source details`}
-      onClick={goDetail}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          goDetail();
-        }
-      }}
+      onClick={() => router.push(href)}
     >
       {children}
       <div className="src-foot">
-        <span className="src-open">
+        <Link
+          href={href}
+          className="src-open"
+          aria-label={`${source.name} — view source details`}
+          onClick={(e) => e.stopPropagation()}
+        >
           View details
           <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <path
@@ -44,7 +41,7 @@ export function SourceCardShell({
               strokeLinejoin="round"
             />
           </svg>
-        </span>
+        </Link>
         <button
           className="btn"
           type="button"

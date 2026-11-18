@@ -176,6 +176,7 @@ export function PaychequeLedger({
                             <button
                               type="button"
                               className="pill-reserve"
+                              aria-expanded={expandedSplitId === p.id}
                               style={{
                                 cursor: 'pointer',
                                 background: 'var(--accent-soft)',

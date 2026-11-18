@@ -14,13 +14,11 @@ import type { Paycheque, Source } from '@/types/payday';
 interface PaychequeDialogRequest {
   paycheque?: Paycheque | null;
   forceSourceId?: number | null;
-  nonce: number;
 }
 
 interface SourceDialogRequest {
   source?: Source | null;
   onCreated?: (newSourceId: number) => void;
-  nonce: number;
 }
 
 interface ToastState {
@@ -52,14 +50,14 @@ export function DialogProvider({ children }: { children: ReactNode }) {
 
   const openPaychequeDialog = useCallback(
     (paycheque: Paycheque | null = null, forceSourceId: number | null = null) => {
-      setPaychequeRequest({ paycheque, forceSourceId, nonce: Date.now() + Math.random() });
+      setPaychequeRequest({ paycheque, forceSourceId });
     },
     []
   );
 
   const openSourceDialog = useCallback(
     (source: Source | null = null, onCreated?: (newSourceId: number) => void) => {
-      setSourceRequest({ source, onCreated, nonce: Date.now() + Math.random() });
+      setSourceRequest({ source, onCreated });
     },
     []
   );

@@ -205,7 +205,20 @@ export function AllocationsDashboard({
       toast(res.error);
       return;
     }
-    toast(`Deleted ${rule.name}`);
+    toast(`Deleted ${rule.name}`, async () => {
+      const restore = await saveAllocationRuleAction({
+        name: rule.name,
+        category: rule.category,
+        percentage: rule.weight_bps / 100,
+        color: rule.color,
+        sort_order: rule.sort_order,
+        active: Boolean(rule.active),
+      });
+      if (!restore.success) {
+        throw new Error(restore.error);
+      }
+      toast('Bucket restored');
+    });
   }
 
   async function handleApplyPreset(presetId: string) {
@@ -601,6 +614,7 @@ export function AllocationsDashboard({
               ))}
               <input
                 type="color"
+                aria-label="Custom accent colour"
                 value={formState.color}
                 onChange={(e) => setFormState((f) => ({ ...f, color: e.target.value }))}
                 style={{ width: 44, height: 32, minHeight: 32, padding: 2 }}
