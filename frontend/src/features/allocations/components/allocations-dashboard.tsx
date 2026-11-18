@@ -16,7 +16,7 @@ import {
   type AllocationCategory,
   type AllocationRule,
 } from '@/lib/allocation-engine';
-import { fmt, plural, SOURCE_COLORS } from '@/lib/utils';
+import { cn, fmt, plural, SOURCE_COLORS } from '@/lib/utils';
 import {
   applyAllocationPresetAction,
   deleteAllocationRuleAction,
@@ -237,24 +237,28 @@ export function AllocationsDashboard({
 
   return (
     <section>
-      <div className="hero" data-enter="">
+      <div className="hero animate-enter">
         <div>
-          <h1>
+          <h1 className="text-[15px] font-medium text-[#b9c8ce]">
             {activeYear === 'all'
               ? 'Allocated across all years'
               : `Allocated in ${activeYear}`}
           </h1>
-          <p className="big num">{fmt(report.totalAllocatedCents)}</p>
-          <p className="delta">
-            <b className="up">{(report.totalActiveBps / 100).toFixed(1)}% configured</b> ·{' '}
-            {fmt(report.totalUnallocatedCents)} unallocated cash buffer across{' '}
+          <p className="num text-[clamp(2.75rem,7vw,5.25rem)] leading-[1.05] tracking-[-0.04em] mt-1.5 mb-2.5">
+            {fmt(report.totalAllocatedCents)}
+          </p>
+          <p className="text-[#b9c8ce] text-[15px]">
+            <b className="font-medium text-[#6fe0b0]">
+              {(report.totalActiveBps / 100).toFixed(1)}% configured
+            </b>{' '}
+            · {fmt(report.totalUnallocatedCents)} unallocated cash buffer across{' '}
             {plural(report.paychequeCount, 'paycheque')}
             {report.totalTaxReserveCents > 0
               ? ` (after ${fmt(report.totalTaxReserveCents)} tax reserve)`
               : ''}
           </p>
         </div>
-        <div className="hero-side">
+        <div className="flex flex-row md:flex-col justify-between items-center md:items-end gap-4 w-full md:w-auto flex-wrap">
           <YearDropdown activeYear={activeYear} options={yearOptions} />
           <button
             type="button"
@@ -266,24 +270,26 @@ export function AllocationsDashboard({
         </div>
       </div>
 
-      <div className="grid">
-        <article className="card s12">
-          <div className="card-h">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mt-4">
+        <article className="card md:col-span-12">
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-3.5">
             <div>
-              <h2>Pay Yourself First Rules</h2>
-              <p className="muted" style={{ fontSize: 14 }}>
+              <h2 className="text-base font-medium tracking-[-0.01em]">
+                Pay Yourself First Rules
+              </h2>
+              <p className="text-sm text-muted">
                 Split every paycheque into exact integer-cent buckets using Largest Remainder
                 conservation.
               </p>
             </div>
-            <div className="actions">
+            <div className="flex flex-wrap items-center gap-2.5">
               <select
                 aria-label="Reset with preset"
                 value=""
                 onChange={(e) => {
                   if (e.target.value) void handleApplyPreset(e.target.value);
                 }}
-                style={{ width: 'auto' }}
+                className="w-auto"
               >
                 <option value="" disabled>
                   Reset with Preset…
@@ -305,14 +311,14 @@ export function AllocationsDashboard({
           </div>
 
           <div
-            className="allocation-bar-track"
+            className="w-full h-3 rounded-full bg-surface overflow-hidden flex gap-0.5 my-3.5"
             role="img"
             aria-label="Allocation proportion bar"
           >
             {report.buckets.map((b) => (
               <span
                 key={b.rule_id}
-                className="allocation-bar-seg"
+                className="h-full transition-[width] duration-250 ease-out"
                 style={{
                   width: `${b.weight_bps / 100}%`,
                   background: b.color,
@@ -322,10 +328,9 @@ export function AllocationsDashboard({
             ))}
             {report.unallocatedBps > 0 ? (
               <span
-                className="allocation-bar-seg"
+                className="h-full transition-[width] duration-250 ease-out bg-line"
                 style={{
                   width: `${report.unallocatedBps / 100}%`,
-                  background: 'var(--line)',
                 }}
                 title={`Unallocated buffer: ${(report.unallocatedBps / 100).toFixed(1)}%`}
               />
@@ -334,80 +339,77 @@ export function AllocationsDashboard({
 
           {rules.length === 0 ? (
             <div>
-              <p className="muted" style={{ marginBottom: 8 }}>
+              <p className="text-muted mb-2">
                 No allocation buckets yet. Start with a proven template in one click:
               </p>
-              <div className="preset-grid">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 mt-3">
                 {PRESET_CARDS.map((p) => (
                   <button
                     key={p.id}
                     type="button"
-                    className="bucket-card"
-                    style={{ textAlign: 'left', cursor: 'pointer' }}
+                    className="p-[18px] rounded-xl bg-bg border border-line flex flex-col gap-2.5 text-left cursor-pointer hover:border-[#c9d4d9] transition-colors"
                     onClick={() => void handleApplyPreset(p.id)}
                   >
-                    <b style={{ fontSize: 16 }}>{p.title}</b>
-                    <span className="muted" style={{ fontSize: 14 }}>
-                      {p.desc}
-                    </span>
+                    <b className="text-base font-medium">{p.title}</b>
+                    <span className="text-sm text-muted">{p.desc}</span>
                   </button>
                 ))}
               </div>
             </div>
           ) : (
-            <div className="bucket-grid">
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4 mt-4">
               {rules.map((rule) => {
                 const summary = bucketSummaryById.get(rule.id);
                 const isActive = Boolean(rule.active);
                 return (
                   <div
                     key={rule.id}
-                    className={
-                      isActive ? 'bucket-card' : 'bucket-card bucket-card-inactive'
-                    }
+                    className={cn(
+                      'p-[18px] rounded-xl bg-bg border border-line flex flex-col gap-2.5',
+                      !isActive && 'opacity-55'
+                    )}
                   >
-                    <div className="src-head">
+                    <div className="flex items-center gap-2.5 flex-wrap">
                       <span
-                        className="dot"
+                        className="size-2.5 rounded-full bg-(--c) shrink-0 inline-block"
                         style={{ '--c': rule.color } as CSSProperties}
                       />
-                      <b style={{ marginRight: 'auto', fontSize: 16 }}>{rule.name}</b>
-                      <span className="tag">{CATEGORY_LABELS[rule.category]}</span>
+                      <b className="mr-auto text-base font-medium">{rule.name}</b>
+                      <span className="text-xs font-medium py-[3px] px-[9px] rounded-full bg-surface text-muted">
+                        {CATEGORY_LABELS[rule.category]}
+                      </span>
                     </div>
                     <div>
-                      <p className="kpi" style={{ margin: '4px 0' }}>
-                        <span className="val num" style={{ fontSize: 24 }}>
+                      <p className="my-1">
+                        <span className="num text-2xl leading-[1.25] tracking-[-0.03em]">
                           {isActive ? fmt(summary?.total_allocated_cents ?? 0) : 'Paused'}
                         </span>
                       </p>
-                      <p className="muted" style={{ fontSize: 13 }}>
+                      <p className="text-[13px] text-muted">
                         Target {(rule.weight_bps / 100).toFixed(2).replace(/\.00$/, '')}% ·{' '}
                         {isActive
                           ? `${fmt(summary?.average_per_cheque_cents ?? 0)} / cheque`
                           : 'Excluded from splits'}
                       </p>
                     </div>
-                    <div className="actions" style={{ marginTop: 'auto', paddingTop: 8 }}>
+                    <div className="flex flex-wrap items-center gap-2.5 mt-auto pt-2">
                       <button
                         type="button"
-                        className="btn"
-                        style={{ minHeight: 34, padding: '0 12px', fontSize: 13 }}
+                        className="btn min-h-[34px] px-3 text-[13px]"
                         onClick={() => openRuleModal(rule)}
                       >
                         Edit
                       </button>
                       <button
                         type="button"
-                        className="btn"
-                        style={{ minHeight: 34, padding: '0 12px', fontSize: 13 }}
+                        className="btn min-h-[34px] px-3 text-[13px]"
                         onClick={() => void handleToggleActive(rule)}
                       >
                         {isActive ? 'Pause' : 'Activate'}
                       </button>
                       <button
                         type="button"
-                        className="btn danger"
-                        style={{ minHeight: 34, padding: '0 12px', fontSize: 13 }}
+                        className="btn danger min-h-[34px] px-3 text-[13px]"
                         onClick={() => void handleDeleteRule(rule)}
                       >
                         Delete
@@ -421,29 +423,35 @@ export function AllocationsDashboard({
         </article>
       </div>
 
-      <div className="grid">
-        <article className="card s12">
-          <div className="card-h">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mt-4">
+        <article className="card md:col-span-12">
+          <div className="flex items-center justify-between gap-3 flex-wrap mb-3.5">
             <div>
-              <h2>Paycheque Split &amp; Hourly Wage Simulator</h2>
-              <p className="muted" style={{ fontSize: 14 }}>
+              <h2 className="text-base font-medium tracking-[-0.01em]">
+                Paycheque Split &amp; Hourly Wage Simulator
+              </h2>
+              <p className="text-sm text-muted">
                 Test any direct deposit or hourly wage what-if scenario with zero-drift cent
                 conservation.
               </p>
             </div>
-            <div className="chips">
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                className={simMode === 'direct' ? 'btn primary' : 'btn'}
-                style={{ minHeight: 36, padding: '0 14px', fontSize: 14 }}
+                className={cn(
+                  'btn min-h-[36px] px-3.5 text-sm',
+                  simMode === 'direct' && 'primary'
+                )}
                 onClick={() => setSimMode('direct')}
               >
                 Direct Deposit ($)
               </button>
               <button
                 type="button"
-                className={simMode === 'hourly' ? 'btn primary' : 'btn'}
-                style={{ minHeight: 36, padding: '0 14px', fontSize: 14 }}
+                className={cn(
+                  'btn min-h-[36px] px-3.5 text-sm',
+                  simMode === 'hourly' && 'primary'
+                )}
                 onClick={() => setSimMode('hourly')}
               >
                 Hourly Wage ($/h × Hours)
@@ -452,8 +460,8 @@ export function AllocationsDashboard({
           </div>
 
           {simMode === 'direct' ? (
-            <div className="simulator-grid">
-              <label className="field">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+              <label className="grid gap-1.5 text-sm font-medium">
                 Net Deposit Amount ($)
                 <input
                   type="number"
@@ -464,20 +472,28 @@ export function AllocationsDashboard({
                   onChange={(e) => setSimDirect(e.target.value)}
                 />
               </label>
-              <div className="kpi">
-                <p className="label">Allocated to Buckets</p>
-                <p className="val num">{fmt(simSplit.allocatedTotalCents)}</p>
-                <p className="sub">{(report.totalActiveBps / 100).toFixed(1)}% of deposit</p>
+              <div>
+                <p className="text-sm text-muted">Allocated to Buckets</p>
+                <p className="num text-[25px] leading-[1.25] tracking-[-0.03em] mt-1.5 mb-0.5 truncate">
+                  {fmt(simSplit.allocatedTotalCents)}
+                </p>
+                <p className="text-sm text-muted">
+                  {(report.totalActiveBps / 100).toFixed(1)}% of deposit
+                </p>
               </div>
-              <div className="kpi">
-                <p className="label">Unallocated Cash Buffer</p>
-                <p className="val num">{fmt(simSplit.unallocatedCents)}</p>
-                <p className="sub">{(report.unallocatedBps / 100).toFixed(1)}% remaining</p>
+              <div>
+                <p className="text-sm text-muted">Unallocated Cash Buffer</p>
+                <p className="num text-[25px] leading-[1.25] tracking-[-0.03em] mt-1.5 mb-0.5 truncate">
+                  {fmt(simSplit.unallocatedCents)}
+                </p>
+                <p className="text-sm text-muted">
+                  {(report.unallocatedBps / 100).toFixed(1)}% remaining
+                </p>
               </div>
             </div>
           ) : (
-            <div className="simulator-grid">
-              <label className="field">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+              <label className="grid gap-1.5 text-sm font-medium">
                 Net Hourly Wage ($/h)
                 <input
                   type="number"
@@ -488,7 +504,7 @@ export function AllocationsDashboard({
                   onChange={(e) => setSimHourly(e.target.value)}
                 />
               </label>
-              <label className="field">
+              <label className="grid gap-1.5 text-sm font-medium">
                 Hours per Pay Period
                 <input
                   type="number"
@@ -499,10 +515,12 @@ export function AllocationsDashboard({
                   onChange={(e) => setSimHours(e.target.value)}
                 />
               </label>
-              <div className="kpi">
-                <p className="label">Simulated Net Paycheque</p>
-                <p className="val num">{fmt(simCents)}</p>
-                <p className="sub">
+              <div>
+                <p className="text-sm text-muted">Simulated Net Paycheque</p>
+                <p className="num text-[25px] leading-[1.25] tracking-[-0.03em] mt-1.5 mb-0.5 truncate">
+                  {fmt(simCents)}
+                </p>
+                <p className="text-sm text-muted">
                   Allocated {fmt(simSplit.allocatedTotalCents)} · Buffer{' '}
                   {fmt(simSplit.unallocatedCents)}
                 </p>
@@ -510,29 +528,35 @@ export function AllocationsDashboard({
             </div>
           )}
 
-          <div>
+          <div className="flex flex-col gap-2">
             {simSplit.buckets.map((b) => (
-              <div key={b.rule_id} className="split-row">
-                <span className="who">
-                  <span className="dot" style={{ '--c': b.color } as CSSProperties} />
-                  <b>{b.name}</b>
-                  <span className="tag">{CATEGORY_LABELS[b.category]}</span>
-                  <span className="muted" style={{ fontSize: 13 }}>
+              <div
+                key={b.rule_id}
+                className="flex items-center justify-between py-2.5 px-3 rounded-lg bg-bg border border-line"
+              >
+                <span className="inline-flex items-center gap-2 whitespace-nowrap">
+                  <span
+                    className="size-2.5 rounded-full bg-(--c) shrink-0 inline-block"
+                    style={{ '--c': b.color } as CSSProperties}
+                  />
+                  <b className="font-medium">{b.name}</b>
+                  <span className="text-xs font-medium py-[3px] px-[9px] rounded-full bg-surface text-muted">
+                    {CATEGORY_LABELS[b.category]}
+                  </span>
+                  <span className="text-[13px] text-muted">
                     {(b.weight_bps / 100).toFixed(2).replace(/\.00$/, '')}%
                   </span>
                 </span>
-                <span className="num" style={{ fontWeight: 500 }}>
-                  {fmt(b.allocated_cents)}
-                </span>
+                <span className="num font-medium">{fmt(b.allocated_cents)}</span>
               </div>
             ))}
             {simSplit.unallocatedCents > 0 ? (
-              <div className="split-row">
-                <span className="who">
-                  <span className="dot" style={{ '--c': '#94a3b8' } as CSSProperties} />
-                  <span className="muted">Unallocated Cash Buffer</span>
+              <div className="flex items-center justify-between py-2.5 px-3 rounded-lg bg-bg border border-line">
+                <span className="inline-flex items-center gap-2 whitespace-nowrap">
+                  <span className="size-2.5 rounded-full bg-[#94a3b8] shrink-0 inline-block" />
+                  <span className="text-muted">Unallocated Cash Buffer</span>
                 </span>
-                <span className="num muted">{fmt(simSplit.unallocatedCents)}</span>
+                <span className="num text-muted">{fmt(simSplit.unallocatedCents)}</span>
               </div>
             ) : null}
           </div>
@@ -540,11 +564,11 @@ export function AllocationsDashboard({
       </div>
 
       <dialog ref={dlgRef} aria-labelledby="allocTitle">
-        <form onSubmit={handleSaveRule}>
-          <h2 id="allocTitle">
+        <form className="grid gap-[18px] p-[26px]" onSubmit={handleSaveRule}>
+          <h2 id="allocTitle" className="text-[22px] font-medium tracking-[-0.02em]">
             {formState.id ? `Edit ${formState.name || 'bucket'}` : 'New Allocation Bucket'}
           </h2>
-          <label className="field">
+          <label className="grid gap-1.5 text-sm font-medium">
             Bucket Name
             <input
               ref={nameRef}
@@ -555,8 +579,8 @@ export function AllocationsDashboard({
               onChange={(e) => setFormState((f) => ({ ...f, name: e.target.value }))}
             />
           </label>
-          <div className="row2">
-            <label className="field">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label className="grid gap-1.5 text-sm font-medium">
               Category
               <select
                 value={formState.category}
@@ -573,9 +597,11 @@ export function AllocationsDashboard({
                 <option value="lifestyle">Lifestyle</option>
               </select>
             </label>
-            <label className="field">
-              Target Share (%) ·{' '}
-              <span className="opt">{remainingPct.toFixed(1)}% available</span>
+            <label className="grid gap-1.5 text-sm font-medium">
+              <span>
+                Target Share (%) ·{' '}
+                <span className="font-normal text-muted">{remainingPct.toFixed(1)}% available</span>
+              </span>
               <input
                 type="number"
                 step="0.01"
@@ -590,25 +616,21 @@ export function AllocationsDashboard({
               />
             </label>
           </div>
-          <div className="field">
+          <div className="grid gap-1.5 text-sm font-medium">
             <span>Accent Colour</span>
-            <div className="chips">
+            <div className="flex flex-wrap gap-2">
               {SOURCE_COLORS.map((c) => (
                 <button
                   key={c}
                   type="button"
                   onClick={() => setFormState((f) => ({ ...f, color: c }))}
-                  style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 99,
-                    background: c,
-                    border:
-                      formState.color === c
-                        ? '3px solid var(--ink)'
-                        : '2px solid transparent',
-                    cursor: 'pointer',
-                  }}
+                  className={cn(
+                    'size-8 rounded-full cursor-pointer',
+                    formState.color === c
+                      ? 'border-[3px] border-ink'
+                      : 'border-2 border-transparent'
+                  )}
+                  style={{ background: c }}
                   aria-label={`Select color ${c}`}
                 />
               ))}
@@ -617,13 +639,14 @@ export function AllocationsDashboard({
                 aria-label="Custom accent colour"
                 value={formState.color}
                 onChange={(e) => setFormState((f) => ({ ...f, color: e.target.value }))}
-                style={{ width: 44, height: 32, minHeight: 32, padding: 2 }}
+                className="w-11 h-8 min-h-8 p-0.5 cursor-pointer"
               />
             </div>
           </div>
-          <label className="check">
+          <label className="flex items-center gap-2.5 text-[15px] min-h-[44px] cursor-pointer">
             <input
               type="checkbox"
+              className="size-5 min-h-5 accent-accent"
               checked={formState.active}
               onChange={(e) =>
                 setFormState((f) => ({ ...f, active: e.target.checked }))
@@ -631,19 +654,21 @@ export function AllocationsDashboard({
             />
             Active in paycheque splits
           </label>
-          <p className="err" role="alert">
-            {formErr}
-          </p>
-          <div className="actions">
-            <span className="sp" />
+          {formErr ? (
+            <p className="text-down text-sm" role="alert">
+              {formErr}
+            </p>
+          ) : null}
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="hidden sm:block sm:flex-1" />
             <button
               type="button"
-              className="btn"
+              className="btn flex-1 sm:flex-initial"
               onClick={() => dlgRef.current?.close()}
             >
               Cancel
             </button>
-            <button className="btn primary">Save bucket</button>
+            <button className="btn primary flex-1 sm:flex-initial">Save bucket</button>
           </div>
         </form>
       </dialog>

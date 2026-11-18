@@ -35,16 +35,24 @@ export function GoalDialogTrigger({ currentGoalCents }: { currentGoalCents: numb
       </button>
       <dialog ref={goalDlgRef} aria-labelledby="goalTitle">
         <form
+          className="grid gap-[18px] p-[26px]"
           onSubmit={(e) => {
             e.preventDefault();
             void saveGoal(goalVal);
           }}
         >
-          <h2 id="goalTitle">Yearly income goal</h2>
-          <label className="field">
+          <h2 id="goalTitle" className="text-[22px] font-medium tracking-[-0.02em]">
+            Yearly income goal
+          </h2>
+          <label className="grid gap-1.5 text-sm font-medium">
             Take-home goal for the year
-            <span className="money-in">
-              <span aria-hidden="true">$</span>
+            <span className="relative">
+              <span
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted font-mono text-[22px]"
+                aria-hidden="true"
+              >
+                $
+              </span>
               <input
                 ref={goalInputRef}
                 type="number"
@@ -52,25 +60,36 @@ export function GoalDialogTrigger({ currentGoalCents }: { currentGoalCents: numb
                 min="1"
                 inputMode="decimal"
                 placeholder="30000"
+                className="pl-[34px] font-mono text-2xl min-h-[60px] tracking-[-0.02em]"
                 value={goalVal}
                 onChange={(e) => setGoalVal(e.target.value)}
               />
             </span>
           </label>
-          <p className="err" role="alert">
-            {goalErr}
-          </p>
-          <div className="actions">
+          {goalErr ? (
+            <p className="text-down text-sm" role="alert">
+              {goalErr}
+            </p>
+          ) : null}
+          <div className="flex flex-wrap items-center gap-2.5">
             {currentGoalCents ? (
-              <button type="button" className="btn danger" onClick={() => void saveGoal('')}>
+              <button
+                type="button"
+                className="btn danger flex-1 sm:flex-initial"
+                onClick={() => void saveGoal('')}
+              >
                 Remove goal
               </button>
             ) : null}
-            <span className="sp" />
-            <button type="button" className="btn" onClick={() => goalDlgRef.current?.close()}>
+            <span className="hidden sm:block sm:flex-1" />
+            <button
+              type="button"
+              className="btn flex-1 sm:flex-initial"
+              onClick={() => goalDlgRef.current?.close()}
+            >
               Cancel
             </button>
-            <button className="btn primary">Save goal</button>
+            <button className="btn primary flex-1 sm:flex-initial">Save goal</button>
           </div>
         </form>
       </dialog>

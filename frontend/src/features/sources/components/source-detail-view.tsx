@@ -2,7 +2,7 @@ import { Fragment, type CSSProperties } from 'react';
 import Link from 'next/link';
 import { YearDropdown } from '@/components/ui/year-dropdown';
 import { computeAggregateTaxSummary } from '@/lib/tax-intelligence';
-import { dateLabel, fmt, KIND_LABELS, plural, sumCents } from '@/lib/utils';
+import { cn, dateLabel, fmt, KIND_LABELS, plural, sumCents } from '@/lib/utils';
 import {
   SourceDetailHeaderActions,
   SourceRecordItemButton,
@@ -46,8 +46,11 @@ export function SourceDetailView({
 
   return (
     <section>
-      <div className="detail-bar">
-        <Link className="back-link" href="/sources">
+      <div className="flex items-center justify-between gap-4 flex-wrap mb-[18px]">
+        <Link
+          className="inline-flex items-center gap-2 min-h-[44px] pl-2.5 pr-3.5 rounded text-muted no-underline font-medium text-[15px] transition-colors duration-150 hover:text-ink hover:bg-surface"
+          href="/sources"
+        >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <path
               d="M12.5 8h-9M7.5 4l-4 4 4 4"
@@ -64,11 +67,17 @@ export function SourceDetailView({
 
       <div className="hero src-hero" style={{ '--c': source.color } as CSSProperties}>
         <div>
-          <div className="src-hero-meta">
-            <span className="swatch" />
-            <h1>{source.name}</h1>
-            <span className="hero-tag">{KIND_LABELS[source.kind]}</span>
-            {source.archived ? <span className="hero-tag">Archived</span> : null}
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <span className="size-3.5 rounded-[4px] bg-(--c) shrink-0 shadow-[0_0_0_2px_rgb(255_255_255/.18)]" />
+            <h1 className="text-lg font-medium text-white tracking-[-0.01em]">{source.name}</h1>
+            <span className="text-xs font-medium py-[3px] px-2.5 rounded-full bg-white/12 text-[#dbe5e9]">
+              {KIND_LABELS[source.kind]}
+            </span>
+            {source.archived ? (
+              <span className="text-xs font-medium py-[3px] px-2.5 rounded-full bg-white/12 text-[#dbe5e9]">
+                Archived
+              </span>
+            ) : null}
             {source.is_tax_withheld === 0 ? (
               <span className="pill-reserve">
                 Tax Reserve: {((source.tax_reserve_bps ?? 0) / 100).toFixed(0)}% (
@@ -76,11 +85,14 @@ export function SourceDetailView({
               </span>
             ) : null}
           </div>
-          <p className="big">{fmt(srcSum)}</p>
-          <p className="delta">
+          <p className="num text-[clamp(2.75rem,7vw,5.25rem)] leading-[1.05] tracking-[-0.04em] mt-1.5 mb-2.5">
+            {fmt(srcSum)}
+          </p>
+          <p className="text-[#b9c8ce] text-[15px]">
             {srcPs.length ? (
               <Fragment>
-                <b>{plural(srcPs.length, 'paycheque')}</b> · <b>{srcSharePct}%</b> of{' '}
+                <b className="font-medium">{plural(srcPs.length, 'paycheque')}</b> ·{' '}
+                <b className="font-medium">{srcSharePct}%</b> of{' '}
                 {srcIsAll ? 'all-time' : srcYear} income ·{' '}
                 {dateLabel(srcPs.at(-1)!.paid_on, {
                   month: 'short',
@@ -99,13 +111,13 @@ export function SourceDetailView({
             )}
           </p>
         </div>
-        <div className="hero-side">
+        <div className="flex flex-row md:flex-col justify-between items-center md:items-end gap-4 w-full md:w-auto flex-wrap">
           <YearDropdown
             activeYear={srcYear}
             options={srcYearOptions}
             ariaLabel="Select source year"
           />
-          <p className="muted">
+          <p className="text-sm text-[#b9c8ce]">
             {upcomingForSource
               ? `Next est. ${dateLabel(upcomingForSource.next, {
                   month: 'short',
@@ -120,38 +132,44 @@ export function SourceDetailView({
         </div>
       </div>
 
-      <div className="grid">
-        <article className="card kpi s3">
-          <p className="label">Average deposit</p>
-          <p className="val num">{srcPs.length ? fmt(srcAvg) : '—'}</p>
-          <p className="sub">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mt-4">
+        <article className="card md:col-span-6 lg:col-span-3">
+          <p className="text-sm text-muted">Average deposit</p>
+          <p className="num text-[25px] leading-[1.25] tracking-[-0.03em] mt-1.5 mb-0.5 truncate">
+            {srcPs.length ? fmt(srcAvg) : '—'}
+          </p>
+          <p className="text-sm text-muted">
             {srcPs.length && srcMinP && srcMaxP
               ? `Range ${fmt(srcMinP.amount_cents)} – ${fmt(srcMaxP.amount_cents)}`
               : 'No pay yet'}
           </p>
         </article>
-        <article className="card kpi s3">
-          <p className="label">Monthly average</p>
-          <p className="val num">{srcActiveMonths ? fmt(srcSum / srcActiveMonths) : '—'}</p>
-          <p className="sub">
+        <article className="card md:col-span-6 lg:col-span-3">
+          <p className="text-sm text-muted">Monthly average</p>
+          <p className="num text-[25px] leading-[1.25] tracking-[-0.03em] mt-1.5 mb-0.5 truncate">
+            {srcActiveMonths ? fmt(srcSum / srcActiveMonths) : '—'}
+          </p>
+          <p className="text-sm text-muted">
             {srcActiveMonths ? `across ${plural(srcActiveMonths, 'month')} with pay` : 'No pay yet'}
           </p>
         </article>
-        <article className="card kpi s3">
-          <p className="label">Best month</p>
-          <p className="val">
+        <article className="card md:col-span-6 lg:col-span-3">
+          <p className="text-sm text-muted">Best month</p>
+          <p className="font-medium text-[26px] leading-[1.25] tracking-[-0.02em] mt-1.5 mb-0.5 truncate">
             {srcBestMonth
               ? dateLabel(`${srcBestMonth[0]}-01`, { month: 'short', year: 'numeric' })
               : '—'}
           </p>
-          <p className="sub">{srcBestMonth ? fmt(srcBestMonth[1]) : 'No pay yet'}</p>
+          <p className="text-sm text-muted">{srcBestMonth ? fmt(srcBestMonth[1]) : 'No pay yet'}</p>
         </article>
-        <article className="card kpi s3">
+        <article className="card md:col-span-6 lg:col-span-3">
           {srcHours > 0 ? (
             <Fragment>
-              <p className="label">Take-home per hour</p>
-              <p className="val num">{fmt(srcTimedSum / srcHours)}/h net</p>
-              <p className="sub">
+              <p className="text-sm text-muted">Take-home per hour</p>
+              <p className="num text-[25px] leading-[1.25] tracking-[-0.03em] mt-1.5 mb-0.5 truncate">
+                {fmt(srcTimedSum / srcHours)}/h net
+              </p>
+              <p className="text-sm text-muted">
                 {taxSum.effectiveGrossHourlyCents &&
                 taxSum.effectiveGrossHourlyCents > Math.round(srcTimedSum / srcHours)
                   ? `${fmt(taxSum.effectiveGrossHourlyCents)}/h gross · `
@@ -161,21 +179,25 @@ export function SourceDetailView({
             </Fragment>
           ) : (
             <Fragment>
-              <p className="label">Pay cadence</p>
-              <p className="val">
+              <p className="text-sm text-muted">Pay cadence</p>
+              <p className="font-medium text-[26px] leading-[1.25] tracking-[-0.02em] mt-1.5 mb-0.5 truncate">
                 {srcCadence.gap ? `Every ~${srcCadence.gap} days` : srcCadence.weekday || '—'}
               </p>
-              <p className="sub">{srcPs.length ? `Median deposit ${fmt(srcMedian)}` : 'No pay yet'}</p>
+              <p className="text-sm text-muted">
+                {srcPs.length ? `Median deposit ${fmt(srcMedian)}` : 'No pay yet'}
+              </p>
             </Fragment>
           )}
         </article>
       </div>
 
-      <div className="grid">
-        <article className="card s8">
-          <div className="card-h">
-            <h2>Monthly income · {source.name}</h2>
-            <span className="muted">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mt-4">
+        <article className="card md:col-span-12 lg:col-span-8">
+          <div className="flex items-center justify-between gap-3 mb-3.5">
+            <h2 className="text-base font-medium tracking-[-0.01em]">
+              Monthly income · {source.name}
+            </h2>
+            <span className="text-muted">
               {srcIsAll ? 'All recorded months' : `Jan – Dec ${srcYear}`}
             </span>
           </div>
@@ -187,13 +209,13 @@ export function SourceDetailView({
             srcTimeline={srcTimeline}
           />
         </article>
-        <div className="s4 stack">
+        <div className="md:col-span-12 lg:col-span-4 flex flex-col gap-4">
           <article className="card">
-            <div className="card-h">
-              <h2>By year</h2>
+            <div className="flex items-center justify-between gap-3 mb-3.5">
+              <h2 className="text-base font-medium tracking-[-0.01em]">By year</h2>
               {!srcIsAll ? (
                 <Link
-                  className="link muted"
+                  className="link text-muted"
                   href={`/sources/${source.id}?year=all`}
                   scroll={false}
                 >
@@ -201,7 +223,7 @@ export function SourceDetailView({
                 </Link>
               ) : null}
             </div>
-            <ul className="list">
+            <ul className="list-none m-0 p-0">
               {srcYears.map((y) => {
                 const yPs = srcAllPs.filter((p) => p.paid_on.startsWith(`${y}-`));
                 const yTot = sumCents(yPs);
@@ -209,23 +231,35 @@ export function SourceDetailView({
                 const pct = Math.round((yTot / allTot) * 100);
                 const isSel = srcYear === y;
                 return (
-                  <li key={y}>
+                  <li
+                    key={y}
+                    className="flex items-center gap-3 py-3 border-t border-line first:border-t-0 first:pt-0.5"
+                  >
                     <Link
                       href={`/sources/${source.id}?year=${isSel ? 'all' : y}`}
                       scroll={false}
-                      className={isSel ? 'item active-yr' : 'item'}
+                      className={cn(
+                        'flex items-center gap-3 w-[calc(100%+16px)] -my-1.5 -mx-2 py-1.5 px-2 rounded cursor-pointer no-underline text-inherit transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-accent',
+                        isSel ? 'bg-accent-soft' : 'hover:bg-[#f2f6f7]'
+                      )}
                     >
-                      <span className="grow">
-                        <b>
-                          {y} <span className="muted">· {plural(yPs.length, 'paycheque')}</span>
+                      <span className="flex-1 min-w-0 grid">
+                        <b className="font-medium">
+                          {y}{' '}
+                          <span className="text-sm text-muted font-normal">
+                            · {plural(yPs.length, 'paycheque')}
+                          </span>
                         </b>
-                        <span className="yr-bar">
-                          <i style={{ width: `${Math.max(4, pct)}%`, background: source.color }} />
+                        <span className="block h-1.5 rounded-full bg-surface overflow-hidden mt-1.5">
+                          <i
+                            className="block h-full rounded-full"
+                            style={{ width: `${Math.max(4, pct)}%`, background: source.color }}
+                          />
                         </span>
                       </span>
-                      <span className="yr-right">
+                      <span className="grid justify-items-end gap-0.5 text-sm">
                         <span className="num">{fmt(yTot)}</span>
-                        <span className="muted num">{pct}%</span>
+                        <span className="text-xs text-muted num">{pct}%</span>
                       </span>
                     </Link>
                   </li>
@@ -234,21 +268,21 @@ export function SourceDetailView({
             </ul>
           </article>
 
-          <article className="card">
-            <h2>Source records</h2>
-            <ul className="list">
+          <article className="card flex-1">
+            <h2 className="text-base font-medium tracking-[-0.01em] mb-3.5">Source records</h2>
+            <ul className="list-none m-0 p-0">
               {srcMaxP && srcMinP ? (
                 <Fragment>
-                  <li>
+                  <li className="flex items-center gap-3 py-3 border-t border-line first:border-t-0 first:pt-0.5">
                     <SourceRecordItemButton title="Biggest deposit" paycheque={srcMaxP} />
                   </li>
-                  <li>
+                  <li className="flex items-center gap-3 py-3 border-t border-line first:border-t-0 first:pt-0.5">
                     <SourceRecordItemButton title="Smallest deposit" paycheque={srcMinP} />
                   </li>
-                  <li>
-                    <span className="grow">
-                      <b>Median deposit</b>
-                      <span className="muted">
+                  <li className="flex items-center gap-3 py-3 border-t border-line first:border-t-0 first:pt-0.5">
+                    <span className="flex-1 min-w-0 grid">
+                      <b className="font-medium">Median deposit</b>
+                      <span className="text-sm text-muted">
                         Middle paycheque in {srcIsAll ? 'all years' : srcYear}
                       </span>
                     </span>
@@ -256,7 +290,7 @@ export function SourceDetailView({
                   </li>
                 </Fragment>
               ) : (
-                <li className="muted">No paycheques recorded yet.</li>
+                <li className="text-muted">No paycheques recorded yet.</li>
               )}
             </ul>
           </article>

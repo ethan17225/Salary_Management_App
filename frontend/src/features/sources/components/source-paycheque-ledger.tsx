@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { useDialogs } from '@/components/ui/dialog-provider';
 import { computePaychequeBreakdown } from '@/lib/tax-intelligence';
-import { dateLabel, fmt, monthLabel, plural, sumCents } from '@/lib/utils';
+import { cn, dateLabel, fmt, monthLabel, plural, sumCents } from '@/lib/utils';
 import type { Paycheque, Source } from '@/types/payday';
 
 interface SourcePaychequeLedgerProps {
@@ -51,16 +51,18 @@ export function SourcePaychequeLedger({
   const totalHours = srcFilteredRows.reduce((t, p) => t + (p.hours || 0), 0);
 
   return (
-    <div className="card table-wrap src-ledger">
-      <div className="ledger-head">
+    <div className="card overflow-x-auto p-0 mt-4">
+      <div className="flex items-center justify-between gap-4 flex-wrap pt-5 px-[22px] pb-4 border-b border-line">
         <div>
-          <h2>Paycheques from {source.name}</h2>
-          <p className="muted">
+          <h2 className="text-[17px] font-medium tracking-[-0.01em]">
+            Paycheques from {source.name}
+          </h2>
+          <p className="text-sm text-muted mt-0.5">
             {plural(srcFilteredRows.length, 'paycheque')} in {srcIsAll ? 'all years' : srcYear} ·
             click any row to edit
           </p>
         </div>
-        <div className="ledger-tools">
+        <div className="flex-[0_1_320px] min-w-[220px]">
           <input
             type="search"
             placeholder="Search notes, dates, or amounts…"
@@ -75,13 +77,13 @@ export function SourcePaychequeLedger({
           <tr>
             <th scope="col">Date</th>
             <th scope="col">Note</th>
-            <th scope="col" className="num">
+            <th scope="col" className="num text-right">
               Hours
             </th>
-            <th scope="col" className="num">
+            <th scope="col" className="num text-right">
               vs. Avg
             </th>
-            <th scope="col" className="num">
+            <th scope="col" className="num text-right">
               Amount
             </th>
           </tr>
@@ -91,20 +93,27 @@ export function SourcePaychequeLedger({
             const mHrs = ps.reduce((t, p) => t + (p.hours || 0), 0);
             return (
               <tbody key={ym}>
-                <tr className="month">
+                <tr className="[&>*]:bg-surface [&>*]:font-medium [&>*]:border-b-0">
                   <th scope="rowgroup" colSpan={2}>
-                    {monthLabel(ym)} <span className="muted">· {plural(ps.length, 'paycheque')}</span>
+                    {monthLabel(ym)}{' '}
+                    <span className="text-muted font-normal">· {plural(ps.length, 'paycheque')}</span>
                   </th>
-                  <td className="num muted">{mHrs ? `${+mHrs.toFixed(2)} h` : ''}</td>
+                  <td className="num text-right text-muted">
+                    {mHrs ? `${+mHrs.toFixed(2)} h` : ''}
+                  </td>
                   <td />
-                  <td className="num">{fmt(sumCents(ps))}</td>
+                  <td className="num text-right">{fmt(sumCents(ps))}</td>
                 </tr>
                 {ps.map((p) => {
                   const diff = p.amount_cents - srcAvg;
                   const pctDiff = srcAvg ? Math.round((diff / srcAvg) * 100) : 0;
                   const b = computePaychequeBreakdown(p, source);
                   return (
-                    <tr key={p.id} className="row" onClick={() => openPaychequeDialog(p)}>
+                    <tr
+                      key={p.id}
+                      className="cursor-pointer transition-colors duration-120 hover:bg-[#f4f8f9]"
+                      onClick={() => openPaychequeDialog(p)}
+                    >
                       <td>
                         <button
                           className="link"
@@ -122,12 +131,12 @@ export function SourcePaychequeLedger({
                           })}
                         </button>
                       </td>
-                      <td className="muted">{p.note || '—'}</td>
-                      <td className="num muted">
+                      <td className="text-muted">{p.note || '—'}</td>
+                      <td className="num text-right text-muted">
                         {p.hours ? (
                           <span>
                             {p.hours} h{' '}
-                            <small className="rate-sub">
+                            <small className="text-xs text-muted ml-1">
                               ({fmt(p.amount_cents / p.hours)}/h net
                               {b.hasGrossBreakdown && b.grossHourlyCents
                                 ? ` · ${fmt(b.grossHourlyCents)}/h gross`
@@ -139,20 +148,27 @@ export function SourcePaychequeLedger({
                           '—'
                         )}
                       </td>
-                      <td className="num">
+                      <td className="num text-right">
                         {Math.abs(pctDiff) < 1 ? (
-                          <span className="vs-avg">Avg</span>
+                          <span className="inline-block font-mono font-medium text-xs leading-[1.2] py-[3px] px-2 rounded-full bg-surface text-muted">
+                            Avg
+                          </span>
                         ) : (
-                          <span className={diff > 0 ? 'vs-avg up' : 'vs-avg down'}>
+                          <span
+                            className={cn(
+                              'inline-block font-mono font-medium text-xs leading-[1.2] py-[3px] px-2 rounded-full',
+                              diff > 0 ? 'bg-[#e6f4ed] text-up' : 'bg-[#fceceb] text-down'
+                            )}
+                          >
                             {diff > 0 ? '+' : ''}
                             {pctDiff}%
                           </span>
                         )}
                       </td>
-                      <td className="num">
+                      <td className="num text-right">
                         {fmt(p.amount_cents)}
                         {b.hasGrossBreakdown ? (
-                          <span className="gross-subtext">
+                          <span className="block text-xs text-muted font-mono mt-0.5">
                             Gross {fmt(b.effectiveGrossCents)} · -
                             {((10000 - b.netRetentionBps) / 100).toFixed(1)}% withheld
                           </span>
@@ -172,7 +188,7 @@ export function SourcePaychequeLedger({
         ) : (
           <tbody>
             <tr>
-              <td colSpan={5} className="empty">
+              <td colSpan={5} className="text-center text-muted py-12 px-4">
                 No paycheques match this filter.
               </td>
             </tr>
@@ -181,9 +197,11 @@ export function SourcePaychequeLedger({
         <tfoot>
           <tr>
             <th colSpan={2}>{plural(srcFilteredRows.length, 'paycheque')}</th>
-            <td className="num muted">{totalHours ? `${+totalHours.toFixed(2)} h` : ''}</td>
+            <td className="num text-right text-muted">
+              {totalHours ? `${+totalHours.toFixed(2)} h` : ''}
+            </td>
             <td />
-            <td className="num">{fmt(sumCents(srcFilteredRows))}</td>
+            <td className="num text-right">{fmt(sumCents(srcFilteredRows))}</td>
           </tr>
         </tfoot>
       </table>

@@ -28,7 +28,10 @@ export function HeroTotalCounter({ totalCents }: { totalCents: number }) {
   }, [totalCents]);
 
   return (
-    <p className="big" ref={bigTotalRef}>
+    <p
+      className="num text-[clamp(2.75rem,7vw,5.25rem)] leading-[1.05] tracking-[-0.04em] mt-1.5 mb-2.5"
+      ref={bigTotalRef}
+    >
       {fmt(totalCents)}
     </p>
   );

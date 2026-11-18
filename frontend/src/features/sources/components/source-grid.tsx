@@ -1,6 +1,6 @@
 import { Fragment } from 'react';
 import { computeAggregateTaxSummary } from '@/lib/tax-intelligence';
-import { dateLabel, fmt, KIND_LABELS, MONTHS } from '@/lib/utils';
+import { cn, dateLabel, fmt, KIND_LABELS, MONTHS } from '@/lib/utils';
 import { SourceCardShell } from './source-card';
 import { AddSourceButton } from './source-detail-actions';
 import type { SourceCardSummary } from '../types/source-types';
@@ -8,24 +8,32 @@ import type { SourceCardSummary } from '../types/source-types';
 export function SourceGrid({ summaries }: { summaries: SourceCardSummary[] }) {
   return (
     <section>
-      <div className="head">
+      <div className="flex items-end justify-between gap-4 flex-wrap mb-5">
         <div>
-          <p className="eyebrow">Sources</p>
-          <h1>Jobs and other income</h1>
+          <p className="text-sm font-medium text-muted">Sources</p>
+          <h1 className="text-[clamp(1.75rem,3.4vw,2.5rem)] font-medium tracking-[-0.03em] leading-[1.15]">
+            Jobs and other income
+          </h1>
         </div>
         <AddSourceButton />
       </div>
-      <div className="grid">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mt-4">
         {summaries.length ? (
           summaries.map(({ source: s, paycheques: ps, totalCents, timedHours, timedCents, spark }) => {
             const taxSum = computeAggregateTaxSummary(ps, new Map([[s.id, s]]));
             return (
               <SourceCardShell key={s.id} source={s}>
-                <div className="src-head">
-                  <span className="swatch" />
-                  <h2>{s.name}</h2>
-                  <span className="tag">{KIND_LABELS[s.kind]}</span>
-                  {s.archived ? <span className="tag">Archived</span> : null}
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <span className="size-3.5 rounded-[4px] bg-(--c) shrink-0" />
+                  <h2 className="text-xl font-medium tracking-[-0.02em] mr-auto">{s.name}</h2>
+                  <span className="text-xs font-medium py-[3px] px-[9px] rounded-full bg-surface text-muted">
+                    {KIND_LABELS[s.kind]}
+                  </span>
+                  {s.archived ? (
+                    <span className="text-xs font-medium py-[3px] px-[9px] rounded-full bg-surface text-muted">
+                      Archived
+                    </span>
+                  ) : null}
                   {s.is_tax_withheld === 0 ? (
                     <span className="pill-reserve">
                       Tax Reserve: {((s.tax_reserve_bps ?? 0) / 100).toFixed(0)}% (
@@ -33,77 +41,89 @@ export function SourceGrid({ summaries }: { summaries: SourceCardSummary[] }) {
                     </span>
                   ) : null}
                 </div>
-                <div className="spark-wrap">
-                  <div className="spark-head">
+                <div>
+                  <div className="flex justify-between text-[13px] text-muted mb-2">
                     <span>Last 12 months</span>
                     <span className="num">{spark.yrs.map((g) => g.y).join(' – ')}</span>
                   </div>
                   <div
-                    className="spark-grid"
+                    className="grid grid-cols-12 gap-x-1"
                     role="img"
                     aria-label={`Last 12 months income for ${s.name}`}
                   >
                     {spark.items.map((it) => (
                       <div
                         key={it.k}
-                        className="spark-col"
+                        className="spark-col group/col relative grid gap-[5px] justify-items-center"
                         data-tip={fmt(it.v)}
                         aria-label={`${MONTHS[it.m - 1]} ${it.y}: ${fmt(it.v)}`}
                       >
-                        <div className="spark-track">
+                        <div className="w-full h-12 flex items-end rounded-[3px] transition-colors duration-120 group-hover/col:bg-ink/5">
                           <span
-                            className={it.v ? 'spark-bar' : 'spark-bar z'}
+                            className={cn(
+                              'w-full rounded-[3px] block',
+                              it.v ? 'bg-(--c)' : 'bg-line'
+                            )}
                             style={{
                               height: it.v ? `${Math.max(8, (it.v / spark.max) * 100)}%` : '3px',
                             }}
                           />
                         </div>
-                        <span className="spark-m num">{it.m}</span>
+                        <span className="num text-[11px] leading-none text-muted group-hover/col:text-ink group-hover/col:font-medium">
+                          {it.m}
+                        </span>
                       </div>
                     ))}
                   </div>
-                  <div className="spark-yrs num" aria-hidden="true">
+                  <div
+                    className="num grid grid-cols-12 gap-x-1 mt-[5px] text-[11px] leading-[1.2] text-muted"
+                    aria-hidden="true"
+                  >
                     {spark.yrs.map((g) => (
-                      <span key={g.y} style={{ gridColumn: `span ${g.span}` }}>
+                      <span
+                        key={g.y}
+                        className="border-t border-line pt-1 text-center"
+                        style={{ gridColumn: `span ${g.span}` }}
+                      >
                         {g.y}
                       </span>
                     ))}
                   </div>
                 </div>
-                <dl className="stats">
+                <dl className="grid grid-cols-2 gap-y-3.5 gap-x-4">
                   <div>
-                    <dt>All time</dt>
-                    <dd className="num">{fmt(totalCents)}</dd>
+                    <dt className="text-[13px] text-muted">All time</dt>
+                    <dd className="num text-base">{fmt(totalCents)}</dd>
                   </div>
                   <div>
-                    <dt>Paycheques</dt>
-                    <dd className="num">{ps.length}</dd>
+                    <dt className="text-[13px] text-muted">Paycheques</dt>
+                    <dd className="num text-base">{ps.length}</dd>
                   </div>
                   <div>
-                    <dt>Average deposit</dt>
-                    <dd className="num">{ps.length ? fmt(totalCents / ps.length) : '—'}</dd>
+                    <dt className="text-[13px] text-muted">Average deposit</dt>
+                    <dd className="num text-base">{ps.length ? fmt(totalCents / ps.length) : '—'}</dd>
                   </div>
                   <div>
-                    <dt>Last paid</dt>
-                    <dd>{ps.length ? dateLabel(ps[0].paid_on) : '—'}</dd>
+                    <dt className="text-[13px] text-muted">Last paid</dt>
+                    <dd className="text-base">{ps.length ? dateLabel(ps[0].paid_on) : '—'}</dd>
                   </div>
                   {timedHours ? (
                     <Fragment>
                       <div>
-                        <dt>Take-home per hour</dt>
-                        <dd className="num">
+                        <dt className="text-[13px] text-muted">Take-home per hour</dt>
+                        <dd className="num text-base">
                           {fmt(timedCents / timedHours)}/h net
                           {taxSum.effectiveGrossHourlyCents &&
                           taxSum.effectiveGrossHourlyCents > Math.round(timedCents / timedHours) ? (
-                            <span className="gross-subtext">
+                            <span className="block text-xs text-muted font-mono mt-0.5">
                               {fmt(taxSum.effectiveGrossHourlyCents)}/h gross
                             </span>
                           ) : null}
                         </dd>
                       </div>
                       <div>
-                        <dt>Hours logged</dt>
-                        <dd className="num">{+timedHours.toFixed(2)}</dd>
+                        <dt className="text-[13px] text-muted">Hours logged</dt>
+                        <dd className="num text-base">{+timedHours.toFixed(2)}</dd>
                       </div>
                     </Fragment>
                   ) : null}
@@ -112,7 +132,7 @@ export function SourceGrid({ summaries }: { summaries: SourceCardSummary[] }) {
             );
           })
         ) : (
-          <p className="muted s12">No sources yet. Add your first job.</p>
+          <p className="text-muted md:col-span-12">No sources yet. Add your first job.</p>
         )}
       </div>
     </section>

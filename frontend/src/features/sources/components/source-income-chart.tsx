@@ -72,7 +72,7 @@ export function SourceIncomeChart({
   }, [source, srcPs, srcIsAll, srcYear, srcTimeline]);
 
   return (
-    <div className="chart tall">
+    <div className="relative h-[330px]">
       <canvas ref={canvasRef} role="img" aria-label={`Monthly income chart for ${source.name}`} />
     </div>
   );

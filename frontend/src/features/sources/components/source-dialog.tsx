@@ -97,9 +97,11 @@ export function SourceDialog({ sources }: { sources: Source[] }) {
 
   return (
     <dialog ref={dlgRef} aria-labelledby="srcTitle">
-      <form onSubmit={submitSrc}>
-        <h2 id="srcTitle">{srcForm.id ? `Edit ${srcForm.name || 'source'}` : 'Add a source'}</h2>
-        <label className="field">
+      <form className="grid gap-[18px] p-[26px]" onSubmit={submitSrc}>
+        <h2 id="srcTitle" className="text-[22px] font-medium tracking-[-0.02em]">
+          {srcForm.id ? `Edit ${srcForm.name || 'source'}` : 'Add a source'}
+        </h2>
+        <label className="grid gap-1.5 text-sm font-medium">
           Name
           <input
             ref={srcNameRef}
@@ -110,8 +112,8 @@ export function SourceDialog({ sources }: { sources: Source[] }) {
             onChange={(e) => setSrcForm((f) => ({ ...f, name: e.target.value }))}
           />
         </label>
-        <div className="row2">
-          <label className="field">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label className="grid gap-1.5 text-sm font-medium">
             Kind
             <select
               value={srcForm.kind}
@@ -122,16 +124,17 @@ export function SourceDialog({ sources }: { sources: Source[] }) {
               <option value="other">Other</option>
             </select>
           </label>
-          <label className="field">
+          <label className="grid gap-1.5 text-sm font-medium">
             Colour
             <input
               type="color"
+              className="p-1 cursor-pointer"
               value={srcForm.color}
               onChange={(e) => setSrcForm((f) => ({ ...f, color: e.target.value }))}
             />
           </label>
         </div>
-        <label className="field">
+        <label className="grid gap-1.5 text-sm font-medium">
           Tax Treatment
           <select
             value={srcForm.is_tax_withheld ? 'withheld' : 'untaxed'}
@@ -152,8 +155,8 @@ export function SourceDialog({ sources }: { sources: Source[] }) {
           </select>
         </label>
         {!srcForm.is_tax_withheld ? (
-          <div className="paystub-drawer">
-            <label className="field">
+          <div className="mt-2 p-3.5 rounded bg-bg border border-line grid gap-3">
+            <label className="grid gap-1.5 text-sm font-medium">
               Recommended Tax Reserve (%)
               <input
                 type="number"
@@ -167,7 +170,7 @@ export function SourceDialog({ sources }: { sources: Source[] }) {
                 }
               />
             </label>
-            <div className="chips">
+            <div className="flex flex-wrap gap-2">
               {[15, 20, 25, 30].map((pct) => (
                 <button
                   key={pct}
@@ -181,34 +184,45 @@ export function SourceDialog({ sources }: { sources: Source[] }) {
                 </button>
               ))}
             </div>
-            <p className="gross-subtext">
+            <p className="block text-xs text-muted font-mono mt-0.5">
               Payday will automatically calculate your recommended tax set-aside and True Spendable
               Net on deposits from this source.
             </p>
           </div>
         ) : null}
-        <label className="check">
+        <label className="flex items-center gap-2.5 text-[15px] min-h-[44px] cursor-pointer">
           <input
             type="checkbox"
+            className="size-5 min-h-5 accent-accent"
             checked={srcForm.archived}
             onChange={(e) => setSrcForm((f) => ({ ...f, archived: e.target.checked }))}
           />
           Archived (finished job, hidden from quick add)
         </label>
-        <p className="err" role="alert">
-          {srcErr}
-        </p>
-        <div className="actions">
+        {srcErr ? (
+          <p className="text-down text-sm" role="alert">
+            {srcErr}
+          </p>
+        ) : null}
+        <div className="flex flex-wrap items-center gap-2.5">
           {srcForm.id ? (
-            <button type="button" className="btn danger" onClick={() => void deleteSrc()}>
+            <button
+              type="button"
+              className="btn danger flex-1 sm:flex-initial"
+              onClick={() => void deleteSrc()}
+            >
               Delete source
             </button>
           ) : null}
-          <span className="sp" />
-          <button type="button" className="btn" onClick={() => dlgRef.current?.close()}>
+          <span className="hidden sm:block sm:flex-1" />
+          <button
+            type="button"
+            className="btn flex-1 sm:flex-initial"
+            onClick={() => dlgRef.current?.close()}
+          >
             Cancel
           </button>
-          <button className="btn primary">Save source</button>
+          <button className="btn primary flex-1 sm:flex-initial">Save source</button>
         </div>
       </form>
     </dialog>

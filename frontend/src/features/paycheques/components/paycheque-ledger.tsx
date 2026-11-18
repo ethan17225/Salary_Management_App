@@ -66,8 +66,8 @@ export function PaychequeLedger({
 
   return (
     <>
-      <div className="card filters">
-        <label className="field">
+      <div className="card flex flex-wrap gap-3 items-end p-4">
+        <label className="grid gap-1.5 text-sm font-medium flex-[1_1_180px]">
           Year
           <select value={fYear} onChange={(e) => setFYear(e.target.value)}>
             <option value="">All years</option>
@@ -78,7 +78,7 @@ export function PaychequeLedger({
             ))}
           </select>
         </label>
-        <label className="field">
+        <label className="grid gap-1.5 text-sm font-medium flex-[1_1_180px]">
           Source
           <select value={fSource} onChange={(e) => setFSource(e.target.value)}>
             <option value="">All sources</option>
@@ -89,7 +89,7 @@ export function PaychequeLedger({
             ))}
           </select>
         </label>
-        <label className="field search">
+        <label className="grid gap-1.5 text-sm font-medium flex-[3_1_260px]">
           Search
           <input
             type="search"
@@ -100,18 +100,18 @@ export function PaychequeLedger({
         </label>
       </div>
 
-      <div className="card table-wrap">
+      <div className="card overflow-x-auto p-0 mt-4">
         <table>
-          <caption className="sr">Paycheques grouped by month</caption>
+          <caption className="sr-only">Paycheques grouped by month</caption>
           <thead>
             <tr>
               <th scope="col">Date</th>
               <th scope="col">Source</th>
               <th scope="col">Note</th>
-              <th scope="col" className="num">
+              <th scope="col" className="num text-right">
                 Hours
               </th>
-              <th scope="col" className="num">
+              <th scope="col" className="num text-right">
                 Amount
               </th>
             </tr>
@@ -119,11 +119,12 @@ export function PaychequeLedger({
           {monthGroups.length ? (
             monthGroups.map(([ym, ps]) => (
               <tbody key={ym}>
-                <tr className="month">
+                <tr className="[&>*]:bg-surface [&>*]:font-medium [&>*]:border-b-0">
                   <th scope="rowgroup" colSpan={4}>
-                    {monthLabel(ym)} <span className="muted">· {plural(ps.length, 'paycheque')}</span>
+                    {monthLabel(ym)}{' '}
+                    <span className="text-muted font-normal">· {plural(ps.length, 'paycheque')}</span>
                   </th>
-                  <td className="num">{fmt(sumCents(ps))}</td>
+                  <td className="num text-right">{fmt(sumCents(ps))}</td>
                 </tr>
                 {ps.map((p) => {
                   const s = srcById(p.source_id);
@@ -132,7 +133,11 @@ export function PaychequeLedger({
                     'id' in s ? s : undefined
                   );
                   return (
-                    <tr key={p.id} className="row" onClick={() => openPaychequeDialog(p)}>
+                    <tr
+                      key={p.id}
+                      className="cursor-pointer transition-colors duration-120 hover:bg-[#f4f8f9]"
+                      onClick={() => openPaychequeDialog(p)}
+                    >
                       <td>
                         <button
                           className="link"
@@ -151,17 +156,20 @@ export function PaychequeLedger({
                         </button>
                       </td>
                       <td>
-                        <span className="who">
-                          <span className="dot" style={{ '--c': s.color } as CSSProperties} />
+                        <span className="inline-flex items-center gap-2 whitespace-nowrap">
+                          <span
+                            className="size-2.5 rounded-full bg-(--c) shrink-0 inline-block"
+                            style={{ '--c': s.color } as CSSProperties}
+                          />
                           {s.name}
                         </span>
                       </td>
-                      <td className="muted">{p.note}</td>
-                      <td className="num muted">{p.hours ? `${p.hours} h` : ''}</td>
-                      <td className="num">
+                      <td className="text-muted">{p.note}</td>
+                      <td className="num text-right text-muted">{p.hours ? `${p.hours} h` : ''}</td>
+                      <td className="num text-right">
                         {fmt(p.amount_cents)}
                         {b.hasGrossBreakdown ? (
-                          <span className="gross-subtext">
+                          <span className="block text-xs text-muted font-mono mt-0.5">
                             Gross {fmt(b.effectiveGrossCents)} · -
                             {((10000 - b.netRetentionBps) / 100).toFixed(1)}% withheld
                           </span>
@@ -172,17 +180,11 @@ export function PaychequeLedger({
                           </span>
                         ) : null}
                         {hasActiveAllocations ? (
-                          <div style={{ marginTop: 4 }}>
+                          <div className="mt-1">
                             <button
                               type="button"
-                              className="pill-reserve"
+                              className="inline-flex items-center min-h-6 py-0.5 px-2 rounded-full text-xs font-mono bg-accent-soft text-accent-2 border border-transparent cursor-pointer"
                               aria-expanded={expandedSplitId === p.id}
-                              style={{
-                                cursor: 'pointer',
-                                background: 'var(--accent-soft)',
-                                color: 'var(--accent-2)',
-                                borderColor: 'transparent',
-                              }}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setExpandedSplitId((prev) => (prev === p.id ? null : p.id));
@@ -191,33 +193,18 @@ export function PaychequeLedger({
                               {expandedSplitId === p.id ? 'Hide split' : 'Split'}
                             </button>
                             {expandedSplitId === p.id ? (
-                              <div
-                                style={{
-                                  marginTop: 6,
-                                  display: 'grid',
-                                  gap: 3,
-                                  fontSize: 12,
-                                  textAlign: 'right',
-                                }}
-                              >
+                              <div className="mt-1.5 grid gap-0.5 text-xs text-right">
                                 {allocateCentsLargestRemainder(
                                   b.trueSpendableNetCents,
                                   allocations,
                                   b.contractorTaxReserveCents
                                 ).buckets.map((bucket) => (
-                                  <span key={bucket.rule_id} className="muted">
+                                  <span key={bucket.rule_id} className="text-muted">
                                     <span
-                                      className="dot"
-                                      style={
-                                        {
-                                          '--c': bucket.color,
-                                          width: 7,
-                                          height: 7,
-                                          marginRight: 4,
-                                        } as CSSProperties
-                                      }
+                                      className="size-[7px] rounded-full bg-(--c) shrink-0 inline-block mr-1"
+                                      style={{ '--c': bucket.color } as CSSProperties}
                                     />
-                                    {bucket.name}: <b className="num">{fmt(bucket.allocated_cents)}</b>
+                                    {bucket.name}: <b className="num font-medium">{fmt(bucket.allocated_cents)}</b>
                                   </span>
                                 ))}
                               </div>
@@ -233,7 +220,7 @@ export function PaychequeLedger({
           ) : (
             <tbody>
               <tr>
-                <td colSpan={5} className="empty">
+                <td colSpan={5} className="text-center text-muted py-12 px-4">
                   No paycheques match these filters.
                 </td>
               </tr>
@@ -242,7 +229,7 @@ export function PaychequeLedger({
           <tfoot>
             <tr>
               <th colSpan={4}>{plural(filteredRows.length, 'paycheque')}</th>
-              <td className="num">{fmt(sumCents(filteredRows))}</td>
+              <td className="num text-right">{fmt(sumCents(filteredRows))}</td>
             </tr>
           </tfoot>
         </table>

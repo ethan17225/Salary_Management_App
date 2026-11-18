@@ -125,7 +125,7 @@ export function MonthlyIncomeChart({
   }, [sources, inY, bySrc, isAll, activeYear, timelineMonths]);
 
   return (
-    <div className="chart tall">
+    <div className="relative h-[330px]">
       <canvas
         ref={canvasRef}
         role="img"
@@ -247,7 +247,7 @@ export function CumulativeIncomeChart({
   }, [paycheques, inY, isAll, isCur, activeYear, timelineMonths, today]);
 
   return (
-    <div className="chart">
+    <div className="relative h-[260px]">
       <canvas
         ref={canvasRef}
         role="img"
@@ -306,7 +306,7 @@ export function SourceSplitChart({ sources, bySrcEntries, sumY }: SplitChartProp
   }, [sources, bySrc, sumY]);
 
   return (
-    <div className="chart">
+    <div className="relative h-[260px]">
       <canvas ref={canvasRef} role="img" aria-label="Share of income by source" />
     </div>
   );

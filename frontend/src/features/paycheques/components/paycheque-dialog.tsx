@@ -146,10 +146,12 @@ export function PaychequeDialog({
 
   return (
     <dialog ref={dlgRef} aria-labelledby="payTitle">
-      <form onSubmit={submitPay}>
-        <h2 id="payTitle">{payForm.id ? 'Edit paycheque' : 'Add paycheque'}</h2>
-        <fieldset className="chips">
-          <legend>Source</legend>
+      <form className="grid gap-[18px] p-[26px]" onSubmit={submitPay}>
+        <h2 id="payTitle" className="text-[22px] font-medium tracking-[-0.02em]">
+          {payForm.id ? 'Edit paycheque' : 'Add paycheque'}
+        </h2>
+        <fieldset className="border-0 p-0 m-0 flex flex-wrap gap-2 min-w-0">
+          <legend className="text-sm font-medium p-0 mb-2">Source</legend>
           {chipSources.map((s) => (
             <label key={s.id} className="chip" style={{ '--c': s.color } as CSSProperties}>
               <input
@@ -161,14 +163,14 @@ export function PaychequeDialog({
                 onChange={() => setPayForm((f) => ({ ...f, source_id: s.id }))}
               />
               <span>
-                <i className="dot" />
+                <i className="size-2.5 rounded-full bg-(--c) shrink-0 inline-block" />
                 {s.name}
               </span>
             </label>
           ))}
           <button
             type="button"
-            className="chip-add"
+            className="inline-flex items-center gap-2 min-h-[44px] px-4 border border-dashed border-line rounded-full font-sans font-medium text-[15px] bg-white text-muted cursor-pointer transition-all duration-150 hover:border-[#c4cfd5] active:scale-[0.97]"
             onClick={() =>
               openSourceDialog(null, (newSourceId) => {
                 if (dlgRef.current?.open) {
@@ -180,10 +182,15 @@ export function PaychequeDialog({
             + New source
           </button>
         </fieldset>
-        <label className="field">
+        <label className="grid gap-1.5 text-sm font-medium">
           Take-home amount
-          <span className="money-in">
-            <span aria-hidden="true">$</span>
+          <span className="relative">
+            <span
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted font-mono text-[22px]"
+              aria-hidden="true"
+            >
+              $
+            </span>
             <input
               ref={amountRef}
               type="number"
@@ -192,6 +199,7 @@ export function PaychequeDialog({
               inputMode="decimal"
               required
               placeholder="0.00"
+              className="pl-[34px] font-mono text-2xl min-h-[60px] tracking-[-0.02em]"
               value={payForm.amount}
               onChange={(e) => setPayForm((f) => ({ ...f, amount: e.target.value }))}
             />
@@ -200,7 +208,7 @@ export function PaychequeDialog({
         <div>
           <button
             type="button"
-            className="paystub-drawer-toggle"
+            className="inline-flex items-center gap-1.5 min-h-[36px] text-sm font-medium text-accent bg-transparent border-0 py-1 px-0 cursor-pointer hover:underline"
             aria-expanded={showDrawer}
             onClick={() => setShowDrawer((v) => !v)}
           >
@@ -209,9 +217,9 @@ export function PaychequeDialog({
               : '+ Add paystub breakdown (Gross, Tax, Deductions)'}
           </button>
           {showDrawer ? (
-            <div className="paystub-drawer">
-              <div className="paystub-grid-3">
-                <label className="field">
+            <div className="mt-2 p-3.5 rounded bg-bg border border-line grid gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <label className="grid gap-1.5 text-sm font-medium">
                   Gross Pay ($)
                   <input
                     type="number"
@@ -224,7 +232,7 @@ export function PaychequeDialog({
                     onChange={(e) => setPayForm((f) => ({ ...f, gross: e.target.value }))}
                   />
                 </label>
-                <label className="field">
+                <label className="grid gap-1.5 text-sm font-medium">
                   Income Tax Withheld ($)
                   <input
                     type="number"
@@ -237,7 +245,7 @@ export function PaychequeDialog({
                     onChange={(e) => setPayForm((f) => ({ ...f, tax: e.target.value }))}
                   />
                 </label>
-                <label className="field">
+                <label className="grid gap-1.5 text-sm font-medium">
                   Deductions — CPP / EI / Benefits ($)
                   <input
                     type="number"
@@ -252,7 +260,7 @@ export function PaychequeDialog({
                 </label>
               </div>
               {hasLiveBalance ? (
-                <p className="gross-subtext">
+                <p className="block text-xs text-muted font-mono mt-0.5">
                   Total Withheld: {formatDollars(grossNum - netNum)} (Net Retention:{' '}
                   {((netNum / grossNum) * 100).toFixed(1)}%)
                 </p>
@@ -302,8 +310,8 @@ export function PaychequeDialog({
             Same as last time: {fmt(lastForSrc.amount_cents)}
           </button>
         ) : null}
-        <div className="row2">
-          <label className="field">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label className="grid gap-1.5 text-sm font-medium">
             Date paid
             <input
               type="date"
@@ -312,9 +320,9 @@ export function PaychequeDialog({
               onChange={(e) => setPayForm((f) => ({ ...f, paid_on: e.target.value }))}
             />
           </label>
-          <label className="field">
+          <label className="grid gap-1.5 text-sm font-medium">
             <span>
-              Hours worked <span className="opt">(optional)</span>
+              Hours worked <span className="font-normal text-muted">(optional)</span>
             </span>
             <input
               type="number"
@@ -326,9 +334,9 @@ export function PaychequeDialog({
             />
           </label>
         </div>
-        <label className="field">
+        <label className="grid gap-1.5 text-sm font-medium">
           <span>
-            Note <span className="opt">(optional)</span>
+            Note <span className="font-normal text-muted">(optional)</span>
           </span>
           <input
             maxLength={200}
@@ -337,20 +345,30 @@ export function PaychequeDialog({
             onChange={(e) => setPayForm((f) => ({ ...f, note: e.target.value }))}
           />
         </label>
-        <p className="err" role="alert">
-          {payErr}
-        </p>
-        <div className="actions">
+        {payErr ? (
+          <p className="text-down text-sm" role="alert">
+            {payErr}
+          </p>
+        ) : null}
+        <div className="flex flex-wrap items-center gap-2.5">
           {payForm.id ? (
-            <button type="button" className="btn danger" onClick={() => void deletePay()}>
+            <button
+              type="button"
+              className="btn danger flex-1 sm:flex-initial"
+              onClick={() => void deletePay()}
+            >
               Delete paycheque
             </button>
           ) : null}
-          <span className="sp" />
-          <button type="button" className="btn" onClick={() => dlgRef.current?.close()}>
+          <span className="hidden sm:block sm:flex-1" />
+          <button
+            type="button"
+            className="btn flex-1 sm:flex-initial"
+            onClick={() => dlgRef.current?.close()}
+          >
             Cancel
           </button>
-          <button className="btn primary">Save paycheque</button>
+          <button className="btn primary flex-1 sm:flex-initial">Save paycheque</button>
         </div>
       </form>
     </dialog>

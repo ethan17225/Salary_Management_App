@@ -62,148 +62,162 @@ export function TaxesDashboard({
 
   return (
     <section>
-      <div className="hero" data-enter="">
+      <div className="hero animate-enter">
         <div>
-          <h1>
+          <h1 className="text-[15px] font-medium text-[#b9c8ce]">
             {activeYear === 'all'
               ? 'True spendable net across all years'
               : `True spendable net in ${activeYear}`}
           </h1>
-          <p className="big num">{fmt(taxSummary.totalTrueSpendableNetCents)}</p>
-          <p className="delta">
-            <b className="up">{(taxSummary.netRetentionRateBps / 100).toFixed(1)}% retained</b> ·{' '}
-            {fmt(taxSummary.totalEffectiveGrossCents)} effective gross ·{' '}
+          <p className="num text-[clamp(2.75rem,7vw,5.25rem)] leading-[1.05] tracking-[-0.04em] mt-1.5 mb-2.5">
+            {fmt(taxSummary.totalTrueSpendableNetCents)}
+          </p>
+          <p className="text-[#b9c8ce] text-[15px]">
+            <b className="font-medium text-[#6fe0b0]">
+              {(taxSummary.netRetentionRateBps / 100).toFixed(1)}% retained
+            </b>{' '}
+            · {fmt(taxSummary.totalEffectiveGrossCents)} effective gross ·{' '}
             {fmt(taxSummary.totalWithheldCents)} withheld at source
             {taxSummary.totalContractorTaxReserveCents > 0
               ? ` · ${fmt(taxSummary.totalContractorTaxReserveCents)} contractor reserve`
               : ''}
           </p>
         </div>
-        <div className="hero-side">
+        <div className="flex flex-row md:flex-col justify-between items-center md:items-end gap-4 w-full md:w-auto flex-wrap">
           <YearDropdown activeYear={activeYear} options={yearOptions} />
-          <p className="muted">
+          <p className="text-sm text-[#b9c8ce]">
             {taxSummary.breakdownCoverageCount} of {taxSummary.totalPaychequeCount}{' '}
             {taxSummary.totalPaychequeCount === 1 ? 'paycheque' : 'paycheques'} with paystub data
           </p>
         </div>
       </div>
 
-      <div className="grid">
-        <article className="card kpi s3">
-          <p className="label">Effective Gross Income</p>
-          <p className="val num">{fmt(taxSummary.totalEffectiveGrossCents)}</p>
-          <p className="sub">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mt-4">
+        <article className="card md:col-span-6 lg:col-span-3">
+          <p className="text-sm text-muted">Effective Gross Income</p>
+          <p className="num text-[25px] leading-[1.25] tracking-[-0.03em] mt-1.5 mb-0.5 truncate">
+            {fmt(taxSummary.totalEffectiveGrossCents)}
+          </p>
+          <p className="text-sm text-muted">
             {taxSummary.effectiveGrossHourlyCents
               ? `${fmt(taxSummary.effectiveGrossHourlyCents)}/h gross across timed stubs`
               : `${taxSummary.breakdownCoverageCount} of ${taxSummary.totalPaychequeCount} stubs tracked`}
           </p>
         </article>
-        <article className="card kpi s3">
-          <p className="label">Withheld at Source</p>
-          <p className="val num">{fmt(taxSummary.totalWithheldCents)}</p>
-          <p className="sub">
+        <article className="card md:col-span-6 lg:col-span-3">
+          <p className="text-sm text-muted">Withheld at Source</p>
+          <p className="num text-[25px] leading-[1.25] tracking-[-0.03em] mt-1.5 mb-0.5 truncate">
+            {fmt(taxSummary.totalWithheldCents)}
+          </p>
+          <p className="text-sm text-muted">
             Tax {fmt(taxSummary.totalExplicitTaxCents)} · Ded.{' '}
             {fmt(taxSummary.totalExplicitDeductionsCents)}
           </p>
         </article>
-        <article className="card kpi s3">
-          <p className="label">Net Retention Rate</p>
-          <p className="val num">{(taxSummary.netRetentionRateBps / 100).toFixed(1)}%</p>
-          <p className="sub">
+        <article className="card md:col-span-6 lg:col-span-3">
+          <p className="text-sm text-muted">Net Retention Rate</p>
+          <p className="num text-[25px] leading-[1.25] tracking-[-0.03em] mt-1.5 mb-0.5 truncate">
+            {(taxSummary.netRetentionRateBps / 100).toFixed(1)}%
+          </p>
+          <p className="text-sm text-muted">
             {taxSummary.breakdownCoverageCount
               ? `${(taxSummary.effectiveDeductionRateBps / 100).toFixed(1)}% average deduction rate`
               : '100% retained on net-only stubs'}
           </p>
         </article>
-        <article className="card kpi s3">
-          <p className="label">Untaxed Reserve Required</p>
-          <p className="val num">
+        <article className="card md:col-span-6 lg:col-span-3">
+          <p className="text-sm text-muted">Untaxed Reserve Required</p>
+          <p className="num text-[25px] leading-[1.25] tracking-[-0.03em] mt-1.5 mb-0.5 truncate">
             {fmt(taxSummary.totalContractorTaxReserveCents)}{' '}
             {taxSummary.totalContractorTaxReserveCents > 0 ? (
               <span className="pill-reserve">Set aside</span>
             ) : null}
           </p>
-          <p className="sub">
+          <p className="text-sm text-muted">
             From {fmt(taxSummary.totalUntaxedNetCents)} untaxed deposits
           </p>
         </article>
       </div>
 
-      <div className="grid">
-        <article className="card s12">
-          <div className="card-h">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mt-4">
+        <article className="card md:col-span-12">
+          <div className="flex items-center justify-between gap-3 mb-3.5">
             <div>
-              <h2>Gross-to-Net &amp; Tax Retention Bar</h2>
-              <p className="muted" style={{ fontSize: 14 }}>
+              <h2 className="text-base font-medium tracking-[-0.01em]">
+                Gross-to-Net &amp; Tax Retention Bar
+              </h2>
+              <p className="text-sm text-muted">
                 Proportion of gross earnings kept as spendable take-home vs. contractor tax reserve
                 and payroll deductions.
               </p>
             </div>
             {taxSummary.breakdownCoverageCount > 0 ? (
-              <span className="tag">
+              <span className="text-xs font-medium py-[3px] px-[9px] rounded-full bg-surface text-muted">
                 {Math.round(
                   (taxSummary.breakdownCoverageCount /
                     Math.max(taxSummary.totalPaychequeCount, 1)) *
-                    100
+                  100
                 )}
                 % stubs tracked
               </span>
             ) : null}
           </div>
           <div
-            className="retention-bar-track"
+            className="w-full h-2.5 rounded-full bg-surface overflow-hidden flex my-3"
             role="img"
             aria-label="Income retention breakdown"
           >
             <span
-              className="retention-seg-net"
+              className="bg-up h-full"
               style={{ width: `${segNetPct}%` }}
               title={`True Spendable Net: ${fmt(taxSummary.totalTrueSpendableNetCents)} (${segNetPct.toFixed(1)}%)`}
             />
             {taxSummary.totalContractorTaxReserveCents > 0 ? (
               <span
-                className="retention-seg-reserve"
+                className="bg-[#d97706] h-full"
                 style={{ width: `${segResPct}%` }}
                 title={`Contractor Tax Reserve: ${fmt(taxSummary.totalContractorTaxReserveCents)} (${segResPct.toFixed(1)}%)`}
               />
             ) : null}
             {taxSummary.totalWithheldCents > 0 ? (
               <span
-                className="retention-seg-withheld"
+                className="bg-down h-full"
                 style={{ width: `${segWithheldPct}%` }}
                 title={`Withheld at Source: ${fmt(taxSummary.totalWithheldCents)} (${segWithheldPct.toFixed(1)}%)`}
               />
             ) : null}
           </div>
-          <div className="chips" style={{ gap: 18, marginTop: 8 }}>
-            <span className="who" style={{ fontSize: 14 }}>
-              <span className="dot" style={{ '--c': '#10b981' } as CSSProperties} />
+          <div className="flex flex-wrap gap-[18px] mt-2">
+            <span className="inline-flex items-center gap-2 whitespace-nowrap text-sm">
+              <span className="size-2.5 rounded-full bg-[#10b981] shrink-0 inline-block" />
               True Spendable Net:{' '}
-              <b className="num">{fmt(taxSummary.totalTrueSpendableNetCents)}</b> (
+              <b className="num font-medium">{fmt(taxSummary.totalTrueSpendableNetCents)}</b> (
               {segNetPct.toFixed(1)}%)
             </span>
-            <span className="who" style={{ fontSize: 14 }}>
-              <span className="dot" style={{ '--c': '#f59e0b' } as CSSProperties} />
+            <span className="inline-flex items-center gap-2 whitespace-nowrap text-sm">
+              <span className="size-2.5 rounded-full bg-[#f59e0b] shrink-0 inline-block" />
               Contractor Tax Reserve:{' '}
-              <b className="num">{fmt(taxSummary.totalContractorTaxReserveCents)}</b> (
+              <b className="num font-medium">{fmt(taxSummary.totalContractorTaxReserveCents)}</b> (
               {segResPct.toFixed(1)}%)
             </span>
-            <span className="who" style={{ fontSize: 14 }}>
-              <span className="dot" style={{ '--c': '#f43f5e' } as CSSProperties} />
+            <span className="inline-flex items-center gap-2 whitespace-nowrap text-sm">
+              <span className="size-2.5 rounded-full bg-[#f43f5e] shrink-0 inline-block" />
               Withheld Taxes &amp; Deductions:{' '}
-              <b className="num">{fmt(taxSummary.totalWithheldCents)}</b> (
+              <b className="num font-medium">{fmt(taxSummary.totalWithheldCents)}</b> (
               {segWithheldPct.toFixed(1)}%)
             </span>
           </div>
         </article>
       </div>
 
-      <div className="grid">
-        <article className="card table-wrap s12">
-          <div className="ledger-head">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mt-4">
+        <article className="card overflow-x-auto p-0 md:col-span-12">
+          <div className="flex items-center justify-between gap-4 flex-wrap pt-5 px-[22px] pb-4 border-b border-line">
             <div>
-              <h2>Tax Treatment &amp; Withholding by Source</h2>
-              <p className="muted">
+              <h2 className="text-[17px] font-medium tracking-[-0.01em]">
+                Tax Treatment &amp; Withholding by Source
+              </h2>
+              <p className="text-sm text-muted mt-0.5">
                 Click any source to configure W-2 / T4 withholding vs. 1099 / T4A contractor tax
                 reserve rates.
               </p>
@@ -214,16 +228,16 @@ export function TaxesDashboard({
               <tr>
                 <th scope="col">Source</th>
                 <th scope="col">Tax Treatment</th>
-                <th scope="col" className="num">
+                <th scope="col" className="num text-right">
                   Effective Gross
                 </th>
-                <th scope="col" className="num">
+                <th scope="col" className="num text-right">
                   Withheld
                 </th>
-                <th scope="col" className="num">
+                <th scope="col" className="num text-right">
                   Tax Reserve
                 </th>
-                <th scope="col" className="num">
+                <th scope="col" className="num text-right">
                   Spendable Net
                 </th>
               </tr>
@@ -234,12 +248,15 @@ export function TaxesDashboard({
                 return (
                   <tr
                     key={s.id}
-                    className="row"
+                    className="cursor-pointer transition-colors duration-120 hover:bg-[#f4f8f9]"
                     onClick={() => openSourceDialog(s)}
                   >
                     <td>
-                      <span className="who">
-                        <span className="dot" style={{ '--c': s.color } as CSSProperties} />
+                      <span className="inline-flex items-center gap-2 whitespace-nowrap">
+                        <span
+                          className="size-2.5 rounded-full bg-(--c) shrink-0 inline-block"
+                          style={{ '--c': s.color } as CSSProperties}
+                        />
                         <button
                           type="button"
                           className="link"
@@ -248,10 +265,12 @@ export function TaxesDashboard({
                             openSourceDialog(s);
                           }}
                         >
-                          <b>{s.name}</b>
+                          <b className="font-medium">{s.name}</b>
                         </button>
-                        <span className="tag">{KIND_LABELS[s.kind]}</span>
-                        <span className="muted" style={{ fontSize: 13 }}>
+                        <span className="text-xs font-medium py-[3px] px-[9px] rounded-full bg-surface text-muted">
+                          {KIND_LABELS[s.kind]}
+                        </span>
+                        <span className="text-[13px] text-muted">
                           {plural(count, 'cheque')}
                         </span>
                       </span>
@@ -262,14 +281,16 @@ export function TaxesDashboard({
                           Untaxed · {((s.tax_reserve_bps ?? 0) / 100).toFixed(0)}% reserve
                         </span>
                       ) : (
-                        <span className="tag">Withheld at source</span>
+                        <span className="text-xs font-medium py-[3px] px-[9px] rounded-full bg-surface text-muted">
+                          Withheld at source
+                        </span>
                       )}
                     </td>
-                    <td className="num">{fmt(sum.totalEffectiveGrossCents)}</td>
-                    <td className="num muted">
+                    <td className="num text-right">{fmt(sum.totalEffectiveGrossCents)}</td>
+                    <td className="num text-right text-muted">
                       {sum.totalWithheldCents > 0 ? `-${fmt(sum.totalWithheldCents)}` : '—'}
                     </td>
-                    <td className="num">
+                    <td className="num text-right">
                       {sum.totalContractorTaxReserveCents > 0 ? (
                         <span className="pill-reserve">
                           {fmt(sum.totalContractorTaxReserveCents)}
@@ -278,7 +299,7 @@ export function TaxesDashboard({
                         '—'
                       )}
                     </td>
-                    <td className="num">{fmt(sum.totalTrueSpendableNetCents)}</td>
+                    <td className="num text-right">{fmt(sum.totalTrueSpendableNetCents)}</td>
                   </tr>
                 );
               })}
@@ -287,12 +308,14 @@ export function TaxesDashboard({
         </article>
       </div>
 
-      <div className="grid">
-        <article className="card table-wrap s12">
-          <div className="ledger-head">
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mt-4">
+        <article className="card overflow-x-auto p-0 md:col-span-12">
+          <div className="flex items-center justify-between gap-4 flex-wrap pt-5 px-[22px] pb-4 border-b border-line">
             <div>
-              <h2>Paystub Breakdowns &amp; Reserve Ledger</h2>
-              <p className="muted">
+              <h2 className="text-[17px] font-medium tracking-[-0.01em]">
+                Paystub Breakdowns &amp; Reserve Ledger
+              </h2>
+              <p className="text-sm text-muted mt-0.5">
                 Paycheques with logged gross pay, tax withholdings, deductions, or contractor tax
                 reserves. Click any row to edit.
               </p>
@@ -303,19 +326,19 @@ export function TaxesDashboard({
               <tr>
                 <th scope="col">Date</th>
                 <th scope="col">Source</th>
-                <th scope="col" className="num">
+                <th scope="col" className="num text-right">
                   Gross Pay
                 </th>
-                <th scope="col" className="num">
+                <th scope="col" className="num text-right">
                   Tax Withheld
                 </th>
-                <th scope="col" className="num">
+                <th scope="col" className="num text-right">
                   Deductions
                 </th>
-                <th scope="col" className="num">
+                <th scope="col" className="num text-right">
                   Reserve Set-Aside
                 </th>
-                <th scope="col" className="num">
+                <th scope="col" className="num text-right">
                   Take-Home Net
                 </th>
               </tr>
@@ -325,7 +348,7 @@ export function TaxesDashboard({
                 {trackedPaycheques.map(({ p, s, b }) => (
                   <tr
                     key={p.id}
-                    className="row"
+                    className="cursor-pointer transition-colors duration-120 hover:bg-[#f4f8f9]"
                     onClick={() => openPaychequeDialog(p)}
                   >
                     <td>
@@ -346,24 +369,24 @@ export function TaxesDashboard({
                       </button>
                     </td>
                     <td>
-                      <span className="who">
+                      <span className="inline-flex items-center gap-2 whitespace-nowrap">
                         <span
-                          className="dot"
+                          className="size-2.5 rounded-full bg-(--c) shrink-0 inline-block"
                           style={{ '--c': s?.color || '#94a3b8' } as CSSProperties}
                         />
                         {s?.name || 'Unknown'}
                       </span>
                     </td>
-                    <td className="num">{fmt(b.effectiveGrossCents)}</td>
-                    <td className="num muted">
+                    <td className="num text-right">{fmt(b.effectiveGrossCents)}</td>
+                    <td className="num text-right text-muted">
                       {b.explicitTaxCents > 0 ? `-${fmt(b.explicitTaxCents)}` : '—'}
                     </td>
-                    <td className="num muted">
+                    <td className="num text-right text-muted">
                       {b.explicitDeductionsCents + b.unclassifiedWithheldCents > 0
                         ? `-${fmt(b.explicitDeductionsCents + b.unclassifiedWithheldCents)}`
                         : '—'}
                     </td>
-                    <td className="num">
+                    <td className="num text-right">
                       {b.contractorTaxReserveCents > 0 ? (
                         <span className="pill-reserve">
                           {fmt(b.contractorTaxReserveCents)}
@@ -372,10 +395,10 @@ export function TaxesDashboard({
                         '—'
                       )}
                     </td>
-                    <td className="num">
+                    <td className="num text-right">
                       {fmt(b.netCents)}
                       {b.hasGrossBreakdown ? (
-                        <span className="gross-subtext">
+                        <span className="block text-xs text-muted font-mono mt-0.5">
                           {(b.netRetentionBps / 100).toFixed(1)}% retained
                         </span>
                       ) : null}
@@ -386,7 +409,7 @@ export function TaxesDashboard({
             ) : (
               <tbody>
                 <tr>
-                  <td colSpan={7} className="empty">
+                  <td colSpan={7} className="text-center text-muted py-12 px-4">
                     No paycheques have paystub breakdowns or contractor tax reserves in this period
                     yet. Click any paycheque and expand &ldquo;+ Add paystub breakdown&rdquo; to log
                     gross pay, taxes, and deductions.

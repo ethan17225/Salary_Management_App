@@ -19,20 +19,27 @@ export function SourceCardShell({
 
   return (
     <article
-      className="card src clickable s4"
+      className="card src clickable group flex flex-col gap-[18px] md:col-span-6 lg:col-span-4 cursor-pointer transition-all duration-180 hover:-translate-y-0.5"
       style={{ '--c': source.color } as CSSProperties}
       onClick={() => router.push(href)}
     >
       {children}
-      <div className="src-foot">
+      <div className="flex items-center justify-between gap-3 mt-auto pt-3.5 border-t border-line">
         <Link
           href={href}
-          className="src-open"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-(--c)"
           aria-label={`${source.name} — view source details`}
           onClick={(e) => e.stopPropagation()}
         >
           View details
-          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <svg
+            width="15"
+            height="15"
+            viewBox="0 0 16 16"
+            fill="none"
+            aria-hidden="true"
+            className="transition-transform duration-180 group-hover:translate-x-[3px]"
+          >
             <path
               d="M3.5 8h9M8.5 4l4 4-4 4"
               stroke="currentColor"
