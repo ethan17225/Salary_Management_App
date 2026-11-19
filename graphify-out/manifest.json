@@ -294,9 +294,9 @@
     "semantic_hash": ""
   },
   "frontend/src/components/ui/year-dropdown.tsx": {
-    "mtime": 1795126764.4661772,
-    "seen": 1795126779.988197,
-    "ast_hash": "c640e6e72859332d6c8cceea4905e98f",
+    "mtime": 1795128252.5866804,
+    "seen": 1795128332.299822,
+    "ast_hash": "b05c78e2bec75f0aadfb705b8a9d2a1e",
     "semantic_hash": ""
   },
   "frontend/src/lib/allocation-engine.ts": {

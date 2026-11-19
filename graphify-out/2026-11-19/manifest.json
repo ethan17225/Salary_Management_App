@@ -204,9 +204,9 @@
     "semantic_hash": ""
   },
   "frontend/src/app/(dashboard)/allocations/page.tsx": {
-    "mtime": 1795019081.5243137,
-    "seen": 1795126346.667617,
-    "ast_hash": "c83d6321639edea048cd104f029f4133",
+    "mtime": 1795126764.614438,
+    "seen": 1795126779.988178,
+    "ast_hash": "ace4c526a2f19ba637556192148910cc",
     "semantic_hash": ""
   },
   "frontend/src/app/(dashboard)/layout.tsx": {
@@ -252,9 +252,9 @@
     "semantic_hash": "a901967e9bef4314a24ef0bc9fe13175"
   },
   "frontend/src/app/(dashboard)/taxes/page.tsx": {
-    "mtime": 1795019081.5748682,
-    "seen": 1795126346.667626,
-    "ast_hash": "7ed4a3412f9509598f4e091158710af7",
+    "mtime": 1795126764.7398496,
+    "seen": 1795126779.9881878,
+    "ast_hash": "411c57a16e27e409a3cb5b5c8c06fefe",
     "semantic_hash": ""
   },
   "frontend/src/app/api/[...path]/route.ts": {
@@ -294,9 +294,9 @@
     "semantic_hash": ""
   },
   "frontend/src/components/ui/year-dropdown.tsx": {
-    "mtime": 1795126252.5739043,
-    "seen": 1795126346.667634,
-    "ast_hash": "c223ea641a96dbb751ede344211f6cb6",
+    "mtime": 1795127848.9009385,
+    "seen": 1795127951.940253,
+    "ast_hash": "6f33d6ff84bd5c34d621dac9984c426a",
     "semantic_hash": ""
   },
   "frontend/src/lib/allocation-engine.ts": {
@@ -324,9 +324,9 @@
     "semantic_hash": ""
   },
   "frontend/src/lib/utils.ts": {
-    "mtime": 1795104796.5791662,
-    "seen": 1795126346.66764,
-    "ast_hash": "db35a1b7f4e9995f1cd741a90a0fa76d",
+    "mtime": 1795126765.542131,
+    "seen": 1795126779.988203,
+    "ast_hash": "69f9cb828a57a76a1b7720e5c57e5f49",
     "semantic_hash": ""
   },
   "frontend/src/types/payday.ts": {
