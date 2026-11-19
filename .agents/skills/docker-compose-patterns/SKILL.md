@@ -1,8 +1,8 @@
 ---
 name: docker-compose-patterns
-description: Use this skill when creating, modifying, or debugging Docker Compose configurations, even if the user just says they need to wire services together, add a database to their stack, or set up a local development environment with multiple containers. Covers service definitions, health checks, dependency ordering, volumes, networks, environment variables, and development overrides.
+description: Use this skill when creating, modifying, or debugging Docker Compose configurations or writing/optimizing multi-stage Dockerfiles. Covers service definitions, health checks, dependency ordering, named volumes, networks, environment variables, development overrides, multi-stage image builds, layer caching, and non-root container security.
 license: Apache-2.0
-compatibility: Requires Docker Compose v2 (compose.yaml format).
+compatibility: Requires Docker Compose v2 (compose.yaml format) and Docker BuildKit.
 ---
 
 # Docker Compose Patterns
@@ -15,18 +15,16 @@ This skill provides rules for creating, reviewing, and debugging Docker Compose 
 
 Activate this skill when:
 
-- Creating a new `compose.yaml` for a project
-- Adding or modifying services in an existing Compose file
-- Setting up development overrides with `compose.override.yaml`
-- Debugging service startup ordering or connectivity issues
+- Creating a new `compose.yaml` or `docker-compose.yml` for a project
+- Adding or modifying services, healthchecks, volumes, or overrides in an existing Compose file
+- Writing, optimizing, or auditing multi-stage `Dockerfile`s for build caching, image size, and non-root security
+- Debugging service startup ordering or container connectivity issues
 
 ## Do not use this skill when
 
 Do not use this skill when:
 
-- The project has no Docker setup yet and the main need is an initial scaffold
-- The main task is writing or optimizing a `Dockerfile`
-- The main task is improving build caching, image size, or runtime user configuration
+- The task is unrelated to Docker/Compose container definitions or image builds (e.g., application business logic or non-container CI scripts)
 
 ## Core guidance
 
@@ -141,11 +139,32 @@ Some Compose commands delete data irreversibly. Before running any of the follow
 
 If the goal is only to restart services or reclaim containers/networks, use `docker compose down` (no `-v`) or `docker compose restart` instead — these leave named volumes intact.
 
+## Multi-Stage Dockerfile Best Practices
+
+Use multi-stage builds (`dependencies` → `builder` → `runtime`) whenever an app requires compilation, build-time toolchains, or Node/Next.js standalone bundling (e.g., `frontend/Dockerfile` and `backend/Dockerfile`).
+
+### Stage Structure & Base Images
+- **Name stages explicitly** with `AS` (e.g., `FROM node:22-alpine AS build`, `FROM node:22-alpine AS runtime`).
+- **Pin minimal official base images** (`python:3.13-slim`, `node:22-alpine`); never use `:latest` or unpinned tags.
+- **Copy only runtime artifacts** into the final stage (`COPY --from=build --chown=node:node /app/.next/standalone ./`), leaving compilers, dev dependencies, and package caches out of production images.
+
+### Layer Caching & Build Context
+- Order instructions from least-frequently changing to most-frequently changing:
+  1. Copy dependency manifests/lockfiles (`package.json package-lock.json`, `pyproject.toml`) first.
+  2. Install dependencies (`npm ci --no-audit --no-fund`, `pip install --no-cache-dir .`).
+  3. Copy application source (`COPY src ./src` or `COPY . .`) and run build steps.
+- Maintain a `.dockerignore` (excluding `node_modules`, `.next`, `__pycache__`, `.venv`, `.git`, local SQLite files) to minimize build context and avoid leaking local files.
+- Combine related setup `RUN` commands with `&&` to avoid leftover layers and temporary caches.
+
+### Security, Runtime & Healthchecks
+- **Never run containers as root**: create and switch to an unprivileged user (`USER node` on Node images, or `useradd --create-home --shell /sbin/nologin appuser` + `chown` on data directories + `USER appuser` on Python slim images).
+- **Set explicit production environment variables**: `NODE_ENV=production`, `NEXT_TELEMETRY_DISABLED=1`, `PYTHONUNBUFFERED=1`.
+- **Pair `HEALTHCHECK` with Compose**: define a native `HEALTHCHECK` in the `Dockerfile` (or Compose `healthcheck:`) using a lightweight check (e.g., `python -c "import urllib.request; ..."` when `curl` is absent) and wait on `condition: service_healthy` in `depends_on`.
+
 ## Related skills
 
-- For first-time Docker project scaffolding and baseline file creation, use `docker-project-foundations`.
-- For Dockerfile internals, build caching, multi-stage builds, and `.dockerignore`, use `docker-build-strategies`.
-- For destructive Docker CLI commands outside Compose (`docker system prune`, `docker rm -f`, image/network/builder pruning, standalone volume deletion) and a cross-product index of destructive-command guardrails, use `docker-destructive-guardrails`.
+- See `fastapi-project-architect` for backend Python runtime & SQLite persistence behavior inside `/data`.
+- See `nextjs-project-architect` for Next.js `output: 'standalone'` build output copied into the frontend runtime image.
 
 ## References
 

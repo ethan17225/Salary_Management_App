@@ -1,6 +1,6 @@
 ---
 name: frontend-design
-description: Guidance for distinctive, intentional visual design when building new UI or reshaping an existing one. Helps with aesthetic direction, typography, and making choices that don't read as templated defaults.
+description: Guidance for distinctive, intentional visual design and WCAG 2.2 AA accessibility compliance when building new UI, reshaping an existing one, or running an a11y/UX audit. Covers aesthetic direction, typography, UX copy, keyboard navigation, contrast, ARIA, and semantic HTML.
 license: Complete terms in LICENSE.txt
 ---
 
@@ -69,3 +69,40 @@ Use active voice as default. A CTA says exactly what happens when it is used: "S
 Treat failure and emptiness as moments for direction, not mood. Explain what went wrong and how to fix it, in the interface's voice rather than a person's. Errors don't apologize, and they are never vague about what happened. An empty screen is an invitation to act.
 
 Keep the tone conversational: plain verbs, sentence case, no filler, with tone matched to the brand and the audience. Let each written element do exactly one job.
+
+---
+
+## WCAG 2.2 AA Accessibility Standards & Audit Checklist
+
+Every UI change must meet **WCAG 2.2 Level AA** across all four POUR principles. For complete criteria and copy-paste patterns, read [references/WCAG.md](references/WCAG.md) and [references/A11Y-PATTERNS.md](references/A11Y-PATTERNS.md).
+
+### 1. Perceivable
+- **Color contrast (1.4.3 / 1.4.6 / 1.4.11)**: Minimum **4.5:1** for normal text (< 18px / < 14px bold), **3:1** for large text (≥ 18px / ≥ 14px bold), and **3:1** for UI boundaries, icons, and `:focus-visible` outlines. Avoid printing dynamic user-picked colors directly as text on light cards — pair a high-contrast `--ink` label with a small colored swatch/dot (`size-2 rounded-full`).
+- **Don't rely on color alone**: Always combine status/error colors with text, values, or icons (e.g., `aria-invalid="true"` + visible inline error text via `aria-describedby`).
+- **Images & SVG icons (1.1.1)**: Meaningful `<img>` elements require descriptive `alt`. Decorative icons/SVGs require `aria-hidden="true"` (or `alt=""`). Icon-only buttons must have `aria-label` or `.sr-only` text.
+
+### 2. Operable
+- **Prefer native interactive elements (2.1 / 4.1.2)**: Use `<button type="button|submit">`, `<a href>`, `<select>`, `<dialog>`, and `<input>` instead of `<div onClick>` or `<tr onClick>`. Never nest interactive controls (`<button>` inside `<tr onClick>` or `<article onClick>`): for clickable cards, keep `<article className="relative">` and stretch a primary `<Link>` using `after:absolute after:inset-0 after:rounded-[inherit]`, elevating secondary actions with `relative z-10`.
+- **Keyboard & Focus (2.4.1 / 2.4.7 / 2.4.11)**:
+  - Include a skip-to-content link as the first focusable element inside the header.
+  - Never disable `:focus-visible` outlines (`outline: 2px solid var(--accent); outline-offset: 2px;`).
+  - Never use `tabindex > 0`, and ensure focused elements are not obscured by sticky headers (`scroll-margin-top`).
+  - Use native `<dialog>` (with `.showModal()`) for automatic `Escape` closing, backdrop, and focus containment.
+- **Target Size (2.5.8)**: Minimum **24×24 CSS px** (WCAG AA); aim for **44×44 CSS px** (40px+ on compact action links/pills) with adequate spacing between adjacent controls.
+- **Reduced Motion (2.3)**: Respect `@media (prefers-reduced-motion: reduce)` and disable animations/transitions cleanly without leaving content hidden at `opacity: 0`.
+
+### 3. Understandable
+- **Page language & headings (3.1.1 / 1.3.1)**: Declare `<html lang="en">` and maintain strict sequential heading order (`h1` → `h2` → `h3`) with one `<h1>` per route (including `global-error.tsx` and `not-found.tsx`).
+- **Form labels & validation (3.3.1 / 3.3.2 / 3.3.7)**:
+  - Every control needs a programmatically associated `<label htmlFor="...">` (never placeholder-only labels), `name`, and appropriate `autoComplete`.
+  - Pair validation errors with `aria-invalid="true"` and `aria-describedby="<field>-error"`.
+  - Provide pending states (`disabled` + `'Saving…'`/`'Deleting…'`) to prevent double submits, and 2-step confirmation or undo for destructive actions.
+
+### 4. Robust
+- **Semantic landmarks**: Use `<header>`, `<nav aria-label="...">` with `aria-current="page"`, `<main id="main">`, `<section>`, and `<table>` with `<thead>`/`<th>`.
+- **Dynamic updates & loading (4.1.3)**: Announce status toasts via `role="status"` + `aria-live="polite"` (or `role="alert"` for urgent errors), and mark structural loading skeletons with `role="status"`, `aria-busy="true"`, and `<span className="sr-only">Loading…</span>`.
+
+### Pre-Ship Accessibility Audit Workflow
+1. If Chrome DevTools MCP or Lighthouse is available, run `lighthouse_audit` and `take_snapshot` on the rendered route to inspect the accessibility tree (names, roles, landmarks, heading order).
+2. Walk the full flow via keyboard only (`Tab`, `Shift+Tab`, `Enter`, `Space`, `Escape`), verifying skip links, dialog focus, and 200% zoom / 390px mobile layout.
+3. Verify `prefers-reduced-motion: reduce` and contrast ratios before finalizing.

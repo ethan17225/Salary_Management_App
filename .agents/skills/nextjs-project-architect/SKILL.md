@@ -1,6 +1,6 @@
 ---
 name: nextjs-project-architect
-description: Enforces feature-driven project architecture, module boundaries, RSC patterns, Server Action safety, and file placement rules for Next.js App Router applications.
+description: Enforces feature-driven project architecture, module boundaries, RSC patterns, Server Action safety, Tailwind CSS v4 @theme token systems, Zod schema validation, and file placement rules for Next.js App Router applications.
 triggers:
   - "nextjs"
   - "next.js"
@@ -13,6 +13,11 @@ triggers:
   - "route.ts"
   - "page.tsx"
   - "layout.tsx"
+  - "tailwind"
+  - "design tokens"
+  - "@theme"
+  - "zod"
+  - "schema validation"
 ---
 
 # Next.js App Router Architecture & Engineering Skill
@@ -228,12 +233,73 @@ export async function createItemAction(rawInput: unknown): Promise<ActionState<{
 
 ---
 
-## 6. Agent Execution Checklist (Pre-Flight Verification)
+## 6. Tailwind CSS v4 & Design Token System (`@theme inline`)
+
+Payday uses **Tailwind CSS v4 (`@tailwindcss/postcss`)** with CSS-first configuration in `src/styles/globals.css` (never create a legacy `tailwind.config.ts`).
+
+### Key v3 → v4 Differences
+| v3 Pattern | v4 Pattern |
+|---|---|
+| `tailwind.config.ts` | `@theme` / `@theme inline` in CSS |
+| `@tailwind base/components/utilities` | `@import "tailwindcss";` |
+| `theme.extend.colors` | `@theme inline { --color-*: var(--token); }` |
+| Custom utility plugin | `@utility name { ... }` |
+| `darkMode: "class"` | `@custom-variant dark (&:where(.dark, .dark *));` |
+| `tailwindcss-animate` | CSS `@keyframes` inside `@theme` + `@starting-style` |
+
+### Token Mapping & Payday Primitives (`src/styles/globals.css`)
+- **Define raw CSS variables in `:root`** and map semantic Tailwind tokens inside `@theme inline`:
+  - Surfaces & text: `--bg`, `--surface`, `--card`, `--ink`, `--muted`, `--line` → `--color-bg`, `--color-surface`, `--color-card`, `--color-ink`, `--color-muted`, `--color-line`.
+  - Brand & semantic states: `--accent`, `--accent-2`, `--accent-soft`, `--up`, `--warn`, `--down` → `--color-accent`, `--color-up`, `--color-warn`, `--color-down`.
+  - Radius, shadow & fonts: `--r` (`10px`), `--r-lg` (`16px`), `--shadow`, `--font-sans`, `--font-mono`.
+- **Reuse existing utility & component primitives** instead of duplicating ad-hoc styles:
+  - `.num` (`@utility num`): `font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap;` for all currency, percentages, and tabular dates.
+  - `.card`, `.btn` (`.primary`, `.danger`, `.same`), `.link`, `.hero`, `.src-hero`, `.chip`, `.pill-reserve`.
+- **No `transition-all`**: Always specify exact properties (e.g., `transition-[border-color,box-shadow,transform] duration-150`).
+- For detailed Tailwind v4 token hierarchy and component composition patterns, see [references/tailwind-v4-patterns.md](references/tailwind-v4-patterns.md).
+
+---
+
+## 7. Zod Schema Validation Best Practices
+
+Validate every untrusted boundary (Server Actions, Route Handlers, `JSON.parse()`, `FormData`, query params, and `process.env`) with Zod schemas in `src/features/<domain>/schemas/` or `src/lib/env.ts`.
+
+### Schema Definition
+- **Strict primitives over `any`**: Use `z.unknown()` instead of `z.any()`. Use `z.enum([...])` for fixed string unions rather than raw `z.string()`.
+- **Validate at definition**: Put `.trim()`, `.min()`, `.max()`, `.regex()`, `.int()`, `.positive()`, and range bounds directly on the schema fields.
+- **Coerce boundary strings**: Use `z.coerce.number()` / `z.coerce.boolean()` or explicit `.transform()` + `.refine()` for `FormData`, URL search params, and stringified numeric inputs.
+- **Payday money & rate boundaries**: Validate money/rate inputs strictly (finite bounds, valid ISO calendar dates `YYYY-MM-DD`, non-negative `tax`/`deductions`, `gross >= net`, and `0..10000` basis points) before converting to integer cents.
+
+### Parsing & Validation
+- **Always use `safeParse()`** for user input, forms, and external API payloads (never bare `.parse()` in Server Actions or UI handlers):
+  ```typescript
+  const parsed = savePaychequeSchema.safeParse(rawInput);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: 'Invalid input data',
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+  ```
+- **Surface all issues cleanly**: Use `parsed.error.flatten().fieldErrors` for form fields and `issue.path` for nested arrays/objects.
+- **Avoid double validation**: Validate once at the system boundary and pass typed validated objects inward.
+
+### Type Inference, Composition & Refinements
+- **Derive TypeScript types from schemas**: Export both the schema and `export type FooInput = z.infer<typeof fooSchema>;` (use `z.input<typeof schema>` when input differs from transformed output).
+- **Compose variants without duplication**: Derive update/subset schemas with `.partial()`, `.pick()`, `.omit()`, and `.extend()`, or model tagged variants with `z.discriminatedUnion('kind', [...])`.
+- **Safe refinements**: Inside `.refine()`, return `false` (never throw an Error) and attach a `path` or use `.superRefine()` with `ctx.addIssue({ code: z.ZodIssueCode.custom, path: [...], message: '...' })` for cross-field invariants (e.g., `gross >= amount`).
+- **Cache module-level schemas**: Define `z.object(...)` schemas once at module scope, never inside hot render loops or request handlers.
+
+---
+
+## 8. Agent Execution Checklist (Pre-Flight Verification)
 
 Before completing a task or generating new files, verify:
 1. [ ] Is `src/app/` kept thin, delegating UI and business logic to `src/features/<domain>/`?
 2. [ ] Are components Server Components by default, with `'use client'` isolated only to interactive leaves?
 3. [ ] Are `params`, `searchParams`, `cookies()`, and `headers()` properly `await`ed?
 4. [ ] Do all `services/*.ts` files include `import 'server-only';`?
-5. [ ] Do all `actions/*.ts` files include `'use server';`, session verification, Zod validation, and cache revalidation?
-6. [ ] Are all file names in `kebab-case` and imports using `@/` aliases?
+5. [ ] Do all `actions/*.ts` files include `'use server';`, `safeParse()` Zod validation, and cache revalidation?
+6. [ ] Are styles using Tailwind v4 `@theme inline` tokens and `globals.css` primitives without `transition-all` or `tailwind.config.ts`?
+7. [ ] Are all file names in `kebab-case` and imports using `@/` aliases?

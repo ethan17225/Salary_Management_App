@@ -1,14 +1,17 @@
 ---
 name: fastapi-project-architect
-description: FastAPI project architecture and engineering patterns. Enforces domain-driven package organization, async route boundaries, modern dependency injection (Annotated[T, Depends(...)]), Pydantic v2 conventions, SQLAlchemy 2.0 async sessions, and anti-pattern prevention for AI coding agents.
+description: FastAPI project architecture and engineering patterns. Enforces domain-driven package organization, async route boundaries, modern dependency injection (Annotated[T, Depends(...)]), Pydantic v2 validation, SQLAlchemy 2.0 async with SQLite WAL/idempotent migrations, pytest async testing, Ruff linting, and anti-pattern prevention.
 triggers:
   - "fastapi architecture"
   - "fastapi structure"
   - "fastapi best practices"
   - "pydantic v2"
   - "sqlalchemy async"
+  - "sqlite"
   - "fastapi router"
   - "fastapi dependency"
+  - "pytest"
+  - "ruff"
 ---
 
 # FastAPI Best Practices for AI Agents
@@ -28,9 +31,9 @@ Pin to these versions or newer. Examples in this file assume them.
 | Pydantic         | 2.7       | v1 APIs (`json_encoders`, `.dict()`) are removed     |
 | pydantic-settings| 2.4       | Lives in a separate package since Pydantic v2        |
 | SQLAlchemy       | 2.0       | Use the async API (`AsyncSession`, `async_sessionmaker`) |
-| Alembic          | 1.13      | Async-aware migrations                               |
-| httpx            | 0.27      | Use `ASGITransport` for in-process tests             |
-| PyJWT            | 2.9       | Use this, not the unmaintained `python-jose`         |
+| aiosqlite        | 0.20      | Async SQLite driver with WAL + FK `PRAGMA` setup     |
+| httpx            | 0.27      | Use `ASGITransport` for in-process async tests       |
+| pytest / asyncio | 8.0 / 0.24| `asyncio_mode = "auto"` in `pyproject.toml`          |
 | ruff             | 0.6       | Replaces black, isort, autoflake                     |
 
 ## Project Structure
@@ -109,12 +112,15 @@ async def wrap():
 - Default Starlette threadpool size is 40. Saturating it slows every sync route.
 - Threads cost more than coroutines. Don't use sync routes "just because."
 
-## Pydantic
+## Pydantic v2
 
-### Use built-in validators
+### Use built-in constraints and `Annotated` metadata
+Prefer built-in constraints (`Field(...)`, `StringConstraints`, `annotated_types`) over custom validators. Never use `...` (Ellipsis) as a default value in Pydantic models or FastAPI `Query()`/`Path()` parameters.
+
 ```python
 from enum import StrEnum
-from pydantic import AnyUrl, BaseModel, EmailStr, Field
+from typing import Annotated
+from pydantic import AnyUrl, BaseModel, EmailStr, Field, StringConstraints
 
 
 class MusicBand(StrEnum):
@@ -123,8 +129,11 @@ class MusicBand(StrEnum):
     ACDC = "AC/DC"
 
 
+CleanStr = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+
+
 class UserCreate(BaseModel):
-    first_name: str = Field(min_length=1, max_length=128)
+    first_name: CleanStr = Field(max_length=128)
     username: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
     email: EmailStr
     age: int = Field(ge=18)                     # required, must be >= 18
@@ -134,6 +143,12 @@ class UserCreate(BaseModel):
 
 > **Don't** write `Field(ge=18, default=None)`. The constraint and the default contradict
 > each other. Decide: required (`Field(ge=18)`) or optional (`int | None = Field(default=None, ge=18)`).
+
+### Validators, Forward Annotations & Unions
+- **Prefer `AfterValidator` over `mode="before"`** whenever possible so Pydantic runs type coercion first and the validator receives the typed value. Use `mode="before"` only when normalizing untrusted raw inputs (e.g., stripping `$`/`,` before parsing integer cents). Attach reusable validators via `Annotated[T, AfterValidator(fn)]`.
+- **Avoid `from __future__ import annotations`** in Pydantic schema modules (deferred stringification can break schema resolution); quote only genuine self-references, or use Python 3.12+ `type JsonValue = ...` / `TypeAliasType` for recursive types.
+- **Avoid un-discriminated model subclassing** in nested fields: Pydantic serializes by declared static type, silently dropping subclass fields. Use discriminated unions (`Annotated[SubA | SubB, Field(discriminator="type")]`) or generics instead.
+- **Do not use `ORJSONResponse` or `UJSONResponse`** (deprecated); declare return types or `response_model` so Pydantic v2 serializes in Rust.
 
 ### Custom base model — modern serialization
 
@@ -246,47 +261,59 @@ def decode_token(token: str) -> dict:
         raise InvalidCredentials() from exc
 ```
 
-## Database — SQLAlchemy 2.0 async
+## Database — SQLAlchemy 2.0 Async + SQLite (`aiosqlite`)
 
-Prefer SQLAlchemy 2.0's async API. `encode/databases` is in maintenance mode — don't pick it for new projects.
+Prefer SQLAlchemy 2.0's async API (`AsyncEngine`, `AsyncSession`, `async_sessionmaker(expire_on_commit=False)`). For SQLite (`aiosqlite`), enforce WAL mode, busy timeout, and foreign keys on every engine connection (`src/database.py`):
 
 ```python
 # src/database.py
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from collections.abc import AsyncIterator
+from typing import Annotated, Any
 
-engine = create_async_engine(str(settings.DATABASE_URL), pool_pre_ping=True)
-SessionFactory = async_sessionmaker(engine, expire_on_commit=False)
+from fastapi import Depends
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
 
-async def get_db() -> AsyncSession:
+@event.listens_for(Engine, "connect")
+def _set_sqlite_pragma(dbapi_connection: Any, _connection_record: Any) -> None:
+    cursor = dbapi_connection.cursor()
+    cursor.execute("PRAGMA journal_mode = WAL")
+    cursor.execute("PRAGMA synchronous = NORMAL")
+    cursor.execute("PRAGMA busy_timeout = 5000")
+    cursor.execute("PRAGMA foreign_keys = ON")
+    cursor.close()
+
+
+engine: AsyncEngine = create_async_engine(settings.database_url, pool_pre_ping=True)
+SessionFactory: async_sessionmaker[AsyncSession] = async_sessionmaker(
+    engine, expire_on_commit=False
+)
+
+
+async def get_db() -> AsyncIterator[AsyncSession]:
     async with SessionFactory() as session:
         yield session
+
+
+DBDep = Annotated[AsyncSession, Depends(get_db)]
 ```
 
-### Naming conventions
-- `lower_case_snake`
-- Singular tables: `post`, `user`, `post_like`
-- Group with prefix: `payment_account`, `payment_bill`
-- `_at` suffix for `datetime`, `_date` suffix for `date`
-- Use the same FK column name everywhere it appears (`profile_id`, not `user_id` in some tables and `profile_id` in others)
+### Money, Rates & Data Integrity Invariants
+- **Exact integer cents & basis points**: Store all monetary amounts (`amount_cents`, `gross_cents`, `tax_cents`, `deductions_cents`) as `INTEGER` cents and percentages/weights (`tax_reserve_bps`, `weight_bps`) as `INTEGER` basis points (`0..10000`) — never floats for currency.
+- **Database-level `CHECK` & `INDEX` guards**: Enforce non-negative/domain bounds and ISO dates (`CheckConstraint("date(paid_on) = paid_on", ...)`), `ondelete="RESTRICT"` where relational delete protection applies, and composite/partial indexes (`sqlite_where=text("import_hash IS NOT NULL")`).
+- **Naming conventions**: `lower_case_snake`, plural or domain-consistent table names matching existing schema (`sources`, `paycheques`, `allocation_rules`), `_cents`/`_bps` suffixes for financial integers, and consistent FK column names (`source_id`).
 
-### Index naming convention
-```python
-from sqlalchemy import MetaData
+### Idempotent Startup Schema Migrations (`ensure_schema_migrations`)
+Payday uses idempotent SQLite schema migrations on startup rather than Alembic:
+- Inside `init_db`, call `await conn.run_sync(Base.metadata.create_all)` followed by `await conn.run_sync(ensure_schema_migrations)`.
+- Inspect existing columns via `PRAGMA table_info(<table>)`, run `ALTER TABLE ... ADD COLUMN ...` only when a column is missing, and use `CREATE [UNIQUE] INDEX IF NOT EXISTS` / `CREATE TABLE IF NOT EXISTS` so startup is safe and repeatable on existing `/data/salary.db` files.
 
-POSTGRES_INDEXES_NAMING_CONVENTION = {
-    "ix": "%(column_0_label)s_idx",
-    "uq": "%(table_name)s_%(column_0_name)s_key",
-    "ck": "%(table_name)s_%(constraint_name)s_check",
-    "fk": "%(table_name)s_%(column_0_name)s_fkey",
-    "pk": "%(table_name)s_pkey",
-}
-metadata = MetaData(naming_convention=POSTGRES_INDEXES_NAMING_CONVENTION)
-```
-
-### SQL-first, Pydantic-second
-- Do joins, aggregation, and JSON shaping in SQL — Postgres is faster than CPython at this.
-- Hydrate the result into Pydantic only for response validation, not for transformation.
+### SQL-First & Security Hygiene
+- **SQL-first, Pydantic-second**: Do joins, filtering, and aggregation in SQL (`select(...)`), then hydrate into Pydantic only for response validation.
+- **Parameterized queries only**: Always use SQLAlchemy ORM/Core expressions or bound parameters (`text("... :param")`). Never interpolate or concatenate user input into SQL strings.
+- **CSV export formula-injection protection**: Escape string cells starting with `=`, `+`, `-`, `@`, `\t`, or `\r` (e.g., `_safe_csv_cell` prefixing `'`) when building downloadable CSV responses.
 
 ## Background work — BackgroundTasks vs Celery
 
@@ -311,12 +338,14 @@ async def signup(data: SignupIn, bg: BackgroundTasks):
 > worker dies, the task is lost. There is no retry. Don't use them for anything you'd
 > page on.
 
-## Testing
+## Testing (`pytest` + `httpx` AsyncClient)
 
-### Async client from day one
+### Async client & isolated SQLite fixtures
+Configure `asyncio_mode = "auto"` in `pyproject.toml`, and test against an isolated temp or `:memory:` SQLite database using `httpx.AsyncClient` + `ASGITransport`:
+
 ```python
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
 
 from src.main import app
 
@@ -328,44 +357,17 @@ async def client():
         yield ac
 
 
-@pytest.mark.asyncio
-async def test_create_post(client: AsyncClient):
-    resp = await client.post("/posts", json={"title": "hi"})
+async def test_create_item(client: AsyncClient):
+    resp = await client.post("/items", json={"title": "hi"})
     assert resp.status_code == 201
 ```
 
-> **Don't** use `async_asgi_testclient` — it's unmaintained. The example above (httpx +
-> `ASGITransport`) is the supported path.
+> **Don't** use `async_asgi_testclient` — it's unmaintained. The example above (`httpx` + `ASGITransport`) is the supported path.
 
-### Override dependencies in tests
-Don't monkeypatch internals. Use FastAPI's built-in `dependency_overrides`.
-
-```python
-from src.auth.dependencies import parse_jwt_data
-from src.main import app
-
-
-def fake_user():
-    return {"user_id": "00000000-0000-0000-0000-000000000001"}
-
-
-@pytest.fixture(autouse=True)
-def _override_auth():
-    app.dependency_overrides[parse_jwt_data] = fake_user
-    yield
-    app.dependency_overrides.clear()
-```
-
-## Migrations (Alembic)
-
-- Migrations must be static and reversible.
-- Use the async template: `alembic init -t async migrations`
-- Descriptive filenames:
-  ```ini
-  # alembic.ini
-  file_template = %%(year)d-%%(month).2d-%%(day).2d_%%(slug)s
-  ```
-  → `2026-04-14_add_post_content_idx.py`
+### Testing Conventions & Dependency Overrides
+- **Arrange / Act / Assert (AAA)** with descriptive test names (`test_<unit>_<scenario>_<outcome>`) and isolated fixtures (no shared mutable state across tests).
+- Use FastAPI's `app.dependency_overrides[dep] = fake_dep` (clearing in fixture teardown) instead of monkeypatching internals.
+- Cover happy paths, boundary/validation errors (400/422), idempotency (e.g., duplicate CSV import hashes), and database constraint behavior (`RESTRICT` deletes, atomic rollbacks).
 
 ## API documentation
 
@@ -404,14 +406,19 @@ router = APIRouter()
 async def create_item(payload: ItemCreate) -> ItemResponse: ...
 ```
 
-## Linting
+## Linting & Formatting (Iterative Ruff Workflow)
+
+Use project rules in `pyproject.toml` (`[tool.ruff.lint]`) and run iteratively until clean:
 
 ```shell
-ruff check --fix src
-ruff format src
+ruff check --fix .        # apply safe autofixes
+ruff format .             # format code consistently
+ruff check .              # verify zero remaining lint errors
 ```
 
-Add to a pre-commit hook or run in CI. Ruff replaces black + isort + autoflake + most of flake8.
+- Review every autofixed diff carefully (`git diff`) before accepting.
+- Use `--unsafe-fixes` only after verifying each change preserves semantics.
+- Never silence findings with broad `# noqa`; use targeted `# noqa: <CODE>` only when justified (e.g., `# noqa: F401` for model registration side effects in `database.py`).
 
 ---
 
@@ -427,15 +434,17 @@ seen agents introduce.
 | `from jose import jwt` | `python-jose` is unmaintained. | `import jwt` (PyJWT). |
 | `from async_asgi_testclient import TestClient` | Unmaintained. | `httpx.AsyncClient` + `ASGITransport`. |
 | `model_config = ConfigDict(json_encoders={...})` | Deprecated in Pydantic v2. | `@field_serializer` or `Annotated[T, PlainSerializer(...)]`. |
-| `Field(ge=18, default=None)` | Constraint contradicts the default. | Pick required or optional, not both. |
+| `Field(ge=18, default=None)` or `Field(...)` Ellipsis defaults | Contradictory default or legacy Ellipsis syntax. | Pick required (`Field(ge=18)`) or optional (`int \| None = Field(default=None, ge=18)`). |
 | `def get_user(id: int = Depends(...))` (default-arg form) | Legacy; gotchas with default values. | `user: Annotated[User, Depends(...)]`. |
+| Storing money or tax rates as `float` | Floating-point rounding drift. | Store integer cents (`amount_cents`) and integer basis points (`weight_bps`). |
+| Missing `PRAGMA foreign_keys = ON` / `WAL` on SQLite | FK constraints silently ignored and write locks stall reads. | Set WAL, `busy_timeout`, and `foreign_keys` in the SQLAlchemy `connect` listener. |
 | Catching `Exception` around a route's body | Hides bugs and turns 500s into silent 200s. | Catch the specific exception class; raise `HTTPException` with a meaningful status. |
 | `BackgroundTasks` for anything you'd page on | No retry, dies with the worker. | Use Celery / Arq / RQ. |
 | Calling a sync ORM session inside `async def` | Blocks the loop, may deadlock the pool. | Use `AsyncSession`. |
 | Returning a Pydantic model and *also* setting `response_model=` to that same class | Model gets constructed twice (validate + serialize). | Either return a `dict`/ORM row and let `response_model` validate, or drop `response_model` and trust the return type. |
 | Importing across domains via deep paths (`from src.auth.service.user import ...`) | Tight coupling, hard to refactor. | `from src.auth import service as auth_service`. |
 | Reusing one `BaseSettings` for the whole app | Hard to reason about, every domain reads every var. | One `BaseSettings` per domain. |
-| Mocking the database in integration tests | Mock/prod divergence eventually fires in prod. | Use a real DB (testcontainers, ephemeral schema) and `dependency_overrides` for auth/external services. |
+| Mocking the database in integration tests | Mock/prod divergence eventually fires in prod. | Use an isolated temp/in-memory SQLite DB and `dependency_overrides` for external services. |
 
 ## Quick reference
 
@@ -451,11 +460,10 @@ seen agents introduce.
 | Per-request dep caching              | Default behavior — same `Depends(x)` runs once    |
 | Per-domain config                    | One `BaseSettings` subclass per domain            |
 | Custom datetime serialization        | `@field_serializer`                               |
-| Fire-and-forget short task           | `BackgroundTasks`                                 |
-| Reliable / scheduled / heavy task    | Celery / Arq / RQ                                 |
-| JWT decode                           | `PyJWT` (`import jwt`)                            |
-| Async DB                             | SQLAlchemy 2.0 async (`AsyncSession`)             |
+| Money & percentage precision         | Integer cents & basis points (`0..10000`)         |
+| SQLite schema changes                | Idempotent `ensure_schema_migrations` (`PRAGMA table_info`) |
+| Async DB                             | SQLAlchemy 2.0 async (`AsyncSession`) + `aiosqlite` |
 | HTTP test client                     | `httpx.AsyncClient` + `ASGITransport`             |
 | Swap dep in tests                    | `app.dependency_overrides[dep] = fake`            |
-| Lint + format                        | `ruff check --fix` + `ruff format`                |
+| Lint + format                        | `ruff check --fix .` + `ruff format .`            |
 
