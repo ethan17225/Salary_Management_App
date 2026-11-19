@@ -1,29 +1,37 @@
 'use client';
 
 import { useMemo, type CSSProperties } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useDialogs } from '@/components/ui/dialog-provider';
-import { YearDropdown, type YearOption } from '@/components/ui/year-dropdown';
+import { YearDropdown } from '@/components/ui/year-dropdown';
 import {
   computeAggregateTaxSummary,
   computePaychequeBreakdown,
 } from '@/lib/tax-intelligence';
-import { dateLabel, fmt, KIND_LABELS, plural } from '@/lib/utils';
+import { dateLabel, fmt, KIND_LABELS, plural, resolveYearFilter } from '@/lib/utils';
 import type { Paycheque, Source } from '@/types/payday';
 
 interface TaxesDashboardProps {
   paycheques: Paycheque[];
   sources: Source[];
-  activeYear: 'all' | number;
-  yearOptions: YearOption[];
+  initialYear?: string;
+  today: string;
 }
 
 export function TaxesDashboard({
   paycheques,
   sources,
-  activeYear,
-  yearOptions,
+  initialYear,
+  today,
 }: TaxesDashboardProps) {
   const { openPaychequeDialog, openSourceDialog } = useDialogs();
+  const searchParams = useSearchParams();
+  const yearParam = searchParams.get('year') ?? initialYear;
+
+  const { activeYear, inY, yearOptions } = useMemo(
+    () => resolveYearFilter(paycheques, yearParam, false, today),
+    [paycheques, yearParam, today]
+  );
 
   const sourcesById = useMemo(
     () => new Map(sources.map((s) => [s.id, s])),
@@ -31,8 +39,8 @@ export function TaxesDashboard({
   );
 
   const taxSummary = useMemo(
-    () => computeAggregateTaxSummary(paycheques, sourcesById),
-    [paycheques, sourcesById]
+    () => computeAggregateTaxSummary(inY, sourcesById),
+    [inY, sourcesById]
   );
 
   const partialCoverage =
@@ -56,22 +64,22 @@ export function TaxesDashboard({
   const sourceTaxRows = useMemo(() => {
     return sources
       .map((s) => {
-        const ps = paycheques.filter((p) => p.source_id === s.id);
+        const ps = inY.filter((p) => p.source_id === s.id);
         const sum = computeAggregateTaxSummary(ps, sourcesById);
         return { source: s, count: ps.length, sum };
       })
       .filter((r) => r.count > 0 || !r.source.archived);
-  }, [sources, paycheques, sourcesById]);
+  }, [sources, inY, sourcesById]);
 
   const trackedPaycheques = useMemo(() => {
-    return paycheques
+    return inY
       .map((p) => {
         const s = sourcesById.get(p.source_id);
         const b = computePaychequeBreakdown(p, s);
         return { p, s, b };
       })
       .filter((item) => item.b.hasGrossBreakdown || item.b.contractorTaxReserveCents > 0);
-  }, [paycheques, sourcesById]);
+  }, [inY, sourcesById]);
 
   return (
     <section>

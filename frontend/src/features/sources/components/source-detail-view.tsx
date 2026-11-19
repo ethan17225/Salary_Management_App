@@ -1,8 +1,12 @@
-import { Fragment, type CSSProperties } from 'react';
+'use client';
+
+import { Fragment, useMemo, type CSSProperties, type MouseEvent } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { YearDropdown } from '@/components/ui/year-dropdown';
 import { computeAggregateTaxSummary } from '@/lib/tax-intelligence';
 import { cn, dateLabel, fmt, KIND_LABELS, plural, sumCents } from '@/lib/utils';
+import { computeSourceYearSlice } from '../lib/compute-source-detail';
 import {
   SourceDetailHeaderActions,
   SourceRecordItemButton,
@@ -18,9 +22,19 @@ export function SourceDetailView({
   data: SourceDetailData;
   searchQuery?: string;
 }) {
+  const searchParams = useSearchParams();
+  const yearParam = searchParams.get('year') ?? undefined;
   const {
     source,
+    allPaycheques,
+    today,
     srcAllPs,
+    srcCadence,
+    srcTimeline,
+    upcomingForSource,
+  } = data;
+
+  const {
     srcYears,
     srcYear,
     srcIsAll,
@@ -36,11 +50,17 @@ export function SourceDetailView({
     srcTimedSum,
     srcActiveMonths,
     srcBestMonth,
-    srcCadence,
-    srcTimeline,
     srcYearOptions,
-    upcomingForSource,
-  } = data;
+  } = useMemo(
+    () => computeSourceYearSlice(srcAllPs, allPaycheques, yearParam, today),
+    [srcAllPs, allPaycheques, yearParam, today]
+  );
+
+  const handleYearLinkClick = (e: MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    e.preventDefault();
+    window.history.pushState(null, '', href);
+  };
 
   const taxSum = computeAggregateTaxSummary(srcPs, new Map([[source.id, source]]));
 
@@ -218,6 +238,7 @@ export function SourceDetailView({
                   className="link text-muted"
                   href={`/sources/${source.id}?year=all`}
                   scroll={false}
+                  onClick={(e) => handleYearLinkClick(e, `/sources/${source.id}?year=all`)}
                 >
                   Show all
                 </Link>
@@ -230,14 +251,16 @@ export function SourceDetailView({
                 const allTot = Math.max(sumCents(srcAllPs), 1);
                 const pct = Math.round((yTot / allTot) * 100);
                 const isSel = srcYear === y;
+                const yearHref = `/sources/${source.id}?year=${isSel ? 'all' : y}`;
                 return (
                   <li
                     key={y}
                     className="flex items-center gap-3 py-3 border-t border-line first:border-t-0 first:pt-0.5"
                   >
                     <Link
-                      href={`/sources/${source.id}?year=${isSel ? 'all' : y}`}
+                      href={yearHref}
                       scroll={false}
+                      onClick={(e) => handleYearLinkClick(e, yearHref)}
                       className={cn(
                         'flex items-center gap-3 w-[calc(100%+16px)] -my-1.5 -mx-2 py-1.5 px-2 rounded cursor-pointer no-underline text-inherit transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-accent',
                         isSel ? 'bg-accent-soft' : 'hover:bg-[#f2f6f7]'

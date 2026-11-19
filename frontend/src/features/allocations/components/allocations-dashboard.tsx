@@ -8,15 +8,16 @@ import {
   type CSSProperties,
   type FormEvent,
 } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useDialogs } from '@/components/ui/dialog-provider';
-import { YearDropdown, type YearOption } from '@/components/ui/year-dropdown';
+import { YearDropdown } from '@/components/ui/year-dropdown';
 import {
   allocateCentsLargestRemainder,
   computeAggregateAllocations,
   type AllocationCategory,
   type AllocationRule,
 } from '@/lib/allocation-engine';
-import { cn, fmt, plural, SOURCE_COLORS } from '@/lib/utils';
+import { cn, fmt, plural, resolveYearFilter, SOURCE_COLORS } from '@/lib/utils';
 import {
   applyAllocationPresetAction,
   deleteAllocationRuleAction,
@@ -53,20 +54,27 @@ interface AllocationsDashboardProps {
   rules: AllocationRule[];
   paycheques: Paycheque[];
   sources: Source[];
-  activeYear: 'all' | number;
-  yearOptions: YearOption[];
+  initialYear?: string;
+  today: string;
 }
 
 export function AllocationsDashboard({
   rules,
   paycheques,
   sources,
-  activeYear,
-  yearOptions,
+  initialYear,
+  today,
 }: AllocationsDashboardProps) {
   const { toast } = useDialogs();
   const dlgRef = useRef<HTMLDialogElement | null>(null);
   const nameRef = useRef<HTMLInputElement | null>(null);
+  const searchParams = useSearchParams();
+  const yearParam = searchParams.get('year') ?? initialYear;
+
+  const { activeYear, inY, yearOptions } = useMemo(
+    () => resolveYearFilter(paycheques, yearParam, false, today),
+    [paycheques, yearParam, today]
+  );
 
   const sourcesById = useMemo(
     () => new Map(sources.map((s) => [s.id, s])),
@@ -74,8 +82,8 @@ export function AllocationsDashboard({
   );
 
   const report = useMemo(
-    () => computeAggregateAllocations(paycheques, rules, sourcesById),
-    [paycheques, rules, sourcesById]
+    () => computeAggregateAllocations(inY, rules, sourcesById),
+    [inY, rules, sourcesById]
   );
 
   const [formState, setFormState] = useState<{
@@ -98,8 +106,8 @@ export function AllocationsDashboard({
   const [pending, setPending] = useState<'save' | 'preset' | number | null>(null);
 
   // Simulator state
-  const latestAmount = paycheques[0]?.amount_cents
-    ? (paycheques[0].amount_cents / 100).toFixed(2)
+  const latestAmount = (inY[0] ?? paycheques[0])?.amount_cents
+    ? ((inY[0] ?? paycheques[0]).amount_cents / 100).toFixed(2)
     : '1500.00';
   const [simMode, setSimMode] = useState<'direct' | 'hourly'>('direct');
   const [simDirect, setSimDirect] = useState(latestAmount);

@@ -1,6 +1,6 @@
 'use client';
 
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { fmt } from '@/lib/utils';
 
 export type YearOption = [value: string | number, label: string, totalCents: number];
@@ -19,14 +19,14 @@ export function YearDropdown({
   ariaLabel = 'Select year',
   paramName = 'year',
 }: YearDropdownProps) {
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   const handleChange = (val: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set(paramName, val);
-    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+    // ponytail: pushState + client-side year slicing avoids Next 15's aliased loading.tsx Suspense transition stall on search-param changes.
+    window.history.pushState(null, '', `${pathname}?${params.toString()}`);
   };
 
   return (

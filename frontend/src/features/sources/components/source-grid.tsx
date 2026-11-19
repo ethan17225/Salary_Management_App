@@ -114,7 +114,7 @@ export function SourceGrid({ summaries }: { summaries: SourceCardSummary[] }) {
                         <dd className="num text-base">
                           {fmt(timedCents / timedHours)}/h net
                           {taxSum.effectiveGrossHourlyCents &&
-                          taxSum.effectiveGrossHourlyCents > Math.round(timedCents / timedHours) ? (
+                            taxSum.effectiveGrossHourlyCents > Math.round(timedCents / timedHours) ? (
                             <span className="block text-xs text-muted font-mono mt-0.5">
                               {fmt(taxSum.effectiveGrossHourlyCents)}/h gross
                             </span>

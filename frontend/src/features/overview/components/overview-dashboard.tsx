@@ -1,7 +1,12 @@
+'use client';
+
+import { useMemo } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { YearDropdown } from '@/components/ui/year-dropdown';
-import { AddSourceButton } from '@/features/sources';
+import { AddSourceButton } from '@/features/sources/components/source-detail-actions';
 import { dateLabel, fmt, monthLabel, plural, sumCents } from '@/lib/utils';
+import { computeOverviewYearSlice } from '../lib/compute-overview';
 import { GoalDialogTrigger } from './goal-dialog';
 import { HeroTotalCounter } from './hero-total-counter';
 import { LatestPaychequesList } from './latest-paycheques-list';
@@ -14,25 +19,33 @@ import { UpcomingPaydaysList } from './upcoming-paydays-list';
 import type { OverviewData } from '../types/overview-types';
 
 export function OverviewDashboard({ data }: { data: OverviewData }) {
+  const searchParams = useSearchParams();
+  const yearParam = searchParams.get('year') ?? undefined;
   const {
     sources,
     paycheques,
     today,
+    timelineMonths,
+    thisMonthTotal,
+    goal,
+    bestEver,
+    biggest,
+    upcoming,
+  } = data;
+
+  const {
     activeYear,
     isAll,
     isCur,
     inY,
     sumY,
     bySrcEntries,
-    timelineMonths,
     prevTotal,
     prevPct,
-    thisMonthTotal,
     paidYearCount,
     activeMonths,
     bestPeriodMonth,
     topSrc,
-    goal,
     goalYear,
     goalSum,
     goalIsCur,
@@ -42,10 +55,10 @@ export function OverviewDashboard({ data }: { data: OverviewData }) {
     goalLeft,
     monthsLeft,
     yearOptions,
-    bestEver,
-    biggest,
-    upcoming,
-  } = data;
+  } = useMemo(
+    () => computeOverviewYearSlice(paycheques, goal, yearParam, today),
+    [paycheques, goal, yearParam, today]
+  );
 
   const srcById = (id: number) =>
     sources.find((s) => s.id === id) || { name: 'Unknown', color: '#94a3b8' };

@@ -175,7 +175,8 @@ export function buildTimelineMonths(paycheques: Paycheque[], fallbackYear: numbe
 export function resolveYearFilter(
   paycheques: Paycheque[],
   yearParam?: string,
-  defaultAll = false
+  defaultAll = false,
+  todayOverride?: string
 ): {
   today: string;
   curYear: number;
@@ -185,7 +186,7 @@ export function resolveYearFilter(
   inY: Paycheque[];
   yearOptions: YearOption[];
 } {
-  const today = iso(new Date());
+  const today = todayOverride || iso(new Date());
   const curYear = +today.slice(0, 4);
   const ys = new Set(paycheques.map((p) => +p.paid_on.slice(0, 4)));
   if (!defaultAll || !ys.size) ys.add(curYear);

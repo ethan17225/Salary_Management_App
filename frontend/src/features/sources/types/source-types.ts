@@ -28,6 +28,8 @@ export interface SourceCardSummary {
 
 export interface SourceDetailData {
   source: Source;
+  allPaycheques: Paycheque[];
+  today: string;
   srcAllPs: Paycheque[];
   srcYears: number[];
   srcYear: 'all' | number;

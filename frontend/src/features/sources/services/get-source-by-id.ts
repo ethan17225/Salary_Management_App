@@ -7,9 +7,8 @@ import {
   dateLabel,
   diffDays,
   median,
-  resolveYearFilter,
-  sumCents,
 } from '@/lib/utils';
+import { computeSourceYearSlice } from '../lib/compute-source-detail';
 import type { SourceDetailData } from '../types/source-types';
 
 export const getSourceById = cache(
@@ -21,43 +20,11 @@ export const getSourceById = cache(
     if (!source) return null;
 
     const srcAllPs = state.paycheques.filter((p) => p.source_id === source.id);
-    const {
-      today,
-      curYear,
-      years: srcYears,
-      activeYear: srcYear,
-      isAll: srcIsAll,
-      inY: srcPs,
-      yearOptions: srcYearOptions,
-    } = resolveYearFilter(srcAllPs, yearParam, true);
-    const srcSum = sumCents(srcPs);
-    const srcTotalPool = sumCents(
-      srcIsAll
-        ? state.paycheques
-        : state.paycheques.filter((p) => p.paid_on.startsWith(`${srcYear}-`))
+    const { curYear, ...yearSlice } = computeSourceYearSlice(
+      srcAllPs,
+      state.paycheques,
+      yearParam
     );
-    const srcSharePct = srcTotalPool ? Math.round((srcSum / srcTotalPool) * 100) : 0;
-    const srcAvg = srcPs.length ? srcSum / srcPs.length : 0;
-    const srcMaxP = srcPs.reduce<typeof srcPs[number] | null>(
-      (m, p) => (!m || p.amount_cents > m.amount_cents ? p : m),
-      null
-    );
-    const srcMinP = srcPs.reduce<typeof srcPs[number] | null>(
-      (m, p) => (!m || p.amount_cents < m.amount_cents ? p : m),
-      null
-    );
-    const srcMedian = srcPs.length ? median(srcPs.map((p) => p.amount_cents)) : 0;
-    const srcTimed = srcPs.filter((p) => p.hours);
-    const srcHours = srcTimed.reduce((h, p) => h + (p.hours || 0), 0);
-    const srcTimedSum = sumCents(srcTimed);
-
-    const srcPeriodMonths = new Map<string, number>();
-    srcPs.forEach((p) => {
-      const ym = p.paid_on.slice(0, 7);
-      srcPeriodMonths.set(ym, (srcPeriodMonths.get(ym) || 0) + p.amount_cents);
-    });
-    const srcActiveMonths = srcPeriodMonths.size;
-    const srcBestMonth = [...srcPeriodMonths].sort((a, b) => b[1] - a[1])[0] ?? null;
 
     let weekday: string | null = null;
     let gap: number | null = null;
@@ -77,33 +44,17 @@ export const getSourceById = cache(
     }
 
     const srcTimeline = buildTimelineMonths(srcAllPs, curYear);
-
-    const upcoming = computeUpcomingPaydays(state.sources, state.paycheques, today);
+    const upcoming = computeUpcomingPaydays(state.sources, state.paycheques, yearSlice.today);
     const upcomingForSource = upcoming.find((u) => u.source.id === source.id) ?? null;
 
     return {
       source,
+      allPaycheques: state.paycheques,
       srcAllPs,
-      srcYears,
-      srcYear,
-      srcIsAll,
-      srcPs,
-      srcSum,
-      srcSharePct,
-      srcAvg,
-      srcMaxP,
-      srcMinP,
-      srcMedian,
-      srcTimedCount: srcTimed.length,
-      srcHours,
-      srcTimedSum,
-      srcActiveMonths,
-      srcBestMonth,
+      ...yearSlice,
       srcCadence: { weekday, gap },
       srcTimeline,
-      srcYearOptions,
       upcomingForSource,
     };
   }
 );
-
