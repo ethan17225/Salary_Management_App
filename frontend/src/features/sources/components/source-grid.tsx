@@ -47,7 +47,7 @@ export function SourceGrid({ summaries }: { summaries: SourceCardSummary[] }) {
                     <span className="num">{spark.yrs.map((g) => g.y).join(' – ')}</span>
                   </div>
                   <div
-                    className="grid grid-cols-12 gap-x-1"
+                    className="relative z-10 grid grid-cols-12 gap-x-1"
                     role="img"
                     aria-label={`Last 12 months income for ${s.name}`}
                   >
@@ -58,7 +58,7 @@ export function SourceGrid({ summaries }: { summaries: SourceCardSummary[] }) {
                         data-tip={fmt(it.v)}
                         aria-label={`${MONTHS[it.m - 1]} ${it.y}: ${fmt(it.v)}`}
                       >
-                        <div className="w-full h-12 flex items-end rounded-[3px] transition-colors duration-120 group-hover/col:bg-ink/5">
+                        <div className="w-full h-12 flex items-end rounded-[3px] transition-colors duration-150 group-hover/col:bg-ink/5">
                           <span
                             className={cn(
                               'w-full rounded-[3px] block',
@@ -114,7 +114,7 @@ export function SourceGrid({ summaries }: { summaries: SourceCardSummary[] }) {
                         <dd className="num text-base">
                           {fmt(timedCents / timedHours)}/h net
                           {taxSum.effectiveGrossHourlyCents &&
-                          taxSum.effectiveGrossHourlyCents > Math.round(timedCents / timedHours) ? (
+                            taxSum.effectiveGrossHourlyCents > Math.round(timedCents / timedHours) ? (
                             <span className="block text-xs text-muted font-mono mt-0.5">
                               {fmt(taxSum.effectiveGrossHourlyCents)}/h gross
                             </span>
