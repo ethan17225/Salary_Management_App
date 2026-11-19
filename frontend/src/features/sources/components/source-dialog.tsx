@@ -6,7 +6,7 @@ import { useDialogs } from '@/components/ui/dialog-provider';
 import { SOURCE_COLORS } from '@/lib/utils';
 import { deleteSourceAction } from '../actions/delete-source';
 import { saveSourceAction } from '../actions/save-source';
-import type { Source, SourceKind } from '@/types/payday';
+import type { PaySchedule, Source, SourceKind } from '@/types/payday';
 
 interface SourceFormState {
   id: number | null;
@@ -16,6 +16,7 @@ interface SourceFormState {
   archived: boolean;
   is_tax_withheld: boolean;
   tax_reserve_percent: string;
+  pay_schedule: PaySchedule;
 }
 
 export function SourceDialog({ sources }: { sources: Source[] }) {
@@ -33,8 +34,11 @@ export function SourceDialog({ sources }: { sources: Source[] }) {
     archived: false,
     is_tax_withheld: true,
     tax_reserve_percent: '25',
+    pay_schedule: 'auto',
   });
   const [srcErr, setSrcErr] = useState('');
+  const [pending, setPending] = useState<'save' | 'delete' | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
     if (!sourceRequest) return;
@@ -45,6 +49,8 @@ export function SourceDialog({ sources }: { sources: Source[] }) {
       SOURCE_COLORS[0];
 
     setSrcErr('');
+    setPending(null);
+    setConfirmDelete(false);
     const isWithheld = s?.is_tax_withheld === undefined ? true : Boolean(s.is_tax_withheld);
     const reservePct =
       s?.tax_reserve_bps && s.tax_reserve_bps > 0
@@ -58,6 +64,7 @@ export function SourceDialog({ sources }: { sources: Source[] }) {
       archived: Boolean(s?.archived),
       is_tax_withheld: isWithheld,
       tax_reserve_percent: isWithheld ? '0' : reservePct,
+      pay_schedule: s?.pay_schedule ?? 'auto',
     });
     if (!dlgRef.current?.open) {
       dlgRef.current?.showModal();
@@ -68,35 +75,55 @@ export function SourceDialog({ sources }: { sources: Source[] }) {
 
   async function submitSrc(e: FormEvent) {
     e.preventDefault();
-    const res = await saveSourceAction(srcForm);
-    if (!res.success) {
-      setSrcErr(res.error);
-      return;
-    }
-    dlgRef.current?.close();
-    toast(srcForm.id ? 'Source saved' : `Added ${srcForm.name}`);
-    if (res.data?.id && sourceRequest?.onCreated) {
-      sourceRequest.onCreated(res.data.id);
+    if (pending) return;
+    setPending('save');
+    try {
+      const res = await saveSourceAction(srcForm);
+      if (!res.success) {
+        setSrcErr(res.error);
+        return;
+      }
+      dlgRef.current?.close();
+      toast(srcForm.id ? 'Source saved' : `Added ${srcForm.name}`);
+      if (res.data?.id && sourceRequest?.onCreated) {
+        sourceRequest.onCreated(res.data.id);
+      }
+    } finally {
+      setPending(null);
     }
   }
 
   async function deleteSrc() {
-    if (!srcForm.id) return;
-    const deletedId = srcForm.id;
-    const res = await deleteSourceAction({ id: deletedId });
-    if (!res.success) {
-      setSrcErr(res.error);
+    if (!srcForm.id || pending) return;
+    if (!confirmDelete) {
+      setConfirmDelete(true);
       return;
     }
-    dlgRef.current?.close();
-    toast('Source deleted');
-    if (pathname === `/sources/${deletedId}`) {
-      router.push('/sources');
+    const deletedId = srcForm.id;
+    setPending('delete');
+    try {
+      const res = await deleteSourceAction({ id: deletedId });
+      if (!res.success) {
+        setSrcErr(res.error);
+        setConfirmDelete(false);
+        return;
+      }
+      dlgRef.current?.close();
+      toast('Source deleted');
+      if (pathname === `/sources/${deletedId}`) {
+        router.push('/sources');
+      }
+    } finally {
+      setPending(null);
     }
   }
 
   return (
-    <dialog ref={dlgRef} aria-labelledby="srcTitle">
+    <dialog
+      ref={dlgRef}
+      aria-labelledby="srcTitle"
+      onClose={() => setConfirmDelete(false)}
+    >
       <form className="grid gap-[18px] p-[26px]" onSubmit={submitSrc}>
         <h2 id="srcTitle" className="text-[22px] font-medium tracking-[-0.02em]">
           {srcForm.id ? `Edit ${srcForm.name || 'source'}` : 'Add a source'}
@@ -105,9 +132,11 @@ export function SourceDialog({ sources }: { sources: Source[] }) {
           Name
           <input
             ref={srcNameRef}
+            name="name"
             maxLength={60}
             required
-            placeholder="Employer or payer"
+            autoComplete="off"
+            placeholder="Employer or payer…"
             value={srcForm.name}
             onChange={(e) => setSrcForm((f) => ({ ...f, name: e.target.value }))}
           />
@@ -116,6 +145,7 @@ export function SourceDialog({ sources }: { sources: Source[] }) {
           <label className="grid gap-1.5 text-sm font-medium">
             Kind
             <select
+              name="kind"
               value={srcForm.kind}
               onChange={(e) => setSrcForm((f) => ({ ...f, kind: e.target.value as SourceKind }))}
             >
@@ -127,6 +157,7 @@ export function SourceDialog({ sources }: { sources: Source[] }) {
           <label className="grid gap-1.5 text-sm font-medium">
             Colour
             <input
+              name="color"
               type="color"
               className="p-1 cursor-pointer"
               value={srcForm.color}
@@ -135,8 +166,26 @@ export function SourceDialog({ sources }: { sources: Source[] }) {
           </label>
         </div>
         <label className="grid gap-1.5 text-sm font-medium">
+          Pay Schedule
+          <select
+            name="pay_schedule"
+            value={srcForm.pay_schedule}
+            onChange={(e) =>
+              setSrcForm((f) => ({ ...f, pay_schedule: e.target.value as PaySchedule }))
+            }
+          >
+            <option value="auto">Auto-detect from paycheques</option>
+            <option value="weekly">Weekly (every 7 days)</option>
+            <option value="biweekly">Bi-weekly (every 14 days)</option>
+            <option value="semimonthly">Semi-monthly (1st &amp; 15th / 15th &amp; month-end)</option>
+            <option value="monthly">Monthly</option>
+            <option value="irregular">Irregular / Ad-hoc</option>
+          </select>
+        </label>
+        <label className="grid gap-1.5 text-sm font-medium">
           Tax Treatment
           <select
+            name="tax_treatment"
             value={srcForm.is_tax_withheld ? 'withheld' : 'untaxed'}
             onChange={(e) => {
               const withheld = e.target.value === 'withheld';
@@ -155,14 +204,16 @@ export function SourceDialog({ sources }: { sources: Source[] }) {
           </select>
         </label>
         {!srcForm.is_tax_withheld ? (
-          <div className="mt-2 p-3.5 rounded bg-bg border border-line grid gap-3">
+          <div className="mt-2 p-3.5 rounded-2xl bg-bg border border-line grid gap-3">
             <label className="grid gap-1.5 text-sm font-medium">
               Recommended Tax Reserve (%)
               <input
+                name="tax_reserve_percent"
                 type="number"
                 step="0.5"
                 min="0"
                 max="60"
+                autoComplete="off"
                 className="num"
                 value={srcForm.tax_reserve_percent}
                 onChange={(e) =>
@@ -192,6 +243,7 @@ export function SourceDialog({ sources }: { sources: Source[] }) {
         ) : null}
         <label className="flex items-center gap-2.5 text-[15px] min-h-[44px] cursor-pointer">
           <input
+            name="archived"
             type="checkbox"
             className="size-5 min-h-5 accent-accent"
             checked={srcForm.archived}
@@ -208,24 +260,35 @@ export function SourceDialog({ sources }: { sources: Source[] }) {
           {srcForm.id ? (
             <button
               type="button"
+              disabled={pending !== null}
               className="btn danger flex-1 sm:flex-initial"
               onClick={() => void deleteSrc()}
             >
-              Delete source
+              {pending === 'delete'
+                ? 'Deleting…'
+                : confirmDelete
+                  ? 'Confirm delete?'
+                  : 'Delete source'}
             </button>
           ) : null}
           <span className="hidden sm:block sm:flex-1" />
           <button
             type="button"
+            disabled={pending !== null}
             className="btn flex-1 sm:flex-initial"
             onClick={() => dlgRef.current?.close()}
           >
             Cancel
           </button>
-          <button className="btn primary flex-1 sm:flex-initial">Save source</button>
+          <button
+            type="submit"
+            disabled={pending !== null}
+            className="btn primary flex-1 sm:flex-initial"
+          >
+            {pending === 'save' ? 'Saving…' : 'Save source'}
+          </button>
         </div>
       </form>
     </dialog>
   );
 }
-

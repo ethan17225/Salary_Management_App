@@ -7,7 +7,7 @@ import { SourceDialog } from '@/features/sources';
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
-  const { sources, paycheques } = await getPaychequesData();
+  const { sources, paycheques, allocations } = await getPaychequesData();
 
   return (
     <DialogProvider>
@@ -19,7 +19,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       >
         {children}
       </main>
-      <PaychequeDialog sources={sources} paycheques={paycheques} />
+      <PaychequeDialog sources={sources} paycheques={paycheques} allocations={allocations} />
       <SourceDialog sources={sources} />
     </DialogProvider>
   );

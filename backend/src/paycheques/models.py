@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, Float, ForeignKey, Index, Integer, Text
+from sqlalchemy import CheckConstraint, Float, ForeignKey, Index, Integer, Text, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.models import Base
@@ -19,6 +19,12 @@ class Paycheque(Base):
         CheckConstraint("hours IS NULL OR hours > 0", name="hours"),
         Index("paycheques_paid_on", "paid_on"),
         Index("paycheques_source_id_paid_on", "source_id", "paid_on"),
+        Index(
+            "idx_paycheques_import_hash",
+            "import_hash",
+            unique=True,
+            sqlite_where=text("import_hash IS NOT NULL"),
+        ),
     )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -32,4 +38,5 @@ class Paycheque(Base):
     deductions_cents: Mapped[int | None] = mapped_column(Integer, nullable=True)
     hours: Mapped[float | None] = mapped_column(Float, nullable=True)
     note: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    import_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
 

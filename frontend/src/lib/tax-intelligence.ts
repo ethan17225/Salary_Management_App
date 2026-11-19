@@ -24,6 +24,10 @@ export interface AggregateTaxSummary {
   totalWithheldCents: number;
   totalExplicitTaxCents: number;
   totalExplicitDeductionsCents: number;
+  trackedNetCents: number;
+  trackedGrossCents: number;
+  trackedWithheldCents: number;
+  untrackedNetCents: number;
   breakdownCoverageCount: number;
   totalPaychequeCount: number;
   effectiveDeductionRateBps: number; // Calculated across paycheques that have gross_cents logged
@@ -112,6 +116,8 @@ export function computeAggregateTaxSummary(
 
   let trackedGrossSumCents = 0;
   let trackedNetSumCents = 0;
+  let trackedWithheldCents = 0;
+  let untrackedNetCents = 0;
   let breakdownCoverageCount = 0;
 
   let totalUntaxedNetCents = 0;
@@ -135,6 +141,9 @@ export function computeAggregateTaxSummary(
       breakdownCoverageCount += 1;
       trackedGrossSumCents += b.effectiveGrossCents;
       trackedNetSumCents += b.netCents;
+      trackedWithheldCents += b.totalWithheldCents;
+    } else {
+      untrackedNetCents += b.netCents;
     }
 
     if (b.contractorTaxReserveCents > 0) {
@@ -163,6 +172,10 @@ export function computeAggregateTaxSummary(
     totalWithheldCents,
     totalExplicitTaxCents,
     totalExplicitDeductionsCents,
+    trackedNetCents: trackedNetSumCents,
+    trackedGrossCents: trackedGrossSumCents,
+    trackedWithheldCents,
+    untrackedNetCents,
     breakdownCoverageCount,
     totalPaychequeCount: paycheques.length,
     effectiveDeductionRateBps,

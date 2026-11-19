@@ -1,6 +1,13 @@
 import type { AllocationRule } from '@/lib/allocation-engine';
 
 export type SourceKind = 'job' | 'government' | 'other';
+export type PaySchedule =
+  | 'auto'
+  | 'weekly'
+  | 'biweekly'
+  | 'semimonthly'
+  | 'monthly'
+  | 'irregular';
 
 export interface Source {
   id: number;
@@ -10,6 +17,7 @@ export interface Source {
   archived: number | boolean;
   is_tax_withheld?: number | boolean;
   tax_reserve_bps?: number;
+  pay_schedule?: PaySchedule;
 }
 
 export interface Paycheque {

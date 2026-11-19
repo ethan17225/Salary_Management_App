@@ -14,6 +14,7 @@ import {
   LineElement,
   PointElement,
   Tooltip,
+  type ChartDataset,
 } from 'chart.js';
 import { useEffect, useMemo, useRef } from 'react';
 import { formatDollars, MONTHS, pad, shortCurrency } from '@/lib/utils';
@@ -68,6 +69,7 @@ interface MonthlyChartProps {
   isAll: boolean;
   activeYear: 'all' | number;
   timelineMonths: string[];
+  goal?: number;
 }
 
 export function MonthlyIncomeChart({
@@ -77,6 +79,7 @@ export function MonthlyIncomeChart({
   isAll,
   activeYear,
   timelineMonths,
+  goal = 0,
 }: MonthlyChartProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const bySrc = useMemo(() => new Map(bySrcEntries), [bySrcEntries]);
@@ -93,17 +96,37 @@ export function MonthlyIncomeChart({
       bySourceMonth.set(key, (bySourceMonth.get(key) || 0) + p.amount_cents);
     }
 
-    const chart = new Chart(canvasRef.current, {
+    const datasets: ChartDataset<'bar' | 'line', number[]>[] = used.map((s) => ({
+      type: 'bar' as const,
+      label: s.name,
+      backgroundColor: s.color,
+      borderRadius: 4,
+      maxBarThickness: 46,
+      stack: 'income',
+      data: monthKeys.map((ym) => (bySourceMonth.get(`${s.id}:${ym}`) || 0) / 100),
+    }));
+
+    if (!isAll && goal > 0) {
+      const monthlyTarget = goal / 1200;
+      datasets.push({
+        type: 'line' as const,
+        label: `Monthly goal (${formatDollars(monthlyTarget)})`,
+        data: monthLabels.map(() => monthlyTarget),
+        borderColor: '#0d7480',
+        borderDash: [6, 4],
+        borderWidth: 1.5,
+        pointRadius: 0,
+        pointHoverRadius: 0,
+        fill: false,
+        order: 0,
+      });
+    }
+
+    const chart = new Chart<'bar' | 'line', number[], string>(canvasRef.current, {
       type: 'bar',
       data: {
         labels: monthLabels,
-        datasets: used.map((s) => ({
-          label: s.name,
-          backgroundColor: s.color,
-          borderRadius: 4,
-          maxBarThickness: 46,
-          data: monthKeys.map((ym) => (bySourceMonth.get(`${s.id}:${ym}`) || 0) / 100),
-        })),
+        datasets,
       },
       options: {
         interaction: { mode: 'index', intersect: false },
@@ -117,15 +140,21 @@ export function MonthlyIncomeChart({
             filter: (i) => Number(i.raw) > 0,
             callbacks: {
               label: (c) => ` ${c.dataset.label || c.label}: ${formatDollars(Number(c.raw))}`,
-              footer: (items) =>
-                `Total ${formatDollars(items.reduce((t, i) => t + Number(i.raw), 0))}`,
+              footer: (items) => {
+                const barItems = items.filter(
+                  (i) => (i.dataset as { type?: string }).type !== 'line'
+                );
+                return barItems.length
+                  ? `Total ${formatDollars(barItems.reduce((t, i) => t + Number(i.raw), 0))}`
+                  : '';
+              },
             },
           },
         },
       },
     });
     return () => chart.destroy();
-  }, [sources, inY, bySrc, isAll, activeYear, timelineMonths]);
+  }, [sources, inY, bySrc, isAll, activeYear, timelineMonths, goal]);
 
   return (
     <div className="relative h-[330px]">
@@ -146,6 +175,7 @@ interface CumulativeChartProps {
   activeYear: 'all' | number;
   timelineMonths: string[];
   today: string;
+  goal?: number;
 }
 
 export function CumulativeIncomeChart({
@@ -156,6 +186,7 @@ export function CumulativeIncomeChart({
   activeYear,
   timelineMonths,
   today,
+  goal = 0,
 }: CumulativeChartProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -181,55 +212,67 @@ export function CumulativeIncomeChart({
     };
 
     let allRun = 0;
-    const cumData = isAll
-      ? {
-          labels: monthLabels,
-          datasets: [
-            {
-              label: 'All-time cumulative',
-              data: timelineMonths.map(
-                (ym) => ((allRun += byMonthAll.get(ym) || 0), allRun / 100)
-              ),
-              borderColor: '#0d7480',
-              backgroundColor: 'rgba(13,116,128,.09)',
-              fill: true,
-              tension: 0.3,
-              pointRadius: 0,
-              pointHoverRadius: 4,
-              borderWidth: 2.5,
-            },
-          ],
-        }
-      : {
-          labels: [...MONTHS],
-          datasets: [
-            {
-              label: String(activeYear),
-              data: run(activeYear as number, isCur ? curMonth : 11),
-              borderColor: '#0d7480',
-              backgroundColor: 'rgba(13,116,128,.09)',
-              fill: true,
-              tension: 0.3,
-              pointRadius: 0,
-              pointHoverRadius: 4,
-              borderWidth: 2.5,
-            },
-            {
-              label: String((activeYear as number) - 1),
-              data: run((activeYear as number) - 1, 11),
-              borderColor: '#9aa8af',
-              borderDash: [5, 4],
-              tension: 0.3,
-              pointRadius: 0,
-              pointHoverRadius: 4,
-              borderWidth: 2,
-            },
-          ],
-        };
+    const datasets: ChartDataset<'line', (number | null)[]>[] = isAll
+      ? [
+          {
+            label: 'All-time cumulative',
+            data: timelineMonths.map(
+              (ym) => ((allRun += byMonthAll.get(ym) || 0), allRun / 100)
+            ),
+            borderColor: '#0d7480',
+            backgroundColor: 'rgba(13,116,128,.09)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            borderWidth: 2.5,
+          },
+        ]
+      : [
+          {
+            label: String(activeYear),
+            data: run(activeYear as number, isCur ? curMonth : 11),
+            borderColor: '#0d7480',
+            backgroundColor: 'rgba(13,116,128,.09)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            borderWidth: 2.5,
+          },
+          {
+            label: String((activeYear as number) - 1),
+            data: run((activeYear as number) - 1, 11),
+            borderColor: '#9aa8af',
+            borderDash: [5, 4],
+            tension: 0.3,
+            pointRadius: 0,
+            pointHoverRadius: 4,
+            borderWidth: 2,
+          },
+        ];
 
-    const chart = new Chart(canvasRef.current, {
+    if (!isAll && goal > 0) {
+      datasets.push({
+        label: `${activeYear} goal pace`,
+        data: MONTHS.map((_, m) => (goal * (m + 1)) / 1200),
+        borderColor: 'rgba(13, 116, 128, 0.55)',
+        backgroundColor: 'transparent',
+        fill: false,
+        borderDash: [4, 4],
+        tension: 0,
+        pointRadius: 0,
+        pointHoverRadius: 0,
+        borderWidth: 1.75,
+      });
+    }
+
+    const chart = new Chart<'line', (number | null)[], string>(canvasRef.current, {
       type: 'line',
-      data: cumData,
+      data: {
+        labels: isAll ? monthLabels : [...MONTHS],
+        datasets,
+      },
       options: {
         interaction: { mode: 'index', intersect: false },
         scales: {
@@ -247,7 +290,7 @@ export function CumulativeIncomeChart({
       },
     });
     return () => chart.destroy();
-  }, [paycheques, inY, isAll, isCur, activeYear, timelineMonths, today]);
+  }, [paycheques, inY, isAll, isCur, activeYear, timelineMonths, today, goal]);
 
   return (
     <div className="relative h-[260px]">
@@ -314,4 +357,3 @@ export function SourceSplitChart({ sources, bySrcEntries, sumY }: SplitChartProp
     </div>
   );
 }
-

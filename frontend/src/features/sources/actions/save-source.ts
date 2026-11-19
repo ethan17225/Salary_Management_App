@@ -17,14 +17,31 @@ export async function saveSourceAction(
     };
   }
 
-  const { id, name, kind, color, archived, is_tax_withheld, tax_reserve_percent } = parsed.data;
+  const {
+    id,
+    name,
+    kind,
+    color,
+    archived,
+    is_tax_withheld,
+    tax_reserve_percent,
+    pay_schedule,
+  } = parsed.data;
   const tax_reserve_bps = is_tax_withheld ? 0 : Math.round(tax_reserve_percent * 100);
 
   try {
     const result = await db.request<{ id?: number }>(
       id ? 'PUT' : 'POST',
       id ? `sources/${id}` : 'sources',
-      { name, kind, color, archived, is_tax_withheld: is_tax_withheld ? 1 : 0, tax_reserve_bps }
+      {
+        name,
+        kind,
+        color,
+        archived,
+        is_tax_withheld: is_tax_withheld ? 1 : 0,
+        tax_reserve_bps,
+        pay_schedule,
+      }
     );
     revalidatePath('/', 'layout');
     return { success: true, data: { id: result.id ?? id ?? undefined } };

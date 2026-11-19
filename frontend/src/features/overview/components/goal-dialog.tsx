@@ -7,25 +7,33 @@ import { updateGoalAction } from '../actions/update-goal';
 export function GoalDialogTrigger({ currentGoalCents }: { currentGoalCents: number }) {
   const [goalVal, setGoalVal] = useState('');
   const [goalErr, setGoalErr] = useState('');
+  const [pending, setPending] = useState<'save' | 'remove' | null>(null);
   const goalDlgRef = useRef<HTMLDialogElement | null>(null);
   const goalInputRef = useRef<HTMLInputElement | null>(null);
   const { toast } = useDialogs();
 
   const openModal = () => {
     setGoalErr('');
+    setPending(null);
     setGoalVal(currentGoalCents ? String(Math.round(currentGoalCents / 100)) : '');
     goalDlgRef.current?.showModal();
     requestAnimationFrame(() => goalInputRef.current?.focus());
   };
 
-  const saveGoal = async (val: string) => {
-    const res = await updateGoalAction({ goal: val });
-    if (!res.success) {
-      setGoalErr(res.error);
-      return;
+  const saveGoal = async (val: string, kind: 'save' | 'remove') => {
+    if (pending) return;
+    setPending(kind);
+    try {
+      const res = await updateGoalAction({ goal: val });
+      if (!res.success) {
+        setGoalErr(res.error);
+        return;
+      }
+      goalDlgRef.current?.close();
+      toast(val ? 'Goal saved' : 'Goal removed');
+    } finally {
+      setPending(null);
     }
-    goalDlgRef.current?.close();
-    toast(val ? 'Goal saved' : 'Goal removed');
   };
 
   return (
@@ -38,7 +46,7 @@ export function GoalDialogTrigger({ currentGoalCents }: { currentGoalCents: numb
           className="grid gap-[18px] p-[26px]"
           onSubmit={(e) => {
             e.preventDefault();
-            void saveGoal(goalVal);
+            void saveGoal(goalVal, 'save');
           }}
         >
           <h2 id="goalTitle" className="text-[22px] font-medium tracking-[-0.02em]">
@@ -55,11 +63,13 @@ export function GoalDialogTrigger({ currentGoalCents }: { currentGoalCents: numb
               </span>
               <input
                 ref={goalInputRef}
+                name="goal"
                 type="number"
                 step="1"
                 min="1"
                 inputMode="decimal"
-                placeholder="30000"
+                autoComplete="off"
+                placeholder="30000…"
                 className="pl-[34px] font-mono text-2xl min-h-[60px] tracking-[-0.02em]"
                 value={goalVal}
                 onChange={(e) => setGoalVal(e.target.value)}
@@ -75,25 +85,32 @@ export function GoalDialogTrigger({ currentGoalCents }: { currentGoalCents: numb
             {currentGoalCents ? (
               <button
                 type="button"
+                disabled={pending !== null}
                 className="btn danger flex-1 sm:flex-initial"
-                onClick={() => void saveGoal('')}
+                onClick={() => void saveGoal('', 'remove')}
               >
-                Remove goal
+                {pending === 'remove' ? 'Removing…' : 'Remove goal'}
               </button>
             ) : null}
             <span className="hidden sm:block sm:flex-1" />
             <button
               type="button"
+              disabled={pending !== null}
               className="btn flex-1 sm:flex-initial"
               onClick={() => goalDlgRef.current?.close()}
             >
               Cancel
             </button>
-            <button className="btn primary flex-1 sm:flex-initial">Save goal</button>
+            <button
+              type="submit"
+              disabled={pending !== null}
+              className="btn primary flex-1 sm:flex-initial"
+            >
+              {pending === 'save' ? 'Saving…' : 'Save goal'}
+            </button>
           </div>
         </form>
       </dialog>
     </>
   );
 }
-

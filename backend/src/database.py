@@ -159,6 +159,13 @@ def ensure_schema_migrations(conn: Any) -> None:
             "ALTER TABLE sources ADD COLUMN tax_reserve_bps INTEGER NOT NULL DEFAULT 0 "
             "CHECK (tax_reserve_bps >= 0 AND tax_reserve_bps <= 6000)",
         )
+    if "pay_schedule" not in source_cols:
+        _exec_sql(
+            conn,
+            "ALTER TABLE sources ADD COLUMN pay_schedule TEXT NOT NULL DEFAULT 'auto' "
+            "CHECK (pay_schedule IN "
+            "('auto', 'weekly', 'biweekly', 'semimonthly', 'monthly', 'irregular'))",
+        )
 
     paycheque_cols = {
         row[1] for row in _exec_sql(conn, "PRAGMA table_info(paycheques)").fetchall()
@@ -181,11 +188,18 @@ def ensure_schema_migrations(conn: Any) -> None:
             "ALTER TABLE paycheques ADD COLUMN deductions_cents INTEGER NULL "
             "CHECK (deductions_cents IS NULL OR deductions_cents >= 0)",
         )
+    if "import_hash" not in paycheque_cols:
+        _exec_sql(conn, "ALTER TABLE paycheques ADD COLUMN import_hash TEXT NULL")
 
     _exec_sql(
         conn,
         "CREATE INDEX IF NOT EXISTS paycheques_source_id_paid_on "
         "ON paycheques (source_id, paid_on)",
+    )
+    _exec_sql(
+        conn,
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_paycheques_import_hash "
+        "ON paycheques (import_hash) WHERE import_hash IS NOT NULL",
     )
     _exec_sql(
         conn,

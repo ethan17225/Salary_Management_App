@@ -59,12 +59,14 @@ export function SourcePaychequeLedger({
           </h2>
           <p className="text-sm text-muted mt-0.5">
             {plural(srcFilteredRows.length, 'paycheque')} in {srcIsAll ? 'all years' : srcYear} ·
-            click any row to edit
+            click any date to edit
           </p>
         </div>
         <div className="flex-[0_1_320px] min-w-[220px]">
           <input
             type="search"
+            name="q"
+            autoComplete="off"
             placeholder="Search notes, dates, or amounts…"
             aria-label={`Search ${source.name} paycheques`}
             value={srcSearch}
@@ -111,17 +113,14 @@ export function SourcePaychequeLedger({
                   return (
                     <tr
                       key={p.id}
-                      className="cursor-pointer transition-colors duration-120 hover:bg-[#f4f8f9]"
-                      onClick={() => openPaychequeDialog(p)}
+                      className="transition-colors duration-150 hover:bg-[#f4f8f9]"
                     >
                       <td>
                         <button
                           className="link"
                           type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openPaychequeDialog(p);
-                          }}
+                          aria-label={`Edit ${source.name} paycheque on ${dateLabel(p.paid_on)} for ${fmt(p.amount_cents)}`}
+                          onClick={() => openPaychequeDialog(p)}
                         >
                           {dateLabel(p.paid_on, {
                             weekday: 'short',

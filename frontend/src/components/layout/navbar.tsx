@@ -1,17 +1,32 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useDialogs } from '@/components/ui/dialog-provider';
 import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
-  { href: '/', label: 'Overview', match: (p: string) => p === '/' },
-  { href: '/paycheques', label: 'Paycheques', match: (p: string) => p.startsWith('/paycheques') },
-  { href: '/taxes', label: 'Taxes', match: (p: string) => p.startsWith('/taxes') },
-  { href: '/allocations', label: 'Allocations', match: (p: string) => p.startsWith('/allocations') },
-  { href: '/sources', label: 'Sources', match: (p: string) => p.startsWith('/sources') },
+  { href: '/', label: 'Overview', keepYear: true, match: (p: string) => p === '/' },
+  {
+    href: '/paycheques',
+    label: 'Paycheques',
+    keepYear: true,
+    match: (p: string) => p.startsWith('/paycheques'),
+  },
+  { href: '/taxes', label: 'Taxes', keepYear: true, match: (p: string) => p.startsWith('/taxes') },
+  {
+    href: '/allocations',
+    label: 'Allocations',
+    keepYear: true,
+    match: (p: string) => p.startsWith('/allocations'),
+  },
+  {
+    href: '/sources',
+    label: 'Sources',
+    keepYear: false,
+    match: (p: string) => p.startsWith('/sources'),
+  },
 ] as const;
 
 const HASH_ROUTES: Record<string, string> = {
@@ -22,13 +37,56 @@ const HASH_ROUTES: Record<string, string> = {
   sources: '/sources',
 };
 
-export function Navbar() {
-  const pathname = usePathname();
-  const router = useRouter();
-  const { openPaychequeDialog } = useDialogs();
+function withYearParam(href: string, yearParam: string | null): string {
+  if (!yearParam) return href;
+  return `${href}?year=${encodeURIComponent(yearParam)}`;
+}
 
-  const sourceMatch = pathname.match(/^\/sources\/(\d+)/);
-  const activeSourceId = sourceMatch ? Number(sourceMatch[1]) : null;
+function NavLinks({
+  pathname,
+  yearParam,
+}: {
+  pathname: string;
+  yearParam: string | null;
+}) {
+  return (
+    // ponytail: CSS horizontal scroll on <md; switch to fixed bottom tab bar if mobile usage dominates.
+    <nav
+      className="order-3 md:order-none w-full md:w-auto flex gap-1 overflow-x-auto whitespace-nowrap -mx-4 px-4 md:mx-0 md:px-0 md:overflow-visible"
+      aria-label="Sections"
+    >
+      {NAV_ITEMS.map((item) => {
+        const active = item.match(pathname);
+        const targetHref = item.keepYear ? withYearParam(item.href, yearParam) : item.href;
+        return (
+          <Link
+            key={item.href}
+            href={targetHref}
+            aria-current={active ? 'page' : undefined}
+            className={cn(
+              'shrink-0 md:flex-initial inline-flex items-center justify-center min-h-[44px] px-3.5 md:px-4 rounded-full font-medium no-underline transition-colors duration-150',
+              active ? 'bg-ink text-white' : 'text-muted hover:text-ink hover:bg-surface'
+            )}
+          >
+            {item.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+function NavbarSearchParamsSync({
+  pathname,
+  activeSourceId,
+}: {
+  pathname: string;
+  activeSourceId: number | null;
+}) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { openPaychequeDialog } = useDialogs();
+  const yearParam = searchParams.get('year');
 
   useEffect(() => {
     const handleHash = () => {
@@ -40,7 +98,11 @@ export function Navbar() {
         return;
       }
       if (HASH_ROUTES[h]) {
-        router.replace(HASH_ROUTES[h]);
+        const dest =
+          HASH_ROUTES[h] === '/sources'
+            ? HASH_ROUTES[h]
+            : withYearParam(HASH_ROUTES[h], yearParam);
+        router.replace(dest);
         return;
       }
       const m = h.match(/^source\/(\d+)$/);
@@ -49,12 +111,22 @@ export function Navbar() {
     handleHash();
     window.addEventListener('hashchange', handleHash);
     return () => window.removeEventListener('hashchange', handleHash);
-  }, [router, openPaychequeDialog, activeSourceId]);
+  }, [router, openPaychequeDialog, activeSourceId, yearParam]);
+
+  return <NavLinks pathname={pathname} yearParam={yearParam} />;
+}
+
+export function Navbar() {
+  const pathname = usePathname();
+  const { openPaychequeDialog } = useDialogs();
+
+  const sourceMatch = pathname.match(/^\/sources\/(\d+)/);
+  const activeSourceId = sourceMatch ? Number(sourceMatch[1]) : null;
 
   return (
     <>
       <a
-        className="absolute left-3 -top-20 focus:top-3 z-50 bg-ink text-white px-4 py-2.5 rounded transition-[top]"
+        className="absolute left-3 top-3 -translate-y-24 focus:translate-y-0 z-50 bg-ink text-white px-4 py-2.5 rounded-lg transition-transform duration-150"
         href="#main"
       >
         Skip to content
@@ -73,27 +145,9 @@ export function Navbar() {
             </span>
             Payday
           </Link>
-          <nav
-            className="order-3 md:order-none w-full md:w-auto flex gap-1"
-            aria-label="Sections"
-          >
-            {NAV_ITEMS.map((item) => {
-              const active = item.match(pathname);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={active ? 'page' : undefined}
-                  className={cn(
-                    'flex-1 md:flex-initial inline-flex items-center justify-center min-h-[44px] px-2 md:px-4 rounded-full font-medium no-underline transition-colors duration-150',
-                    active ? 'bg-ink text-white' : 'text-muted hover:text-ink hover:bg-surface'
-                  )}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
+          <Suspense fallback={<NavLinks pathname={pathname} yearParam={null} />}>
+            <NavbarSearchParamsSync pathname={pathname} activeSourceId={activeSourceId} />
+          </Suspense>
           <button
             className="btn primary ml-auto"
             type="button"
@@ -114,4 +168,3 @@ export function Navbar() {
     </>
   );
 }
-

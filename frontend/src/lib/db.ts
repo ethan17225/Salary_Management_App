@@ -55,7 +55,8 @@ export const db = {
   },
 
   async proxy(path: string, req: Request): Promise<Response> {
-    return fetchBackend(path, {
+    const qs = new URL(req.url).search;
+    return fetchBackend(`${path}${qs}`, {
       method: req.method,
       headers: req.headers.get('content-type')
         ? { 'content-type': req.headers.get('content-type')! }

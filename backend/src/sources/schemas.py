@@ -10,6 +10,7 @@ from src.sources.constants import (
     HEX_COLOR_PATTERN,
     MAX_SOURCE_NAME_LENGTH,
     ErrorCode,
+    PaySchedule,
     SourceKind,
 )
 
@@ -21,6 +22,7 @@ class SourcePayload(CustomModel):
     archived: int = 0
     is_tax_withheld: int = 1
     tax_reserve_bps: int = 0
+    pay_schedule: PaySchedule = PaySchedule.AUTO
 
     @field_validator("name", mode="before")
     @classmethod
@@ -66,6 +68,15 @@ class SourcePayload(CustomModel):
     def validate_tax_reserve_bps(cls, value: Any) -> int:
         return parse_tax_reserve_bps(value)
 
+    @field_validator("pay_schedule", mode="before")
+    @classmethod
+    def validate_pay_schedule(cls, value: Any) -> PaySchedule:
+        raw = value or PaySchedule.AUTO.value
+        try:
+            return PaySchedule(raw)
+        except ValueError:
+            raise ValueError(ErrorCode.INVALID_PAY_SCHEDULE) from None
+
     @model_validator(mode="after")
     def sync_tax_reserve(self) -> "SourcePayload":
         if self.is_tax_withheld:
@@ -85,4 +96,5 @@ class SourceResponse(CustomModel):
     archived: int
     is_tax_withheld: int = 1
     tax_reserve_bps: int = 0
+    pay_schedule: PaySchedule = PaySchedule.AUTO
 

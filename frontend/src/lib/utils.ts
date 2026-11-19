@@ -84,7 +84,28 @@ export const median = (values: number[]): number => {
 
 export const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? '' : 's'}`;
 
-// ponytail: median-gap heuristic; add explicit recurrence rules if schedules get irregular.
+function addMonthsClamped(s: string, months: number): string {
+  const d = parseDate(s);
+  const day = d.getDate();
+  const targetMonth = d.getMonth() + months;
+  const lastDayOfTarget = new Date(d.getFullYear(), targetMonth + 1, 0).getDate();
+  return iso(new Date(d.getFullYear(), targetMonth, Math.min(day, lastDayOfTarget)));
+}
+
+function nextSemimonthly(last: string, ps: Paycheque[]): string {
+  const d = parseDate(last);
+  const y = d.getFullYear();
+  const m = d.getMonth();
+  const day = d.getDate();
+  const usesFirstOfMonth = ps.slice(-4).some((p) => Number(p.paid_on.slice(8, 10)) <= 5);
+  if (day < 15) return iso(new Date(y, m, 15));
+  if (day <= 20) {
+    return usesFirstOfMonth ? iso(new Date(y, m + 1, 1)) : iso(new Date(y, m + 1, 0));
+  }
+  return iso(new Date(y, m + 1, 15));
+}
+
+// ponytail: median-gap fallback for 'auto'; explicit pay_schedule handles 1-cheque cold start & irregular sources.
 export function computeUpcomingPaydays(
   sources: Source[],
   paycheques: Paycheque[],
@@ -94,18 +115,43 @@ export function computeUpcomingPaydays(
   return sources
     .filter((s) => !s.archived)
     .map((source) => {
+      const schedule = source.pay_schedule ?? 'auto';
+      if (schedule === 'irregular') return null;
+
       const ps = paycheques.filter((p) => p.source_id === source.id).reverse();
-      if (ps.length < 3) return null;
-      const recent = ps.slice(-7);
-      const gap = Math.round(
-        median(recent.slice(1).map((p, i) => diffDays(recent[i].paid_on, p.paid_on)))
-      );
+      if (schedule === 'auto') {
+        if (ps.length < 3) return null;
+        const recent = ps.slice(-7);
+        const gap = Math.round(
+          median(recent.slice(1).map((p, i) => diffDays(recent[i].paid_on, p.paid_on)))
+        );
+        const last = ps.at(-1)!.paid_on;
+        if (gap < 1 || diffDays(last, today) > gap * 2 + 7) return null;
+        return {
+          source,
+          gap,
+          next: addDays(last, gap),
+          amount: median(ps.slice(-4).map((p) => p.amount_cents)),
+        };
+      }
+
+      if (ps.length < 1) return null;
       const last = ps.at(-1)!.paid_on;
-      if (gap < 1 || diffDays(last, today) > gap * 2 + 7) return null;
+      const next =
+        schedule === 'weekly'
+          ? addDays(last, 7)
+          : schedule === 'biweekly'
+            ? addDays(last, 14)
+            : schedule === 'semimonthly'
+              ? nextSemimonthly(last, ps)
+              : addMonthsClamped(last, 1);
+      const gap = Math.max(1, diffDays(last, next));
+      if (diffDays(last, today) > gap * 2 + 7) return null;
+
       return {
         source,
         gap,
-        next: addDays(last, gap),
+        next,
         amount: median(ps.slice(-4).map((p) => p.amount_cents)),
       };
     })

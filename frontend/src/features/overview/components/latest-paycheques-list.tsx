@@ -19,7 +19,10 @@ export function LatestPaychequesList({
   if (!paycheques.length) {
     return (
       <ul className="list-none m-0 p-0">
-        <li className="text-muted py-1">No paycheques yet. Press N to add one.</li>
+        <li className="text-muted py-1">
+          No paycheques yet.{' '}
+          <span className="hidden [@media(pointer:fine)]:inline">Press N to add one.</span>
+        </li>
       </ul>
     );
   }

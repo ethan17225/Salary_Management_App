@@ -35,10 +35,23 @@ export function TaxesDashboard({
     [paycheques, sourcesById]
   );
 
-  const grossBase = Math.max(taxSummary.totalEffectiveGrossCents, 1);
-  const segNetPct = (taxSummary.totalTrueSpendableNetCents / grossBase) * 100;
-  const segResPct = (taxSummary.totalContractorTaxReserveCents / grossBase) * 100;
-  const segWithheldPct = (taxSummary.totalWithheldCents / grossBase) * 100;
+  const partialCoverage =
+    taxSummary.breakdownCoverageCount > 0 &&
+    taxSummary.breakdownCoverageCount < taxSummary.totalPaychequeCount;
+  const grossBase = Math.max(
+    partialCoverage ? taxSummary.trackedGrossCents : taxSummary.totalEffectiveGrossCents,
+    1
+  );
+  const barNetCents = partialCoverage
+    ? taxSummary.trackedNetCents
+    : taxSummary.totalTrueSpendableNetCents;
+  const barResCents = partialCoverage ? 0 : taxSummary.totalContractorTaxReserveCents;
+  const barWithheldCents = partialCoverage
+    ? taxSummary.trackedWithheldCents
+    : taxSummary.totalWithheldCents;
+  const segNetPct = (barNetCents / grossBase) * 100;
+  const segResPct = (barResCents / grossBase) * 100;
+  const segWithheldPct = (barWithheldCents / grossBase) * 100;
 
   const sourceTaxRows = useMemo(() => {
     return sources
@@ -76,7 +89,8 @@ export function TaxesDashboard({
             <b className="font-medium text-[#6fe0b0]">
               {(taxSummary.netRetentionRateBps / 100).toFixed(1)}% retained
             </b>{' '}
-            · {fmt(taxSummary.totalEffectiveGrossCents)} effective gross ·{' '}
+            {partialCoverage ? 'on tracked stubs · ' : '· '}
+            {fmt(taxSummary.totalEffectiveGrossCents)} total gross ·{' '}
             {fmt(taxSummary.totalWithheldCents)} withheld at source
             {taxSummary.totalContractorTaxReserveCents > 0
               ? ` · ${fmt(taxSummary.totalContractorTaxReserveCents)} contractor reserve`
@@ -94,7 +108,7 @@ export function TaxesDashboard({
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4 mt-4">
         <article className="card md:col-span-6 lg:col-span-3">
-          <p className="text-sm text-muted">Effective Gross Income</p>
+          <p className="text-sm text-muted">Total Gross Income</p>
           <p className="num text-[25px] leading-[1.25] tracking-[-0.03em] mt-1.5 mb-0.5 truncate">
             {fmt(taxSummary.totalEffectiveGrossCents)}
           </p>
@@ -126,7 +140,7 @@ export function TaxesDashboard({
           </p>
         </article>
         <article className="card md:col-span-6 lg:col-span-3">
-          <p className="text-sm text-muted">Untaxed Reserve Required</p>
+          <p className="text-sm text-muted">Tax Set-Aside Needed</p>
           <p className="num text-[25px] leading-[1.25] tracking-[-0.03em] mt-1.5 mb-0.5 truncate">
             {fmt(taxSummary.totalContractorTaxReserveCents)}{' '}
             {taxSummary.totalContractorTaxReserveCents > 0 ? (
@@ -147,8 +161,9 @@ export function TaxesDashboard({
                 Gross-to-Net &amp; Tax Retention Bar
               </h2>
               <p className="text-sm text-muted">
-                Proportion of gross earnings kept as spendable take-home vs. contractor tax reserve
-                and payroll deductions.
+                {partialCoverage
+                  ? `Based on ${taxSummary.breakdownCoverageCount} of ${taxSummary.totalPaychequeCount} paycheques with gross pay logged.`
+                  : 'Proportion of gross earnings kept as spendable take-home vs. contractor tax reserve and payroll deductions.'}
               </p>
             </div>
             {taxSummary.breakdownCoverageCount > 0 ? (
@@ -170,40 +185,40 @@ export function TaxesDashboard({
             <span
               className="bg-up h-full"
               style={{ width: `${segNetPct}%` }}
-              title={`True Spendable Net: ${fmt(taxSummary.totalTrueSpendableNetCents)} (${segNetPct.toFixed(1)}%)`}
+              title={`${partialCoverage ? 'Tracked Net' : 'True Spendable Net'}: ${fmt(barNetCents)} (${segNetPct.toFixed(1)}%)`}
             />
-            {taxSummary.totalContractorTaxReserveCents > 0 ? (
+            {barResCents > 0 ? (
               <span
-                className="bg-[#d97706] h-full"
+                className="bg-warn h-full"
                 style={{ width: `${segResPct}%` }}
-                title={`Contractor Tax Reserve: ${fmt(taxSummary.totalContractorTaxReserveCents)} (${segResPct.toFixed(1)}%)`}
+                title={`Contractor Tax Reserve: ${fmt(barResCents)} (${segResPct.toFixed(1)}%)`}
               />
             ) : null}
-            {taxSummary.totalWithheldCents > 0 ? (
+            {barWithheldCents > 0 ? (
               <span
                 className="bg-down h-full"
                 style={{ width: `${segWithheldPct}%` }}
-                title={`Withheld at Source: ${fmt(taxSummary.totalWithheldCents)} (${segWithheldPct.toFixed(1)}%)`}
+                title={`Withheld at Source: ${fmt(barWithheldCents)} (${segWithheldPct.toFixed(1)}%)`}
               />
             ) : null}
           </div>
           <div className="flex flex-wrap gap-[18px] mt-2">
             <span className="inline-flex items-center gap-2 whitespace-nowrap text-sm">
-              <span className="size-2.5 rounded-full bg-[#10b981] shrink-0 inline-block" />
-              True Spendable Net:{' '}
-              <b className="num font-medium">{fmt(taxSummary.totalTrueSpendableNetCents)}</b> (
-              {segNetPct.toFixed(1)}%)
+              <span className="size-2.5 rounded-full bg-up shrink-0 inline-block" />
+              {partialCoverage ? 'Tracked Net' : 'True Spendable Net'}:{' '}
+              <b className="num font-medium">{fmt(barNetCents)}</b> ({segNetPct.toFixed(1)}%)
             </span>
+            {!partialCoverage ? (
+              <span className="inline-flex items-center gap-2 whitespace-nowrap text-sm">
+                <span className="size-2.5 rounded-full bg-warn shrink-0 inline-block" />
+                Contractor Tax Reserve:{' '}
+                <b className="num font-medium">{fmt(barResCents)}</b> ({segResPct.toFixed(1)}%)
+              </span>
+            ) : null}
             <span className="inline-flex items-center gap-2 whitespace-nowrap text-sm">
-              <span className="size-2.5 rounded-full bg-[#f59e0b] shrink-0 inline-block" />
-              Contractor Tax Reserve:{' '}
-              <b className="num font-medium">{fmt(taxSummary.totalContractorTaxReserveCents)}</b> (
-              {segResPct.toFixed(1)}%)
-            </span>
-            <span className="inline-flex items-center gap-2 whitespace-nowrap text-sm">
-              <span className="size-2.5 rounded-full bg-[#f43f5e] shrink-0 inline-block" />
+              <span className="size-2.5 rounded-full bg-down shrink-0 inline-block" />
               Withheld Taxes &amp; Deductions:{' '}
-              <b className="num font-medium">{fmt(taxSummary.totalWithheldCents)}</b> (
+              <b className="num font-medium">{fmt(barWithheldCents)}</b> (
               {segWithheldPct.toFixed(1)}%)
             </span>
           </div>
@@ -229,7 +244,7 @@ export function TaxesDashboard({
                 <th scope="col">Source</th>
                 <th scope="col">Tax Treatment</th>
                 <th scope="col" className="num text-right">
-                  Effective Gross
+                  Total Gross
                 </th>
                 <th scope="col" className="num text-right">
                   Withheld
@@ -248,8 +263,7 @@ export function TaxesDashboard({
                 return (
                   <tr
                     key={s.id}
-                    className="cursor-pointer transition-colors duration-120 hover:bg-[#f4f8f9]"
-                    onClick={() => openSourceDialog(s)}
+                    className="transition-colors duration-150 hover:bg-[#f4f8f9]"
                   >
                     <td>
                       <span className="inline-flex items-center gap-2 whitespace-nowrap">
@@ -260,10 +274,8 @@ export function TaxesDashboard({
                         <button
                           type="button"
                           className="link"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openSourceDialog(s);
-                          }}
+                          aria-label={`Edit tax treatment for ${s.name}`}
+                          onClick={() => openSourceDialog(s)}
                         >
                           <b className="font-medium">{s.name}</b>
                         </button>
@@ -317,7 +329,7 @@ export function TaxesDashboard({
               </h2>
               <p className="text-sm text-muted mt-0.5">
                 Paycheques with logged gross pay, tax withholdings, deductions, or contractor tax
-                reserves. Click any row to edit.
+                reserves. Click any date to edit.
               </p>
             </div>
           </div>
@@ -348,17 +360,14 @@ export function TaxesDashboard({
                 {trackedPaycheques.map(({ p, s, b }) => (
                   <tr
                     key={p.id}
-                    className="cursor-pointer transition-colors duration-120 hover:bg-[#f4f8f9]"
-                    onClick={() => openPaychequeDialog(p)}
+                    className="transition-colors duration-150 hover:bg-[#f4f8f9]"
                   >
                     <td>
                       <button
                         type="button"
                         className="link"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openPaychequeDialog(p);
-                        }}
+                        aria-label={`Edit ${s?.name || 'Unknown'} paycheque on ${dateLabel(p.paid_on)} for ${fmt(p.amount_cents)}`}
+                        onClick={() => openPaychequeDialog(p)}
                       >
                         {dateLabel(p.paid_on, {
                           weekday: 'short',

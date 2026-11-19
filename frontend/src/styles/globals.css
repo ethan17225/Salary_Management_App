@@ -12,6 +12,7 @@
   --accent-2: #0a5d67;
   --accent-soft: #e2f0f1;
   --up: #0f7a4a;
+  --warn: #d97706;
   --down: #b42318;
   --r: 10px;
   --r-lg: 16px;
@@ -32,6 +33,7 @@
   --color-accent-2: var(--accent-2);
   --color-accent-soft: var(--accent-soft);
   --color-up: var(--up);
+  --color-warn: var(--warn);
   --color-down: var(--down);
 
   --color-background: var(--bg);
@@ -90,6 +92,14 @@
 
   h1, h2, p, dl, dd {
     margin: 0;
+  }
+
+  h1, h2, h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
   }
 
   :focus-visible {
@@ -252,6 +262,12 @@
 
   .btn:active {
     transform: translateY(1px) scale(.98);
+  }
+
+  .btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
   }
 
   .btn.primary {

@@ -38,6 +38,7 @@ async def create_source(db: AsyncSession, payload: SourceCreate) -> Source:
         archived=payload.archived,
         is_tax_withheld=payload.is_tax_withheld,
         tax_reserve_bps=payload.tax_reserve_bps,
+        pay_schedule=payload.pay_schedule.value,
     )
     db.add(source)
     return await _commit_source(db, source)
@@ -50,6 +51,7 @@ async def update_source(db: AsyncSession, source: Source, payload: SourceUpdate)
     source.archived = payload.archived
     source.is_tax_withheld = payload.is_tax_withheld
     source.tax_reserve_bps = payload.tax_reserve_bps
+    source.pay_schedule = payload.pay_schedule.value
     return await _commit_source(db, source)
 
 

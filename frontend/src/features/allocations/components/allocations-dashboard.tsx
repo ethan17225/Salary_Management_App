@@ -95,6 +95,7 @@ export function AllocationsDashboard({
     active: true,
   });
   const [formErr, setFormErr] = useState('');
+  const [pending, setPending] = useState<'save' | 'preset' | number | null>(null);
 
   // Simulator state
   const latestAmount = paycheques[0]?.amount_cents
@@ -169,65 +170,99 @@ export function AllocationsDashboard({
 
   async function handleSaveRule(e: FormEvent) {
     e.preventDefault();
-    const res = await saveAllocationRuleAction({
-      ...formState,
-      percentage: Number(formState.percentage),
-    });
-    if (!res.success) {
-      setFormErr(res.error);
-      return;
+    if (pending !== null) return;
+    setPending('save');
+    try {
+      const res = await saveAllocationRuleAction({
+        ...formState,
+        percentage: Number(formState.percentage),
+      });
+      if (!res.success) {
+        setFormErr(res.error);
+        return;
+      }
+      dlgRef.current?.close();
+      toast(formState.id ? 'Bucket updated' : `Added ${formState.name}`);
+    } finally {
+      setPending(null);
     }
-    dlgRef.current?.close();
-    toast(formState.id ? 'Bucket updated' : `Added ${formState.name}`);
   }
 
   async function handleToggleActive(rule: AllocationRule) {
-    const nextActive = !rule.active;
-    const res = await saveAllocationRuleAction({
-      id: rule.id,
-      name: rule.name,
-      category: rule.category,
-      percentage: rule.weight_bps / 100,
-      color: rule.color,
-      sort_order: rule.sort_order,
-      active: nextActive,
-    });
-    if (!res.success) {
-      toast(res.error);
-      return;
-    }
-    toast(nextActive ? `Activated ${rule.name}` : `Paused ${rule.name}`);
-  }
-
-  async function handleDeleteRule(rule: AllocationRule) {
-    const res = await deleteAllocationRuleAction(rule.id);
-    if (!res.success) {
-      toast(res.error);
-      return;
-    }
-    toast(`Deleted ${rule.name}`, async () => {
-      const restore = await saveAllocationRuleAction({
+    if (pending !== null) return;
+    setPending(rule.id);
+    try {
+      const nextActive = !rule.active;
+      const res = await saveAllocationRuleAction({
+        id: rule.id,
         name: rule.name,
         category: rule.category,
         percentage: rule.weight_bps / 100,
         color: rule.color,
         sort_order: rule.sort_order,
-        active: Boolean(rule.active),
+        active: nextActive,
       });
-      if (!restore.success) {
-        throw new Error(restore.error);
+      if (!res.success) {
+        toast(res.error);
+        return;
       }
-      toast('Bucket restored');
-    });
+      toast(nextActive ? `Activated ${rule.name}` : `Paused ${rule.name}`);
+    } finally {
+      setPending(null);
+    }
+  }
+
+  async function handleDeleteRule(rule: AllocationRule) {
+    if (pending !== null) return;
+    setPending(rule.id);
+    try {
+      const res = await deleteAllocationRuleAction(rule.id);
+      if (!res.success) {
+        toast(res.error);
+        return;
+      }
+      toast(`Deleted ${rule.name}`, async () => {
+        const restore = await saveAllocationRuleAction({
+          name: rule.name,
+          category: rule.category,
+          percentage: rule.weight_bps / 100,
+          color: rule.color,
+          sort_order: rule.sort_order,
+          active: Boolean(rule.active),
+        });
+        if (!restore.success) {
+          throw new Error(restore.error);
+        }
+        toast('Bucket restored');
+      });
+    } finally {
+      setPending(null);
+    }
   }
 
   async function handleApplyPreset(presetId: string) {
-    const res = await applyAllocationPresetAction(presetId);
-    if (!res.success) {
-      toast(res.error);
+    const preset = PRESET_CARDS.find((p) => p.id === presetId);
+    // ponytail: native window.confirm() guards preset overwrite; add preview dialog + snapshot undo if needed.
+    if (
+      rules.length > 0 &&
+      !window.confirm(
+        `Replace your ${rules.length} custom buckets with "${preset?.title ?? presetId}"?`
+      )
+    ) {
       return;
     }
-    toast('Applied allocation preset');
+    if (pending !== null) return;
+    setPending('preset');
+    try {
+      const res = await applyAllocationPresetAction(presetId);
+      if (!res.success) {
+        toast(res.error);
+        return;
+      }
+      toast('Applied allocation preset');
+    } finally {
+      setPending(null);
+    }
   }
 
   const bucketSummaryById = useMemo(
@@ -260,13 +295,6 @@ export function AllocationsDashboard({
         </div>
         <div className="flex flex-row md:flex-col justify-between items-center md:items-end gap-4 w-full md:w-auto flex-wrap">
           <YearDropdown activeYear={activeYear} options={yearOptions} />
-          <button
-            type="button"
-            className="btn primary"
-            onClick={() => openRuleModal()}
-          >
-            + New Allocation Bucket
-          </button>
         </div>
       </div>
 
@@ -278,13 +306,15 @@ export function AllocationsDashboard({
                 Pay Yourself First Rules
               </h2>
               <p className="text-sm text-muted">
-                Split every paycheque into exact integer-cent buckets using Largest Remainder
-                conservation.
+                Automatically divide each paycheque into your savings, investment, and spending
+                buckets down to the exact cent.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2.5">
               <select
+                name="preset"
                 aria-label="Reset with preset"
+                disabled={pending !== null}
                 value=""
                 onChange={(e) => {
                   if (e.target.value) void handleApplyPreset(e.target.value);
@@ -292,7 +322,7 @@ export function AllocationsDashboard({
                 className="w-auto"
               >
                 <option value="" disabled>
-                  Reset with Preset…
+                  {pending === 'preset' ? 'Applying…' : 'Reset with Preset…'}
                 </option>
                 {PRESET_CARDS.map((p) => (
                   <option key={p.id} value={p.id}>
@@ -303,6 +333,7 @@ export function AllocationsDashboard({
               <button
                 type="button"
                 className="btn primary"
+                disabled={pending !== null}
                 onClick={() => openRuleModal()}
               >
                 + New Bucket
@@ -318,7 +349,7 @@ export function AllocationsDashboard({
             {report.buckets.map((b) => (
               <span
                 key={b.rule_id}
-                className="h-full transition-[width] duration-250 ease-out"
+                className="h-full transition-[width] duration-200 ease-out"
                 style={{
                   width: `${b.weight_bps / 100}%`,
                   background: b.color,
@@ -328,7 +359,7 @@ export function AllocationsDashboard({
             ))}
             {report.unallocatedBps > 0 ? (
               <span
-                className="h-full transition-[width] duration-250 ease-out bg-line"
+                className="h-full transition-[width] duration-200 ease-out bg-line"
                 style={{
                   width: `${report.unallocatedBps / 100}%`,
                 }}
@@ -347,6 +378,7 @@ export function AllocationsDashboard({
                   <button
                     key={p.id}
                     type="button"
+                    disabled={pending !== null}
                     className="p-[18px] rounded-xl bg-bg border border-line flex flex-col gap-2.5 text-left cursor-pointer hover:border-[#c9d4d9] transition-colors"
                     onClick={() => void handleApplyPreset(p.id)}
                   >
@@ -361,6 +393,7 @@ export function AllocationsDashboard({
               {rules.map((rule) => {
                 const summary = bucketSummaryById.get(rule.id);
                 const isActive = Boolean(rule.active);
+                const busy = pending === rule.id;
                 return (
                   <div
                     key={rule.id}
@@ -395,21 +428,24 @@ export function AllocationsDashboard({
                     <div className="flex flex-wrap items-center gap-2.5 mt-auto pt-2">
                       <button
                         type="button"
-                        className="btn min-h-[34px] px-3 text-[13px]"
+                        disabled={pending !== null}
+                        className="btn min-h-[40px] px-3 text-[13px]"
                         onClick={() => openRuleModal(rule)}
                       >
                         Edit
                       </button>
                       <button
                         type="button"
-                        className="btn min-h-[34px] px-3 text-[13px]"
+                        disabled={pending !== null}
+                        className="btn min-h-[40px] px-3 text-[13px]"
                         onClick={() => void handleToggleActive(rule)}
                       >
-                        {isActive ? 'Pause' : 'Activate'}
+                        {busy ? 'Saving…' : isActive ? 'Pause' : 'Activate'}
                       </button>
                       <button
                         type="button"
-                        className="btn danger min-h-[34px] px-3 text-[13px]"
+                        disabled={pending !== null}
+                        className="btn danger min-h-[40px] px-3 text-[13px]"
                         onClick={() => void handleDeleteRule(rule)}
                       >
                         Delete
@@ -431,15 +467,14 @@ export function AllocationsDashboard({
                 Paycheque Split &amp; Hourly Wage Simulator
               </h2>
               <p className="text-sm text-muted">
-                Test any direct deposit or hourly wage what-if scenario with zero-drift cent
-                conservation.
+                Preview how a paycheque or hourly shift splits across your active buckets.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 className={cn(
-                  'btn min-h-[36px] px-3.5 text-sm',
+                  'btn min-h-[40px] px-3.5 text-sm',
                   simMode === 'direct' && 'primary'
                 )}
                 onClick={() => setSimMode('direct')}
@@ -449,7 +484,7 @@ export function AllocationsDashboard({
               <button
                 type="button"
                 className={cn(
-                  'btn min-h-[36px] px-3.5 text-sm',
+                  'btn min-h-[40px] px-3.5 text-sm',
                   simMode === 'hourly' && 'primary'
                 )}
                 onClick={() => setSimMode('hourly')}
@@ -464,9 +499,11 @@ export function AllocationsDashboard({
               <label className="grid gap-1.5 text-sm font-medium">
                 Net Deposit Amount ($)
                 <input
+                  name="simDirect"
                   type="number"
                   step="0.01"
                   min="0"
+                  autoComplete="off"
                   className="num"
                   value={simDirect}
                   onChange={(e) => setSimDirect(e.target.value)}
@@ -496,9 +533,11 @@ export function AllocationsDashboard({
               <label className="grid gap-1.5 text-sm font-medium">
                 Net Hourly Wage ($/h)
                 <input
+                  name="simHourly"
                   type="number"
                   step="0.25"
                   min="0"
+                  autoComplete="off"
                   className="num"
                   value={simHourly}
                   onChange={(e) => setSimHourly(e.target.value)}
@@ -507,9 +546,11 @@ export function AllocationsDashboard({
               <label className="grid gap-1.5 text-sm font-medium">
                 Hours per Pay Period
                 <input
+                  name="simHours"
                   type="number"
                   step="0.5"
                   min="0"
+                  autoComplete="off"
                   className="num"
                   value={simHours}
                   onChange={(e) => setSimHours(e.target.value)}
@@ -572,9 +613,11 @@ export function AllocationsDashboard({
             Bucket Name
             <input
               ref={nameRef}
+              name="name"
               maxLength={50}
               required
-              placeholder="e.g., TFSA / Index Funds"
+              autoComplete="off"
+              placeholder="TFSA / Index Funds…"
               value={formState.name}
               onChange={(e) => setFormState((f) => ({ ...f, name: e.target.value }))}
             />
@@ -583,6 +626,7 @@ export function AllocationsDashboard({
             <label className="grid gap-1.5 text-sm font-medium">
               Category
               <select
+                name="category"
                 value={formState.category}
                 onChange={(e) =>
                   setFormState((f) => ({
@@ -603,11 +647,13 @@ export function AllocationsDashboard({
                 <span className="font-normal text-muted">{remainingPct.toFixed(1)}% available</span>
               </span>
               <input
+                name="percentage"
                 type="number"
                 step="0.01"
                 min="0.01"
                 max="100"
                 required
+                autoComplete="off"
                 className="num"
                 value={formState.percentage}
                 onChange={(e) =>
@@ -616,35 +662,20 @@ export function AllocationsDashboard({
               />
             </label>
           </div>
-          <div className="grid gap-1.5 text-sm font-medium">
-            <span>Accent Colour</span>
-            <div className="flex flex-wrap gap-2">
-              {SOURCE_COLORS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setFormState((f) => ({ ...f, color: c }))}
-                  className={cn(
-                    'size-8 rounded-full cursor-pointer',
-                    formState.color === c
-                      ? 'border-[3px] border-ink'
-                      : 'border-2 border-transparent'
-                  )}
-                  style={{ background: c }}
-                  aria-label={`Select color ${c}`}
-                />
-              ))}
-              <input
-                type="color"
-                aria-label="Custom accent colour"
-                value={formState.color}
-                onChange={(e) => setFormState((f) => ({ ...f, color: e.target.value }))}
-                className="w-11 h-8 min-h-8 p-0.5 cursor-pointer"
-              />
-            </div>
-          </div>
+          <label className="grid gap-1.5 text-sm font-medium">
+            Accent Colour
+            <input
+              name="color"
+              type="color"
+              aria-label="Accent colour"
+              value={formState.color}
+              onChange={(e) => setFormState((f) => ({ ...f, color: e.target.value }))}
+              className="p-1 cursor-pointer"
+            />
+          </label>
           <label className="flex items-center gap-2.5 text-[15px] min-h-[44px] cursor-pointer">
             <input
+              name="active"
               type="checkbox"
               className="size-5 min-h-5 accent-accent"
               checked={formState.active}
@@ -663,12 +694,19 @@ export function AllocationsDashboard({
             <span className="hidden sm:block sm:flex-1" />
             <button
               type="button"
+              disabled={pending !== null}
               className="btn flex-1 sm:flex-initial"
               onClick={() => dlgRef.current?.close()}
             >
               Cancel
             </button>
-            <button className="btn primary flex-1 sm:flex-initial">Save bucket</button>
+            <button
+              type="submit"
+              disabled={pending !== null}
+              className="btn primary flex-1 sm:flex-initial"
+            >
+              {pending === 'save' ? 'Saving…' : 'Save bucket'}
+            </button>
           </div>
         </form>
       </dialog>

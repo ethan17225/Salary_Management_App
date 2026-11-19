@@ -234,8 +234,8 @@ def test_idempotent_schema_migration() -> None:
 
     src_cols = {r[1] for r in conn.execute("PRAGMA table_info(sources)").fetchall()}
     pay_cols = {r[1] for r in conn.execute("PRAGMA table_info(paycheques)").fetchall()}
-    assert {"is_tax_withheld", "tax_reserve_bps"} <= src_cols
-    assert {"gross_cents", "tax_cents", "deductions_cents"} <= pay_cols
+    assert {"is_tax_withheld", "tax_reserve_bps", "pay_schedule"} <= src_cols
+    assert {"gross_cents", "tax_cents", "deductions_cents", "import_hash"} <= pay_cols
 
 
 @pytest.mark.asyncio
@@ -465,6 +465,99 @@ async def test_state_endpoint_includes_allocations(client: AsyncClient) -> None:
     assert "allocations" in data
     assert isinstance(data["allocations"], list)
     assert len(data["allocations"]) == 3
+
+
+@pytest.mark.asyncio
+async def test_source_pay_schedule_persistence_and_validation(client: AsyncClient) -> None:
+    bad = await client.post(
+        "/api/sources",
+        json={"name": "Bad Sched", "kind": "job", "pay_schedule": "daily"},
+    )
+    assert bad.status_code == 400
+
+    created = await client.post(
+        "/api/sources",
+        json={"name": "Biweekly Co", "kind": "job", "pay_schedule": "biweekly"},
+    )
+    assert created.status_code == 201
+    sid = created.json()["id"]
+
+    sources = (await client.get("/api/sources")).json()
+    match = next(s for s in sources if s["id"] == sid)
+    assert match["pay_schedule"] == "biweekly"
+
+    upd = await client.put(
+        f"/api/sources/{sid}",
+        json={"name": "Biweekly Co", "kind": "job", "pay_schedule": "irregular"},
+    )
+    assert upd.status_code == 200
+    sources_after = (await client.get("/api/sources")).json()
+    assert next(s for s in sources_after if s["id"] == sid)["pay_schedule"] == "irregular"
+
+
+@pytest.mark.asyncio
+async def test_filtered_csv_export(client: AsyncClient) -> None:
+    bad_year = await client.get("/api/export.csv?year=abc")
+    assert bad_year.status_code == 400
+
+    await client.post(
+        "/api/paycheques",
+        json={
+            "source_id": 1,
+            "paid_on": "2025-12-30",
+            "amount": "123.45",
+            "note": "=HYPERLINK(\"http://evil\")",
+        },
+    )
+
+    resp = await client.get("/api/export.csv?year=2025&source_id=1&q=HYPERLINK")
+    assert resp.status_code == 200
+    assert "paycheques-2025-" in resp.headers["content-disposition"]
+    lines = resp.text.strip().splitlines()
+    assert len(lines) == 2
+    assert "'=HYPERLINK" in lines[1]
+
+
+@pytest.mark.asyncio
+async def test_idempotent_csv_import(client: AsyncClient) -> None:
+    # Re-importing the exported database skips 100% of existing seeded paycheques
+    exported = (await client.get("/api/export.csv")).text
+    reimport = await client.post(
+        "/api/paycheques/import",
+        json={"csv_text": exported, "auto_create_sources": True},
+    )
+    assert reimport.status_code == 200
+    reimport_data = reimport.json()
+    assert reimport_data["imported_count"] == 0
+    assert reimport_data["skipped_duplicates"] == 63
+
+    # Importing new rows with auto_create_sources=True creates source + imports rows
+    new_csv = (
+        "date,source,amount,gross,tax,deductions,hours,note\n"
+        "2026-10-01,Acme Consulting,1200.00,1500.00,250.00,50.00,30,Sprint 1\n"
+        "2026-10-15,Kung Fu Tea,500.00,,,,20,Shift\n"
+        "bad-date,Kung Fu Tea,100.00,,,,,\n"
+    )
+    first = await client.post(
+        "/api/paycheques/import",
+        json={"csv_text": new_csv, "auto_create_sources": True},
+    )
+    assert first.status_code == 200
+    d1 = first.json()
+    assert d1["imported_count"] == 2
+    assert d1["created_sources"] == 1
+    assert d1["error_count"] == 1
+
+    # Re-submitting valid rows skips duplicates idempotently
+    second = await client.post(
+        "/api/paycheques/import",
+        json={"csv_text": new_csv, "auto_create_sources": False},
+    )
+    assert second.status_code == 200
+    d2 = second.json()
+    assert d2["imported_count"] == 0
+    assert d2["skipped_duplicates"] == 2
+    assert d2["error_count"] == 1
 
 
 if __name__ == "__main__":

@@ -11,6 +11,15 @@ class SourceKind(StrEnum):
     OTHER = "other"
 
 
+class PaySchedule(StrEnum):
+    AUTO = "auto"
+    WEEKLY = "weekly"
+    BIWEEKLY = "biweekly"
+    SEMIMONTHLY = "semimonthly"
+    MONTHLY = "monthly"
+    IRREGULAR = "irregular"
+
+
 class ErrorCode(StrEnum):
     SOURCE_NOT_FOUND = "Not found"
     DUPLICATE_SOURCE_NAME = "A source with that name already exists."
@@ -19,4 +28,7 @@ class ErrorCode(StrEnum):
     NAME_TOO_LONG = f"Name must be {MAX_SOURCE_NAME_LENGTH} characters or fewer"
     INVALID_KIND = "Kind must be job, government or other"
     INVALID_COLOR = "Colour must look like #0d7480"
+    INVALID_PAY_SCHEDULE = (
+        "Pay schedule must be auto, weekly, biweekly, semimonthly, monthly or irregular"
+    )
 

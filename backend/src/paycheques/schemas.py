@@ -125,3 +125,18 @@ class PaychequeResponse(CustomModel):
     deductions_cents: int | None = None
     hours: float | None = None
     note: str
+
+
+class PaychequeImportPayload(CustomModel):
+    csv_text: str | None = None
+    rows: list[dict[str, Any]] | None = None
+    auto_create_sources: bool = True
+
+
+class PaychequeImportResponse(CustomModel):
+    ok: bool = True
+    imported_count: int
+    skipped_duplicates: int
+    created_sources: int
+    error_count: int
+    errors: list[dict[str, Any]]

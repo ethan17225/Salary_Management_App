@@ -19,6 +19,9 @@ export const saveSourceSchema = z.object({
     .min(0, 'Reserve % cannot be negative')
     .max(60, 'Reserve % cannot exceed 60%')
     .default(0),
+  pay_schedule: z
+    .enum(['auto', 'weekly', 'biweekly', 'semimonthly', 'monthly', 'irregular'])
+    .default('auto'),
 });
 
 export const deleteSourceSchema = z.object({

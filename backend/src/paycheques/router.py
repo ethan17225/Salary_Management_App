@@ -1,12 +1,20 @@
+import re
 from datetime import date
+from typing import Annotated
 
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, Query, Response, status
 
 from src.database import DBDep
 from src.models import CreatedResponse, ErrorResponse, OkResponse
 from src.paycheques import service
 from src.paycheques.dependencies import ValidPaychequeDep
-from src.paycheques.schemas import PaychequeCreate, PaychequeResponse, PaychequeUpdate
+from src.paycheques.schemas import (
+    PaychequeCreate,
+    PaychequeImportPayload,
+    PaychequeImportResponse,
+    PaychequeResponse,
+    PaychequeUpdate,
+)
 
 router = APIRouter(
     prefix="/api/paycheques",
@@ -103,16 +111,44 @@ async def delete_paycheque(
     return OkResponse()
 
 
+@router.post(
+    "/import",
+    status_code=status.HTTP_200_OK,
+    summary="Bulk import paycheques from CSV",
+    description=(
+        "Parses CSV text or rows, deduplicates idempotently via SHA-256 import hash, "
+        "and commits valid records atomically."
+    ),
+    responses={
+        status.HTTP_400_BAD_REQUEST: {
+            "model": ErrorResponse,
+            "description": "Invalid import payload",
+        },
+    },
+)
+async def import_paycheques(
+    payload: PaychequeImportPayload,
+    db: DBDep,
+) -> PaychequeImportResponse:
+    return await service.import_paycheques_batch(db, payload)
+
+
 @export_router.get(
     "/export.csv",
     status_code=status.HTTP_200_OK,
     summary="Export paycheques as CSV",
-    description="Streams all paycheques joined with their source name in CSV format.",
+    description="Streams paycheques joined with their source name in CSV format.",
 )
-async def export_paycheques_csv(db: DBDep) -> Response:
-    filename = f"paycheques-{date.today().isoformat()}.csv"
+async def export_paycheques_csv(
+    db: DBDep,
+    year: Annotated[str | None, Query()] = None,
+    source_id: Annotated[int | None, Query(ge=1)] = None,
+    q: Annotated[str | None, Query()] = None,
+) -> Response:
+    year_slug = f"-{year}" if year and re.fullmatch(r"\d{4}", year) else ""
+    filename = f"paycheques{year_slug}-{date.today().isoformat()}.csv"
     return Response(
-        content=await service.build_export_csv(db),
+        content=await service.build_export_csv(db, year=year, source_id=source_id, q=q),
         media_type="text/csv; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
