@@ -43,7 +43,10 @@ export function configureChartDefaults() {
   Chart.defaults.borderColor = '#e8edf0';
   Chart.defaults.maintainAspectRatio = false;
   Chart.defaults.font.family = `${fontSans || "'Outfit'"}, system-ui, sans-serif`;
-  Chart.defaults.animation = reducedMotion ? false : { duration: 400 };
+  // Mutate .duration rather than replacing Chart.defaults.animation so Chart.js keeps all animation option keys (like `type: 'color'`).
+  if (Chart.defaults.animation) {
+    Chart.defaults.animation.duration = reducedMotion ? 0 : 400;
+  }
 }
 
 export function getChartMonths(
