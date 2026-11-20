@@ -6,9 +6,19 @@ requires-python = ">=3.11"
 dependencies = [
     "aiosqlite>=0.20.0",
     "fastapi[standard]>=0.115.0",
+    "openpyxl>=3.1.5",
+    "pdfplumber>=0.11.4",
     "pydantic>=2.7.0",
     "pydantic-settings>=2.4.0",
     "sqlalchemy[asyncio]>=2.0.0",
+]
+
+[project.optional-dependencies]
+# Scanned PDFs & photos (RapidOCR) + local Qwen2.5-0.5B fallback. Installed in the Docker image.
+ocr = [
+    "llama-cpp-python>=0.3.0",
+    "onnxruntime>=1.20.0",
+    "rapidocr>=3.4.0",
 ]
 
 [dependency-groups]

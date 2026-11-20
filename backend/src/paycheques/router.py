@@ -2,13 +2,18 @@ import re
 from datetime import date
 from typing import Annotated
 
-from fastapi import APIRouter, Query, Response, status
+from fastapi import APIRouter, Query, Response, UploadFile, status
 
 from src.database import DBDep
+from src.exceptions import BadRequestError
 from src.models import CreatedResponse, ErrorResponse, OkResponse
 from src.paycheques import service
+from src.paycheques.constants import MAX_UPLOAD_BYTES
 from src.paycheques.dependencies import ValidPaychequeDep
+from src.paycheques.exceptions import FileTooLarge
+from src.paycheques.parsers import parse_upload
 from src.paycheques.schemas import (
+    ParseResponse,
     PaychequeCreate,
     PaychequeImportPayload,
     PaychequeImportResponse,
@@ -131,6 +136,29 @@ async def import_paycheques(
     db: DBDep,
 ) -> PaychequeImportResponse:
     return await service.import_paycheques_batch(db, payload)
+
+
+@router.post(
+    "/parse",
+    status_code=status.HTTP_200_OK,
+    summary="Parse an uploaded paystub or spreadsheet",
+    description=(
+        "Reads CSV, TSV, XLSX, PDF, or image files into candidate rows for review. "
+        "Saves nothing; commit reviewed rows via POST /api/paycheques/import."
+    ),
+    responses={
+        status.HTTP_400_BAD_REQUEST: {"model": ErrorResponse, "description": "Unreadable file"},
+        status.HTTP_413_CONTENT_TOO_LARGE: {"model": ErrorResponse},
+        status.HTTP_415_UNSUPPORTED_MEDIA_TYPE: {"model": ErrorResponse},
+    },
+)
+async def parse_paycheque_file(file: UploadFile) -> ParseResponse:
+    content = await file.read(MAX_UPLOAD_BYTES + 1)
+    if len(content) > MAX_UPLOAD_BYTES:
+        raise FileTooLarge()
+    if not content:
+        raise BadRequestError("The file is empty.")
+    return await parse_upload(content, file.filename or "upload")
 
 
 @export_router.get(

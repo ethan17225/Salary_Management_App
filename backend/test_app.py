@@ -1,9 +1,12 @@
 """Async integration tests for Payday FastAPI backend."""
 
+import io
 import sys
 from collections.abc import AsyncIterator
+from datetime import date
 from pathlib import Path
 
+import openpyxl
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import (
@@ -19,6 +22,9 @@ from src.allocations import allocate_cents_largest_remainder
 from src.database import ensure_schema_migrations, get_db, seed_database
 from src.main import app
 from src.models import Base
+from src.paycheques import extractors
+from src.paycheques.constants import MAX_UPLOAD_BYTES
+from src.paycheques.parsers import detect_mime
 from src.paycheques.utils import parse_cents
 
 
@@ -558,6 +564,89 @@ async def test_idempotent_csv_import(client: AsyncClient) -> None:
     assert d2["imported_count"] == 0
     assert d2["skipped_duplicates"] == 2
     assert d2["error_count"] == 1
+
+
+async def _upload(client: AsyncClient, name: str, content: bytes):
+    return await client.post("/api/paycheques/parse", files={"file": (name, content)})
+
+
+@pytest.mark.asyncio
+async def test_parse_upload_guards_and_fuzzy_spreadsheets(client: AsyncClient) -> None:
+    # Magic bytes beat extensions; binaries can't pose as CSV
+    assert detect_mime(b"%PDF-1.7", "stub.csv") == "application/pdf"
+    assert detect_mime(b"\x89PNG\r\n\x1a\n", "photo.jpg") == "image/png"
+    assert (await _upload(client, "evil.pdf", b"MZ\x90\x00")).status_code == 415
+    assert (await _upload(client, "evil.csv", b"MZ\x00\x00")).status_code == 415
+    assert (await _upload(client, "empty.csv", b"")).status_code == 400
+    assert (await _upload(client, "big.csv", b"a" * (MAX_UPLOAD_BYTES + 1))).status_code == 413
+
+    csv_text = (
+        "Pay Date,Take-Home,Gross Pay,Income Tax,Employer,Bonus\n"
+        '2026-11-14,"$1,842.50",2500,400,Acme,x\n'
+        "11/28/2026,900,800,,Acme,\n"
+    )
+    data = (await _upload(client, "bank.csv", csv_text.encode())).json()
+    assert data["parser_used"] == "tabular" and data["unmapped_columns"] == ["Bonus"]
+    first, second = data["rows"]
+    assert (first["paid_on"], first["amount"]) == ("2026-11-14", "1842.50")
+    assert first["warnings"] == ["Gross minus tax and deductions doesn't equal take-home"]
+    assert second["paid_on"] == "2026-11-28"
+    assert second["warnings"] == ["Gross pay must be greater than or equal to net pay."]
+
+    wb = openpyxl.Workbook()
+    wb.active.append(["Payment Date", "Net Pay", "Gross", "Taxes", "Deductions"])
+    wb.active.append([date(2026, 12, 1), 1500, 2000.004, 350, 150])
+    buf = io.BytesIO()
+    wb.save(buf)
+    [row] = (await _upload(client, "stubs.xlsx", buf.getvalue())).json()["rows"]
+    assert (row["paid_on"], row["amount"], row["gross"]) == ("2026-12-01", "1500.00", "2000.00")
+    assert row["warnings"] == [] and row["confidence"] == 1.0
+
+    # Stage 2: reviewed rows commit through the unchanged import endpoint
+    imp = await client.post(
+        "/api/paycheques/import",
+        json={"rows": [{**row, "source_name": "Acme Parse Co"}], "auto_create_sources": True},
+    )
+    assert imp.json()["imported_count"] == 1 and imp.json()["created_sources"] == 1
+
+
+@pytest.mark.asyncio
+async def test_parse_pdf_ocr_escalation_and_llm_fallback(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    stub = (
+        "ACME CORP\nPay Date: Nov 14, 2026\nGross Pay 2,500.00 30,000.00\n"
+        "Total Taxes 400.00\nTotal Deductions 257.50\nNet Pay $1,842.50 22,110.00"
+    )
+    monkeypatch.setattr(extractors, "pdf_text", lambda _c: stub)
+    data = (await _upload(client, "stub.pdf", b"%PDF-1.7 fake")).json()
+    [row] = data["rows"]
+    assert data["parser_used"] == "pdf_text" and not data["used_llm_fallback"]
+    assert (row["paid_on"], row["amount"], row["gross"], row["tax"], row["deductions"]) == (
+        "2026-11-14", "1842.50", "2500.00", "400.00", "257.50"
+    )  # Current column, not YTD
+    assert row["warnings"] == []
+
+    # No text layer -> OCR tier; regex misses the date -> local LLM fallback wins
+    monkeypatch.setattr(extractors, "pdf_text", lambda _c: "")
+    monkeypatch.setattr(extractors, "ocr_text", lambda _c, _m: ("Net Pay 1,842.50", 0.93))
+    monkeypatch.setattr(extractors, "llm_available", lambda: True)
+    monkeypatch.setattr(
+        extractors,
+        "llm_extract",
+        lambda _t: {"paid_on": "2026-11-14", "amount": 1842.5, "source_name": "Acme"},
+    )
+    data = (await _upload(client, "scan.pdf", b"%PDF-1.7 fake")).json()
+    [row] = data["rows"]
+    assert data["parser_used"] == "ocr" and data["used_llm_fallback"]
+    assert (row["paid_on"], row["amount"], row["source_name"]) == ("2026-11-14", "1842.50", "Acme")
+    assert row["confidence"] == 0.75 and row["warnings"] == []
+
+    # OCR boxes regroup into visual lines, left-to-right
+    box = lambda x, y: [[x, y], [x + 80, y], [x + 80, y + 20], [x, y + 20]]  # noqa: E731
+    boxes = [box(300, 10), box(10, 12), box(10, 60)]
+    lines = extractors._visual_lines(boxes, ["1,842.50", "Net Pay", "Gross"])
+    assert lines == ["Net Pay  1,842.50", "Gross"]
 
 
 if __name__ == "__main__":

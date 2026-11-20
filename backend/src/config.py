@@ -10,6 +10,8 @@ class AppConfig(BaseSettings):
     DB_PATH: str = "data/salary.db"
     PORT: int = 8000
     CORS_ORIGINS: list[str] = ["*"]
+    # Local LLM fallback for paystub parsing; disabled automatically when the file is absent.
+    QWEN_MODEL_PATH: str = "/opt/models/qwen2.5-0.5b-instruct-q4_k_m.gguf"
 
     @property
     def database_url(self) -> str:

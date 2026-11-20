@@ -61,7 +61,8 @@ export const db = {
       headers: req.headers.get('content-type')
         ? { 'content-type': req.headers.get('content-type')! }
         : {},
-      body: req.method === 'GET' || req.method === 'HEAD' ? undefined : await req.text(),
+      // arrayBuffer keeps multipart file uploads byte-exact (text() would corrupt binaries)
+      body: req.method === 'GET' || req.method === 'HEAD' ? undefined : await req.arrayBuffer(),
     });
   },
 };

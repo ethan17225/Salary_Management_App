@@ -3,6 +3,7 @@ from enum import StrEnum
 MAX_NOTE_LENGTH = 200
 MAX_HOURS = 1000
 MAX_DOLLARS = 10_000_000
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 
 
 class ErrorCode(StrEnum):

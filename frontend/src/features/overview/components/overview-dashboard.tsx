@@ -155,7 +155,7 @@ export function OverviewDashboard({ data }: { data: OverviewData }) {
               <div>
                 <p className="font-medium">2. Log your first paycheque</p>
                 <p className="text-sm text-muted">
-                  Enter a single deposit or bulk-import your history from CSV.
+                  Enter a single deposit, or import a spreadsheet, paystub PDF, or photo.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -163,7 +163,7 @@ export function OverviewDashboard({ data }: { data: OverviewData }) {
                   Add paycheque
                 </a>
                 <Link className="btn" href="/paycheques">
-                  Import CSV
+                  Import paycheques
                 </Link>
               </div>
             </li>

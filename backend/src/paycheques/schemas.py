@@ -1,8 +1,8 @@
 import math
 from datetime import date
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import field_validator, model_validator
+from pydantic import Field, field_validator, model_validator
 
 from src.models import CustomModel
 from src.paycheques.constants import MAX_HOURS, MAX_NOTE_LENGTH, ErrorCode
@@ -131,6 +131,31 @@ class PaychequeImportPayload(CustomModel):
     csv_text: str | None = None
     rows: list[dict[str, Any]] | None = None
     auto_create_sources: bool = True
+
+
+class ParsedPaychequeRow(CustomModel):
+    """A candidate row for the review table. Money stays a decimal string ("1842.50") until
+    /import converts it to integer cents."""
+
+    source_name: str | None = None
+    paid_on: str | None = None  # YYYY-MM-DD
+    amount: str | None = None
+    gross: str | None = None
+    tax: str | None = None
+    deductions: str | None = None
+    hours: float | None = None
+    note: str | None = None
+    confidence: float = Field(default=1.0, ge=0.0, le=1.0)
+    warnings: list[str] = Field(default_factory=list)
+
+
+class ParseResponse(CustomModel):
+    filename: str
+    detected_mime: str
+    parser_used: Literal["tabular", "pdf_text", "ocr"]
+    used_llm_fallback: bool = False
+    rows: list[ParsedPaychequeRow]
+    unmapped_columns: list[str] = Field(default_factory=list)
 
 
 class PaychequeImportResponse(CustomModel):

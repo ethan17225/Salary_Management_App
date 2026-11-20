@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import type { ActionState } from '@/types/payday';
+import { importRowsSchema, type ParsedRow } from '../schemas/import-schema';
 
 export interface PaychequeImportResult {
   ok: boolean;
@@ -14,25 +15,26 @@ export interface PaychequeImportResult {
 }
 
 export async function importPaychequesAction(input: {
-  csv_text: string;
+  rows: ParsedRow[];
   auto_create_sources: boolean;
 }): Promise<ActionState<PaychequeImportResult>> {
-  const text = input.csv_text?.trim();
-  if (!text) {
-    return { success: false, error: 'Choose a non-empty CSV file to import.' };
+  const parsed = importRowsSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? 'Fix the flagged rows.' };
   }
 
   try {
-    const result = await db.request<PaychequeImportResult>('POST', 'paycheques/import', {
-      csv_text: text,
-      auto_create_sources: input.auto_create_sources,
-    });
+    const result = await db.request<PaychequeImportResult>(
+      'POST',
+      'paycheques/import',
+      parsed.data
+    );
     revalidatePath('/', 'layout');
     return { success: true, data: result };
   } catch (err) {
     return {
       success: false,
-      error: err instanceof Error ? err.message : 'Failed to import CSV',
+      error: err instanceof Error ? err.message : 'Import failed. Try again.',
     };
   }
 }

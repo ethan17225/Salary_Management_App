@@ -5,7 +5,7 @@ import { useDialogs } from '@/components/ui/dialog-provider';
 import { allocateCentsLargestRemainder, type AllocationRule } from '@/lib/allocation-engine';
 import { computePaychequeBreakdown } from '@/lib/tax-intelligence';
 import { dateLabel, fmt, monthLabel, plural, sumCents } from '@/lib/utils';
-import { CsvImportDialog } from './csv-import-dialog';
+import { ImportDialog } from './import-dialog';
 import type { Paycheque, Source } from '@/types/payday';
 import type { PaychequeFilterParams } from '../types/paycheque-types';
 
@@ -123,7 +123,7 @@ export function PaychequeLedger({
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
-          <CsvImportDialog />
+          <ImportDialog sources={sources} />
           <a className="btn w-full sm:w-auto" href={exportHref} download>
             {isFiltered ? `Export filtered CSV (${filteredRows.length})` : 'Export to CSV'}
           </a>

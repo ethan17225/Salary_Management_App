@@ -1,0 +1,506 @@
+{
+  "backend/pyproject.toml": {
+    "mtime": 1795185596.9598742,
+    "seen": 1795186189.536396,
+    "ast_hash": "70bedec73b083191ff719383ee3a4bde",
+    "semantic_hash": ""
+  },
+  "backend/src/__init__.py": {
+    "mtime": 1794179117.9743712,
+    "seen": 1795016469.8026161,
+    "ast_hash": "23b323e054785281a6a23c5bcc081c5d",
+    "semantic_hash": "23b323e054785281a6a23c5bcc081c5d"
+  },
+  "backend/src/allocations.py": {
+    "mtime": 1795019080.4414608,
+    "seen": 1795126346.667579,
+    "ast_hash": "15378758954eede3c71b6453ae86935e",
+    "semantic_hash": ""
+  },
+  "backend/src/config.py": {
+    "mtime": 1795185574.1933908,
+    "seen": 1795186189.536406,
+    "ast_hash": "8d5cd41e2b2c2a6a73633663a5420456",
+    "semantic_hash": ""
+  },
+  "backend/src/database.py": {
+    "mtime": 1795104420.4917753,
+    "seen": 1795126346.667582,
+    "ast_hash": "e243852416e8171528229374d2642e53",
+    "semantic_hash": ""
+  },
+  "backend/src/exceptions.py": {
+    "mtime": 1794179080.814238,
+    "seen": 1795016469.80262,
+    "ast_hash": "b3e9920c7d41f4f7d7ffe9edf97a194e",
+    "semantic_hash": "b3e9920c7d41f4f7d7ffe9edf97a194e"
+  },
+  "backend/src/main.py": {
+    "mtime": 1794182244.9539444,
+    "seen": 1795016469.802621,
+    "ast_hash": "6c362a9cfa1b60ee571cfe4ba91df9b4",
+    "semantic_hash": "6c362a9cfa1b60ee571cfe4ba91df9b4"
+  },
+  "backend/src/models.py": {
+    "mtime": 1795019080.7345123,
+    "seen": 1795126346.667586,
+    "ast_hash": "6b709963130e4a6036da5293672a726f",
+    "semantic_hash": ""
+  },
+  "backend/src/paycheques/__init__.py": {
+    "mtime": 1794179118.1425571,
+    "seen": 1795016469.8026218,
+    "ast_hash": "89fccebdb157fea5d38083c7e50ee325",
+    "semantic_hash": "89fccebdb157fea5d38083c7e50ee325"
+  },
+  "backend/src/paycheques/constants.py": {
+    "mtime": 1795185574.1885653,
+    "seen": 1795186189.536414,
+    "ast_hash": "19f710a355072761403d4303fbb6b039",
+    "semantic_hash": ""
+  },
+  "backend/src/paycheques/dependencies.py": {
+    "mtime": 1794179118.187763,
+    "seen": 1795016469.802624,
+    "ast_hash": "585e1410a96924aa1e7ebdf57d7123b8",
+    "semantic_hash": "585e1410a96924aa1e7ebdf57d7123b8"
+  },
+  "backend/src/paycheques/exceptions.py": {
+    "mtime": 1795185804.7142408,
+    "seen": 1795186189.536416,
+    "ast_hash": "932f05b4420271d49ee3ab79f082e5d0",
+    "semantic_hash": ""
+  },
+  "backend/src/paycheques/models.py": {
+    "mtime": 1795104418.465988,
+    "seen": 1795126346.667592,
+    "ast_hash": "bada9f3f44e005e615a7bc24fa46c01b",
+    "semantic_hash": ""
+  },
+  "backend/src/paycheques/router.py": {
+    "mtime": 1795185805.000002,
+    "seen": 1795186189.5364218,
+    "ast_hash": "f850ca9a14cae5dbcb854f4dc2abe0d2",
+    "semantic_hash": ""
+  },
+  "backend/src/paycheques/schemas.py": {
+    "mtime": 1795185805.1617994,
+    "seen": 1795186189.536423,
+    "ast_hash": "f9a278a407fcf79825c5692f50fba30d",
+    "semantic_hash": ""
+  },
+  "backend/src/paycheques/service.py": {
+    "mtime": 1795104484.588136,
+    "seen": 1795126346.667595,
+    "ast_hash": "88462bd75987b15430fe2f4a3c456327",
+    "semantic_hash": ""
+  },
+  "backend/src/paycheques/utils.py": {
+    "mtime": 1795019081.010067,
+    "seen": 1795126346.667596,
+    "ast_hash": "040c8d10d057af174fb0aaea250a5475",
+    "semantic_hash": ""
+  },
+  "backend/src/settings/__init__.py": {
+    "mtime": 1794179118.3947432,
+    "seen": 1795016469.802628,
+    "ast_hash": "7d046768a907e6f137ccb52dee65eecb",
+    "semantic_hash": "7d046768a907e6f137ccb52dee65eecb"
+  },
+  "backend/src/settings/models.py": {
+    "mtime": 1794179118.4156675,
+    "seen": 1795016469.8026292,
+    "ast_hash": "db298d98c5ce6015cf4d45d266752f49",
+    "semantic_hash": "db298d98c5ce6015cf4d45d266752f49"
+  },
+  "backend/src/settings/router.py": {
+    "mtime": 1794248457.061691,
+    "seen": 1795016469.802643,
+    "ast_hash": "f804637b4c651420694ef9c3fa8b8498",
+    "semantic_hash": "f804637b4c651420694ef9c3fa8b8498"
+  },
+  "backend/src/settings/schemas.py": {
+    "mtime": 1794248457.0621274,
+    "seen": 1795016469.802645,
+    "ast_hash": "69d598d6e5d1b99be199fd5b2e8bba0d",
+    "semantic_hash": "69d598d6e5d1b99be199fd5b2e8bba0d"
+  },
+  "backend/src/settings/service.py": {
+    "mtime": 1795019081.1262064,
+    "seen": 1795126346.6676009,
+    "ast_hash": "f0f3f99ae05cfb9604c32c590aec2b43",
+    "semantic_hash": ""
+  },
+  "backend/src/sources/__init__.py": {
+    "mtime": 1794179118.517597,
+    "seen": 1795016469.802647,
+    "ast_hash": "b1035ca6ec6cb0374bbcc122bedc0bec",
+    "semantic_hash": "b1035ca6ec6cb0374bbcc122bedc0bec"
+  },
+  "backend/src/sources/constants.py": {
+    "mtime": 1795104411.8414865,
+    "seen": 1795126346.667604,
+    "ast_hash": "8eba8562083db75298e9fb0d594a9d96",
+    "semantic_hash": ""
+  },
+  "backend/src/sources/dependencies.py": {
+    "mtime": 1794179118.569263,
+    "seen": 1795016469.802649,
+    "ast_hash": "b4c9d64e92eaad1ef54e12dfff1b2ff5",
+    "semantic_hash": "b4c9d64e92eaad1ef54e12dfff1b2ff5"
+  },
+  "backend/src/sources/exceptions.py": {
+    "mtime": 1794179118.5865495,
+    "seen": 1795016469.8026502,
+    "ast_hash": "0a5d3a9156d17060c1e702649200e5ad",
+    "semantic_hash": "0a5d3a9156d17060c1e702649200e5ad"
+  },
+  "backend/src/sources/models.py": {
+    "mtime": 1795104413.744929,
+    "seen": 1795126346.667607,
+    "ast_hash": "89cc98c4821e4c201feaa2ecf1cf8b18",
+    "semantic_hash": ""
+  },
+  "backend/src/sources/router.py": {
+    "mtime": 1794179118.666384,
+    "seen": 1795016469.802652,
+    "ast_hash": "62e6e39c2b0168ece1231ceea352cdd5",
+    "semantic_hash": "62e6e39c2b0168ece1231ceea352cdd5"
+  },
+  "backend/src/sources/schemas.py": {
+    "mtime": 1795104448.6290362,
+    "seen": 1795126346.667609,
+    "ast_hash": "39560f9d7191d4603de42e4079ca8a1c",
+    "semantic_hash": ""
+  },
+  "backend/src/sources/service.py": {
+    "mtime": 1795104417.310155,
+    "seen": 1795126346.6676102,
+    "ast_hash": "0309434d6db3626905ecba3b18a51503",
+    "semantic_hash": ""
+  },
+  "backend/test_app.py": {
+    "mtime": 1795186118.4090924,
+    "seen": 1795186189.5364401,
+    "ast_hash": "b7d742dc84251034b37e9bb8dd5629be",
+    "semantic_hash": ""
+  },
+  "frontend/next-env.d.ts": {
+    "mtime": 1794173061.8162496,
+    "seen": 1795016469.802654,
+    "ast_hash": "ba64ff7d54714a8f64db89b1003207d8",
+    "semantic_hash": "ba64ff7d54714a8f64db89b1003207d8"
+  },
+  "frontend/next.config.mjs": {
+    "mtime": 1794161682.7463486,
+    "seen": 1795016469.802655,
+    "ast_hash": "0528d469f7c86840351846360d49842d",
+    "semantic_hash": "0528d469f7c86840351846360d49842d"
+  },
+  "frontend/package.json": {
+    "mtime": 1795019618.1097593,
+    "seen": 1795126346.667614,
+    "ast_hash": "ca8d70974c7e586ddf15f4810914be36",
+    "semantic_hash": ""
+  },
+  "frontend/src/app/(dashboard)/allocations/page.tsx": {
+    "mtime": 1795126764.614438,
+    "seen": 1795126779.988178,
+    "ast_hash": "ace4c526a2f19ba637556192148910cc",
+    "semantic_hash": ""
+  },
+  "frontend/src/app/(dashboard)/layout.tsx": {
+    "mtime": 1795104698.7420502,
+    "seen": 1795126346.667618,
+    "ast_hash": "a3fc71730782a28f786413c5dbf2159e",
+    "semantic_hash": ""
+  },
+  "frontend/src/app/(dashboard)/loading.tsx": {
+    "mtime": 1795104520.978918,
+    "seen": 1795126346.667619,
+    "ast_hash": "c4fff6aff0df72aa737322606895b468",
+    "semantic_hash": ""
+  },
+  "frontend/src/app/(dashboard)/page.tsx": {
+    "mtime": 1794173071.9809575,
+    "seen": 1795016469.802658,
+    "ast_hash": "0d7322b5da9a11a2453b661b0e1caef1",
+    "semantic_hash": "0d7322b5da9a11a2453b661b0e1caef1"
+  },
+  "frontend/src/app/(dashboard)/paycheques/page.tsx": {
+    "mtime": 1794173072.0014129,
+    "seen": 1795016469.802659,
+    "ast_hash": "9f20fe8b916b0926b8ce42f2ea689cbd",
+    "semantic_hash": "9f20fe8b916b0926b8ce42f2ea689cbd"
+  },
+  "frontend/src/app/(dashboard)/sources/[id]/loading.tsx": {
+    "mtime": 1795104522.500536,
+    "seen": 1795126346.6676219,
+    "ast_hash": "ca796172a875292ae252fee8bfad0c09",
+    "semantic_hash": ""
+  },
+  "frontend/src/app/(dashboard)/sources/[id]/page.tsx": {
+    "mtime": 1794173072.1002114,
+    "seen": 1795016469.80266,
+    "ast_hash": "d2548314464b01c55cd0b58333ad0386",
+    "semantic_hash": "d2548314464b01c55cd0b58333ad0386"
+  },
+  "frontend/src/app/(dashboard)/sources/page.tsx": {
+    "mtime": 1794173072.1241696,
+    "seen": 1795016469.8026612,
+    "ast_hash": "a901967e9bef4314a24ef0bc9fe13175",
+    "semantic_hash": "a901967e9bef4314a24ef0bc9fe13175"
+  },
+  "frontend/src/app/(dashboard)/taxes/page.tsx": {
+    "mtime": 1795126764.7398496,
+    "seen": 1795126779.9881878,
+    "ast_hash": "411c57a16e27e409a3cb5b5c8c06fefe",
+    "semantic_hash": ""
+  },
+  "frontend/src/app/api/[...path]/route.ts": {
+    "mtime": 1794173072.1348712,
+    "seen": 1795016469.8026628,
+    "ast_hash": "8e5191a9676ed984cd0380e9bc1fec6c",
+    "semantic_hash": "8e5191a9676ed984cd0380e9bc1fec6c"
+  },
+  "frontend/src/app/global-error.tsx": {
+    "mtime": 1795104526.731282,
+    "seen": 1795126346.667628,
+    "ast_hash": "bad47642c79496dd40a578656c4274e5",
+    "semantic_hash": ""
+  },
+  "frontend/src/app/layout.tsx": {
+    "mtime": 1795021166.122732,
+    "seen": 1795126346.667629,
+    "ast_hash": "a4d7fcecbc48864465231d019373609c",
+    "semantic_hash": ""
+  },
+  "frontend/src/app/not-found.tsx": {
+    "mtime": 1795104528.1614127,
+    "seen": 1795126346.6676302,
+    "ast_hash": "37487c1891c32612e555c8143ec41360",
+    "semantic_hash": ""
+  },
+  "frontend/src/components/layout/navbar.tsx": {
+    "mtime": 1795104697.5653703,
+    "seen": 1795126346.6676311,
+    "ast_hash": "bb8e545901bf7d8fd09333c3936986bb",
+    "semantic_hash": ""
+  },
+  "frontend/src/components/ui/dialog-provider.tsx": {
+    "mtime": 1795104696.3426316,
+    "seen": 1795126346.667632,
+    "ast_hash": "999bdb5bf4b7f4bb4f291eb5a2076f91",
+    "semantic_hash": ""
+  },
+  "frontend/src/components/ui/year-dropdown.tsx": {
+    "mtime": 1795130191.5891309,
+    "seen": 1795186189.536463,
+    "ast_hash": "b05c78e2bec75f0aadfb705b8a9d2a1e",
+    "semantic_hash": ""
+  },
+  "frontend/src/lib/allocation-engine.ts": {
+    "mtime": 1795019082.63857,
+    "seen": 1795126346.667635,
+    "ast_hash": "53018c7ae2436aeda083a7586aebdb37",
+    "semantic_hash": ""
+  },
+  "frontend/src/lib/db.ts": {
+    "mtime": 1795185790.653086,
+    "seen": 1795186189.536465,
+    "ast_hash": "433af1acfb9fff286d928c0a7ddb6444",
+    "semantic_hash": ""
+  },
+  "frontend/src/lib/env.ts": {
+    "mtime": 1794173073.614332,
+    "seen": 1795016469.802669,
+    "ast_hash": "c8b2d7b612774a27f3a25920798a6f08",
+    "semantic_hash": "c8b2d7b612774a27f3a25920798a6f08"
+  },
+  "frontend/src/lib/tax-intelligence.ts": {
+    "mtime": 1795104582.833577,
+    "seen": 1795126346.667639,
+    "ast_hash": "34527efe5dfb8bc3d9bab1a7dc98f238",
+    "semantic_hash": ""
+  },
+  "frontend/src/lib/utils.ts": {
+    "mtime": 1795126765.542131,
+    "seen": 1795126779.988203,
+    "ast_hash": "69f9cb828a57a76a1b7720e5c57e5f49",
+    "semantic_hash": ""
+  },
+  "frontend/src/types/payday.ts": {
+    "mtime": 1795104644.8986454,
+    "seen": 1795126346.6676412,
+    "ast_hash": "447c5a266c5cbaf2141da13b72d20907",
+    "semantic_hash": ""
+  },
+  "frontend/tsconfig.json": {
+    "mtime": 1794173073.7817416,
+    "seen": 1795016469.8026721,
+    "ast_hash": "758da8246a90578db78126211c4e3e82",
+    "semantic_hash": "758da8246a90578db78126211c4e3e82"
+  },
+  "PROJECT_OVERVIEW.md": {
+    "mtime": 1795122494.9625897,
+    "seen": 1795126346.667645,
+    "ast_hash": "eb63880323d450048f8764d0501f5faf",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1795123098.8671274,
+    "seen": 1795126346.667646,
+    "ast_hash": "3fddf247c9378e44479a3173cfe8a902",
+    "semantic_hash": ""
+  },
+  "docker-compose.yml": {
+    "mtime": 1795019081.310096,
+    "seen": 1795126346.667647,
+    "ast_hash": "777150b18fa19ef3899adb13351b538b",
+    "semantic_hash": ""
+  },
+  "frontend/postcss.config.mjs": {
+    "mtime": 1795019713.7863472,
+    "seen": 1795126346.667616,
+    "ast_hash": "e9d66e1263ec6f84f9c7f4b88b00e4f9",
+    "semantic_hash": ""
+  },
+  "frontend/src/components/ui/skeleton.tsx": {
+    "mtime": 1795104519.4117205,
+    "seen": 1795126346.6676328,
+    "ast_hash": "c60a956e4029618074ea180d39c39649",
+    "semantic_hash": ""
+  },
+  "skills-lock.json": {
+    "mtime": 1795107106.8621511,
+    "seen": 1795126346.6676428,
+    "ast_hash": "ea59bd7c2d667d1a83d73e7775e27430",
+    "semantic_hash": ""
+  },
+  "AGENTS.md": {
+    "mtime": 1795123752.5887709,
+    "seen": 1795126346.6676438,
+    "ast_hash": "81babff9ed5fb2f0a34506e3eaed7697",
+    "semantic_hash": ""
+  },
+  "improvement-plan/master-ui-ux-improvement-plan.md": {
+    "mtime": 1795104180.0499835,
+    "seen": 1795126346.667648,
+    "ast_hash": "8e63090cb3bbc91c50bf217cef8d80ca",
+    "semantic_hash": ""
+  },
+  "refactor/01-paystub-entry-and-smart-dialog.md": {
+    "mtime": 1795101979.7174034,
+    "seen": 1795126346.667649,
+    "ast_hash": "d03356937122465a962068ea695e8c05",
+    "semantic_hash": ""
+  },
+  "refactor/02-actionable-payday-transfer-checklist.md": {
+    "mtime": 1795101981.0817327,
+    "seen": 1795126346.66765,
+    "ast_hash": "71ed5e2e2601f250e3389b8668d8e159",
+    "semantic_hash": ""
+  },
+  "refactor/03-interactive-next-paydays-and-schedules.md": {
+    "mtime": 1795101982.362283,
+    "seen": 1795126346.6676512,
+    "ast_hash": "4b57885630d285473fa7aa43e370820b",
+    "semantic_hash": ""
+  },
+  "refactor/04-hero-consistency-tax-math-and-plain-copy.md": {
+    "mtime": 1795101983.6753933,
+    "seen": 1795126346.6676512,
+    "ast_hash": "f02c86b697013861d18c2e08e2a0ee9f",
+    "semantic_hash": ""
+  },
+  "refactor/05-persistent-year-and-url-filter-state.md": {
+    "mtime": 1795101989.1713665,
+    "seen": 1795126346.6676521,
+    "ast_hash": "acaede918dba33f95b5bb54f08b2760c",
+    "semantic_hash": ""
+  },
+  "refactor/06-interactive-allocation-rebalancing-and-safety.md": {
+    "mtime": 1795101990.7603493,
+    "seen": 1795126346.667653,
+    "ast_hash": "1ed85e061aadb0d78240e19b8d56c442",
+    "semantic_hash": ""
+  },
+  "refactor/07-first-run-onboarding-and-mobile-navigation.md": {
+    "mtime": 1795101992.450387,
+    "seen": 1795126346.6676538,
+    "ast_hash": "e98197e77f5841fccf38d1855a5a8051",
+    "semantic_hash": ""
+  },
+  "ui-audit/01-semantic-card-navigation-and-link-overlay.md": {
+    "mtime": 1795102080.2816298,
+    "seen": 1795126346.667655,
+    "ast_hash": "d080ca0a402337af32e73b41afe6598e",
+    "semantic_hash": ""
+  },
+  "ui-audit/02-table-row-interactions-and-touch-targets.md": {
+    "mtime": 1795102081.7598867,
+    "seen": 1795126346.667656,
+    "ast_hash": "d9f15bfddd4efad9bcbd0ae8e68cc7ef",
+    "semantic_hash": ""
+  },
+  "ui-audit/03-year-dropdown-keyboard-navigation-and-focus.md": {
+    "mtime": 1795102082.976891,
+    "seen": 1795126346.667657,
+    "ast_hash": "f37fc14277dc9c45ea182ca005ac4c82",
+    "semantic_hash": ""
+  },
+  "ui-audit/04-async-form-pending-states-and-double-submit-prevention.md": {
+    "mtime": 1795102084.3796535,
+    "seen": 1795126346.667658,
+    "ast_hash": "16fdad647ec30ef2bb166791d6342adf",
+    "semantic_hash": ""
+  },
+  "ui-audit/05-taxes-retention-bar-and-legend-color-consistency.md": {
+    "mtime": 1795102085.938824,
+    "seen": 1795126346.667659,
+    "ast_hash": "e0478fa909f686483e1402c550719ea2",
+    "semantic_hash": ""
+  },
+  "ui-audit/06-unified-color-swatch-picker-and-touch-sizing.md": {
+    "mtime": 1795102087.203038,
+    "seen": 1795126346.667659,
+    "ast_hash": "8006533603a36329a8005b75d3027f91",
+    "semantic_hash": ""
+  },
+  "ui-audit/07-concentric-border-radii-on-nested-surfaces.md": {
+    "mtime": 1795102088.4067142,
+    "seen": 1795126346.66766,
+    "ast_hash": "5c184fd094182c5e7a48b6c63bc04b54",
+    "semantic_hash": ""
+  },
+  "ui-audit/08-compositor-safe-transitions-and-motion-restraint.md": {
+    "mtime": 1795102089.689672,
+    "seen": 1795126346.667661,
+    "ast_hash": "0cff11c644da022c275d4d5fdca03cf3",
+    "semantic_hash": ""
+  },
+  "ui-audit/09-structural-loading-skeletons-and-cls-prevention.md": {
+    "mtime": 1795102091.4861367,
+    "seen": 1795126346.6676621,
+    "ast_hash": "abfaa72bfce355874c6990455185f11c",
+    "semantic_hash": ""
+  },
+  "ui-audit/10-form-attributes-typography-and-placeholder-standards.md": {
+    "mtime": 1795102092.732343,
+    "seen": 1795126346.667663,
+    "ast_hash": "2bc9c9d9872c28a4bb449675c4269824",
+    "semantic_hash": ""
+  },
+  "backend/src/paycheques/extractors.py": {
+    "mtime": 1795186121.7809787,
+    "seen": 1795186189.536418,
+    "ast_hash": "3e5fe174e0c29639cfa26770466b86b5",
+    "semantic_hash": ""
+  },
+  "backend/src/paycheques/parsers.py": {
+    "mtime": 1795186154.9402912,
+    "seen": 1795186189.536421,
+    "ast_hash": "4258a5ee593a4b542bb4564e86229095",
+    "semantic_hash": ""
+  }
+}
