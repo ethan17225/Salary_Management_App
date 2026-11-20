@@ -5,6 +5,8 @@ OCR (rapidocr) and the local LLM (llama-cpp-python + Qwen2.5-0.5B GGUF) come fro
 
 import io
 import json
+import os
+import re
 import statistics
 import threading
 from functools import cache
@@ -17,12 +19,19 @@ from src.config import settings
 
 MAX_PDF_TEXT_PAGES = 5
 MAX_OCR_PAGES = 2
-MAX_LLM_CHARS = 4500
+MAX_OCR_IMAGE_PX = 1800
+OCR_PDF_SCALE = 1.75
+MAX_LLM_CHARS = 1800
 
 
-def pdf_text(content: bytes) -> str:
+def pdf_extract(content: bytes) -> tuple[str, list[list[list[str | None]]]]:
+    texts: list[str] = []
+    tables: list[list[list[str | None]]] = []
     with pdfplumber.open(io.BytesIO(content)) as pdf:
-        return "\n".join(p.extract_text() or "" for p in pdf.pages[:MAX_PDF_TEXT_PAGES]).strip()
+        for page in pdf.pages[:MAX_PDF_TEXT_PAGES]:
+            texts.append(page.extract_text() or "")
+            tables.extend(page.extract_tables() or [])
+    return "\n".join(texts).strip(), tables
 
 
 @cache
@@ -55,7 +64,10 @@ def ocr_text(content: bytes, mime: str) -> tuple[str, float]:
 
         pdf = pdfium.PdfDocument(content)
         try:
-            images = [pdf[i].render(scale=2).to_pil() for i in range(min(len(pdf), MAX_OCR_PAGES))]
+            images = [
+                pdf[i].render(scale=OCR_PDF_SCALE).to_pil()
+                for i in range(min(len(pdf), MAX_OCR_PAGES))
+            ]
         finally:
             pdf.close()
     else:
@@ -64,7 +76,10 @@ def ocr_text(content: bytes, mime: str) -> tuple[str, float]:
     lines: list[str] = []
     scores: list[float] = []
     for img in images:
-        out = _ocr_engine()(np.array(img.convert("RGB")))
+        rgb = img.convert("RGB")
+        if max(rgb.size) > MAX_OCR_IMAGE_PX:
+            rgb.thumbnail((MAX_OCR_IMAGE_PX, MAX_OCR_IMAGE_PX), Image.Resampling.LANCZOS)
+        out = _ocr_engine()(np.array(rgb))
         if out.boxes is None or not len(out.boxes):
             continue
         lines += _visual_lines(out.boxes.tolist(), out.txts)
@@ -85,9 +100,15 @@ PAYSTUB_JSON_SCHEMA = {
 SYSTEM_PROMPT = (
     "Extract paystub fields into JSON. Rules:\n"
     "- Use CURRENT PERIOD figures only; ignore YTD (year-to-date) totals.\n"
-    "- source_name = employer. paid_on = pay date as YYYY-MM-DD.\n"
+    "- source_name = employer name.\n"
+    "- paid_on = pay/advice/check date as YYYY-MM-DD (NOT Pay Begin/End Date).\n"
     "- gross = total pay before taxes/deductions; amount = net take-home pay (<= gross).\n"
     "- Use null when a field is not present."
+)
+_LLM_KEEP_RE = re.compile(
+    r"\d+\.\d{2}|\d{4}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[-/]\d{1,2}[-/]\d{4}"
+    r"|\b(?:gross|net|tax|deduct|pay|advice|cheque|check|current|total|earnings|deposit|hours)\b",
+    re.I,
 )
 _LLM_LOCK = threading.Lock()  # llama.cpp contexts aren't thread-safe: one inference at a time
 
@@ -103,10 +124,27 @@ def llm_available() -> bool:
 def _llm():
     from llama_cpp import Llama
 
-    # n_ctx 4096: Qwen tokenizes digits one by one, so 4.5k chars of paystub can top 2k tokens.
     return Llama(
-        model_path=settings.QWEN_MODEL_PATH, n_ctx=4096, chat_format="chatml", verbose=False
+        model_path=settings.QWEN_MODEL_PATH,
+        n_ctx=1536,
+        n_threads=min(os.cpu_count() or 4, 4),
+        n_batch=512,
+        chat_format="chatml",
+        verbose=False,
     )
+
+
+def _compact_for_llm(text: str) -> str:
+    """Keep header lines (employer + dates) and numeric/summary lines inside a small prompt."""
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    kept: list[str] = []
+    seen: set[str] = set()
+    for i, line in enumerate(lines):
+        if i < 8 or _LLM_KEEP_RE.search(line):
+            if line not in seen:
+                seen.add(line)
+                kept.append(line)
+    return "\n".join(kept)[:MAX_LLM_CHARS]
 
 
 def llm_extract(text: str) -> dict:
@@ -114,11 +152,11 @@ def llm_extract(text: str) -> dict:
         res = _llm().create_chat_completion(
             messages=[
                 {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": f"Paystub text:\n{text[:MAX_LLM_CHARS]}"},
+                {"role": "user", "content": f"Paystub text:\n{_compact_for_llm(text)}"},
             ],
             response_format={"type": "json_object", "schema": PAYSTUB_JSON_SCHEMA},
             temperature=0.0,
-            max_tokens=256,
+            max_tokens=140,
         )
     data = json.loads(res["choices"][0]["message"]["content"])
     return data if isinstance(data, dict) else {}

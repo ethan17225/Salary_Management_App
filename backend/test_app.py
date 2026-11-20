@@ -512,7 +512,7 @@ async def test_filtered_csv_export(client: AsyncClient) -> None:
             "source_id": 1,
             "paid_on": "2025-12-30",
             "amount": "123.45",
-            "note": "=HYPERLINK(\"http://evil\")",
+            "note": '=HYPERLINK("http://evil")',
         },
     )
 
@@ -618,17 +618,21 @@ async def test_parse_pdf_ocr_escalation_and_llm_fallback(
         "ACME CORP\nPay Date: Nov 14, 2026\nGross Pay 2,500.00 30,000.00\n"
         "Total Taxes 400.00\nTotal Deductions 257.50\nNet Pay $1,842.50 22,110.00"
     )
-    monkeypatch.setattr(extractors, "pdf_text", lambda _c: stub)
+    monkeypatch.setattr(extractors, "pdf_extract", lambda _c: (stub, []))
     data = (await _upload(client, "stub.pdf", b"%PDF-1.7 fake")).json()
     [row] = data["rows"]
     assert data["parser_used"] == "pdf_text" and not data["used_llm_fallback"]
     assert (row["paid_on"], row["amount"], row["gross"], row["tax"], row["deductions"]) == (
-        "2026-11-14", "1842.50", "2500.00", "400.00", "257.50"
+        "2026-11-14",
+        "1842.50",
+        "2500.00",
+        "400.00",
+        "257.50",
     )  # Current column, not YTD
     assert row["warnings"] == []
 
     # No text layer -> OCR tier; regex misses the date -> local LLM fallback wins
-    monkeypatch.setattr(extractors, "pdf_text", lambda _c: "")
+    monkeypatch.setattr(extractors, "pdf_extract", lambda _c: ("", []))
     monkeypatch.setattr(extractors, "ocr_text", lambda _c, _m: ("Net Pay 1,842.50", 0.93))
     monkeypatch.setattr(extractors, "llm_available", lambda: True)
     monkeypatch.setattr(
@@ -647,6 +651,163 @@ async def test_parse_pdf_ocr_escalation_and_llm_fallback(
     boxes = [box(300, 10), box(10, 12), box(10, 60)]
     lines = extractors._visual_lines(boxes, ["1,842.50", "Net Pay", "Gross"])
     assert lines == ["Net Pay  1,842.50", "Gross"]
+
+
+@pytest.mark.asyncio
+async def test_peoplesoft_paystub_tables_known_sources_and_llm_guard(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    sheridan_ocr = (
+        "Sheridan College   Pay Group: NFT\n"
+        "Pay Begin Date: 08/23/2026\n"
+        "Pay End Date: 09/05/2026\n"
+        "Advice Date: 09/18/2026\n"
+        "TOTAL GROSS CIT TAXABLE GROSS TOTAL TAXES TOTAL DEDUCTIONS NET PAY\n"
+        "Current: 142.78 139.03 2.82 3.75 136.21\n"
+        "YTD: 142.78 139.03 2.82 3.75 136.21\n"
+    )
+    monkeypatch.setattr(extractors, "pdf_extract", lambda _c: (sheridan_ocr, []))
+    res = (await _upload(client, "sheridan.pdf", b"%PDF-1.7 fake")).json()
+    [row] = res["rows"]
+    assert res["parser_used"] == "pdf_text" and not res["used_llm_fallback"]
+    assert (
+        row["source_name"],
+        row["paid_on"],
+        row["gross"],
+        row["tax"],
+        row["deductions"],
+        row["amount"],
+    ) == ("Sheridan College", "2026-09-18", "142.78", "2.82", "3.75", "136.21")
+    assert row["warnings"] == []
+
+    # Ruled pdfplumber table with packed Current/YTD cells + known DB source match
+    tables = [
+        [
+            ["", "TOTAL GROSS", "CIT TAXABLE GROSS", "TOTAL TAXES", "TOTAL DEDUCTIONS", "NET PAY"],
+            [
+                "Current:\nYTD:",
+                "142.78\n142.78",
+                "139.03\n139.03",
+                "2.82\n2.82",
+                "3.75\n3.75",
+                "136.21\n136.21",
+            ],
+        ]
+    ]
+    monkeypatch.setattr(
+        extractors,
+        "pdf_extract",
+        lambda _c: ("PAY ADVICE\nKung Fu Tea\nAdvice Date: 09/18/2026\n", tables),
+    )
+    res2 = (await _upload(client, "ruled.pdf", b"%PDF-1.7 fake")).json()
+    [row2] = res2["rows"]
+    assert not res2["used_llm_fallback"] and row2["warnings"] == []
+    assert (row2["source_name"], row2["paid_on"], row2["amount"], row2["gross"]) == (
+        "Kung Fu Tea",
+        "2026-09-18",
+        "136.21",
+        "142.78",
+    )
+
+    # LLM math-collapse guard clears copied net pay out of tax/deductions
+    monkeypatch.setattr(extractors, "pdf_extract", lambda _c: ("Unlabeled stub text 2026", []))
+    monkeypatch.setattr(extractors, "llm_available", lambda: True)
+    monkeypatch.setattr(
+        extractors,
+        "llm_extract",
+        lambda _t: {
+            "source_name": "Sheridan College",
+            "paid_on": "2026-09-18",
+            "gross": "142.78",
+            "tax": "136.21",
+            "deductions": "136.21",
+            "amount": "136.21",
+        },
+    )
+    res3 = (await _upload(client, "weird.pdf", b"%PDF-1.7 fake")).json()
+    [row3] = res3["rows"]
+    assert res3["used_llm_fallback"] and row3["warnings"] == []
+    assert (row3["gross"], row3["amount"], row3["tax"], row3["deductions"]) == (
+        "142.78",
+        "136.21",
+        None,
+        None,
+    )
+
+
+@pytest.mark.asyncio
+async def test_peoplesoft_paystub_tables_known_sources_and_llm_guard(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    sheridan_ocr = (
+        "Sheridan College   Pay Group: NFT\n"
+        "Pay Begin Date: 08/23/2026\n"
+        "Pay End Date: 09/05/2026\n"
+        "Advice Date: 09/18/2026\n"
+        "TOTAL GROSS CIT TAXABLE GROSS TOTAL TAXES TOTAL DEDUCTIONS NET PAY\n"
+        "Current: 142.78 139.03 2.82 3.75 136.21\n"
+        "YTD: 142.78 139.03 2.82 3.75 136.21\n"
+    )
+    monkeypatch.setattr(extractors, "pdf_extract", lambda _c: (sheridan_ocr, []))
+    res = (await _upload(client, "sheridan.pdf", b"%PDF-1.7 fake")).json()
+    [row] = res["rows"]
+    assert res["parser_used"] == "pdf_text" and not res["used_llm_fallback"]
+    assert (
+        row["source_name"],
+        row["paid_on"],
+        row["gross"],
+        row["tax"],
+        row["deductions"],
+        row["amount"],
+    ) == ("Sheridan College", "2026-09-18", "142.78", "2.82", "3.75", "136.21")
+    assert row["warnings"] == []
+
+    # Ruled pdfplumber table with packed Current/YTD cells + known DB source match
+    tables = [
+        [
+            ["", "TOTAL GROSS", "CIT TAXABLE GROSS", "TOTAL TAXES", "TOTAL DEDUCTIONS", "NET PAY"],
+            ["Current:\nYTD:", "142.78\n142.78", "139.03\n139.03", "2.82\n2.82", "3.75\n3.75", "136.21\n136.21"],
+        ]
+    ]
+    monkeypatch.setattr(
+        extractors,
+        "pdf_extract",
+        lambda _c: ("PAY ADVICE\nKung Fu Tea\nAdvice Date: 09/18/2026\n", tables),
+    )
+    res2 = (await _upload(client, "ruled.pdf", b"%PDF-1.7 fake")).json()
+    [row2] = res2["rows"]
+    assert not res2["used_llm_fallback"] and row2["warnings"] == []
+    assert (row2["source_name"], row2["paid_on"], row2["amount"], row2["gross"]) == (
+        "Kung Fu Tea",
+        "2026-09-18",
+        "136.21",
+        "142.78",
+    )
+
+    # LLM math-collapse guard clears copied net pay out of tax/deductions
+    monkeypatch.setattr(extractors, "pdf_extract", lambda _c: ("Unlabeled stub text 2026", []))
+    monkeypatch.setattr(extractors, "llm_available", lambda: True)
+    monkeypatch.setattr(
+        extractors,
+        "llm_extract",
+        lambda _t: {
+            "source_name": "Sheridan College",
+            "paid_on": "2026-09-18",
+            "gross": "142.78",
+            "tax": "136.21",
+            "deductions": "136.21",
+            "amount": "136.21",
+        },
+    )
+    res3 = (await _upload(client, "weird.pdf", b"%PDF-1.7 fake")).json()
+    [row3] = res3["rows"]
+    assert res3["used_llm_fallback"] and row3["warnings"] == []
+    assert (row3["gross"], row3["amount"], row3["tax"], row3["deductions"]) == (
+        "142.78",
+        "136.21",
+        None,
+        None,
+    )
 
 
 if __name__ == "__main__":

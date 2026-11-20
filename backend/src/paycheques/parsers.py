@@ -6,6 +6,7 @@ import csv
 import io
 import logging
 import re
+from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
 
@@ -17,6 +18,7 @@ from src.paycheques.constants import MAX_HOURS, MAX_NOTE_LENGTH
 from src.paycheques.exceptions import UnsupportedFileType
 from src.paycheques.schemas import ParsedPaychequeRow, ParseResponse
 from src.paycheques.utils import parse_cents, validate_paystub_breakdown
+from src.sources.constants import MAX_SOURCE_NAME_LENGTH
 
 log = logging.getLogger(__name__)
 
@@ -208,24 +210,206 @@ def parse_table(content: bytes, mime: str) -> tuple[list[ParsedPaychequeRow], li
     return rows, unmapped
 
 
-# --- Tiers 2 & 3: one paystub's text -> one row (regex first, local LLM fallback) ---------
+# --- Tiers 2 & 3: one paystub's text/tables -> one row (deterministic first, LLM fallback) ---
 
 _MONEY = r"\$?\s*(\d[\d,]*\.\d{2})"
 _DATE = (
     r"(\d{4}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[-/]\d{1,2}[-/]\d{4}"
     r"|[A-Za-z]{3,9}\.?\s+\d{1,2},?\s+\d{4}|\d{1,2}[\s-][A-Za-z]{3,9}[\s-]\d{4})"
 )
+_PAID_ON_LABELS = (
+    r"pay\s*date|payment\s*date|date\s*paid|deposit\s*date|pay\s*day"
+    r"|advice\s*date|che(?:ck|que)\s*date|issue\s*date"
+)
 # `[^\d\n]*` keeps the match on the label's own line, so the first figure is Current, not YTD.
 _TEXT_PATTERNS = {
     key: re.compile(rf"(?:{label})[^\d\n]*?{value}", re.I)
     for key, label, value in (
-        ("paid_on", r"pay\s*date|payment\s*date|date\s*paid|deposit\s*date|pay\s*day", _DATE),
+        ("paid_on", _PAID_ON_LABELS, _DATE),
         ("amount", r"net\s*pay|take[\s-]*home|net\s*deposit|net\s*amount", _MONEY),
         ("gross", r"gross\s*pay|total\s*gross|gross\s*earnings|total\s*earnings", _MONEY),
         ("tax", r"total\s*tax(?:es)?|income\s*tax|federal\s*tax", _MONEY),
         ("deductions", r"total\s*deductions|other\s*deductions", _MONEY),
     )
 }
+_PAID_ON_NEXTLINE_RE = re.compile(rf"(?:{_PAID_ON_LABELS})\s*:?\s*\n\s*{_DATE}", re.I)
+_DIST_TOTAL_RE = re.compile(rf"net\s+pay\s+distribution[\s\S]{{0,200}}?total\s*:?\s*{_MONEY}", re.I)
+
+_PERIOD_ROW_RE = re.compile(r"^(?:current|this\s+period|period)\b", re.I)
+_YTD_ROW_RE = re.compile(r"^(?:ytd|year\s+to\s+date)\b", re.I)
+
+_SUMMARY_CELL_MAP: dict[str, str] = {
+    alias: field
+    for field, aliases in (
+        ("gross", ("total gross", "gross", "gross pay", "gross earnings", "total earnings")),
+        ("tax", ("total taxes", "total tax", "taxes", "income tax", "federal tax")),
+        ("deductions", ("total deductions", "deductions", "other deductions")),
+        (
+            "amount",
+            (
+                "net pay",
+                "net",
+                "take home",
+                "take home pay",
+                "net deposit",
+                "net amount",
+                "total net",
+            ),
+        ),
+    )
+    for alias in aliases
+}
+_SUMMARY_HEADER_RE = re.compile(
+    r"(?P<_skip_1>cit\s+taxable\s+gross|fed(?:eral)?\s+taxable\s+gross|taxable\s+gross"
+    r"|pre[\s-]*tax\s+deductions?|after[\s-]*tax\s+deductions?)"
+    r"|(?P<gross>total\s+gross|gross\s+pay|gross\s+earnings|total\s+earnings)"
+    r"|(?P<tax>total\s+tax(?:es)?|income\s+tax|federal\s+tax)"
+    r"|(?P<deductions>total\s+deductions?|other\s+deductions?)"
+    r"|(?P<amount>net\s+pay|take[\s-]*home(?:\s+pay)?|net\s+deposit|net\s+amount)",
+    re.I,
+)
+_RIGHT_COL_RE = re.compile(
+    r"\s{3,}|\s+(?:Pay\s+Group|Business\s+Unit|Advice|Page|Statement|Period|Employee|Date|Check|Cheque)\b",
+    re.I,
+)
+_GENERIC_HEADER_RE = re.compile(
+    r"^(?:earnings\s+statement|pay\s*stub|paystub|payslip|statement\s+of\s+earnings"
+    r"|pay\s+advice|direct\s+deposit|confidential|tax\s+data|hours\s+and\s+earnings"
+    r"|net\s*pay|gross\s*pay|take[\s-]*home|total\s+(?:gross|tax|deductions|net))\b",
+    re.I,
+)
+
+
+def _infer_source_name(text: str, known_sources: Sequence[str]) -> str | None:
+    head = text[:1500]
+    for name in sorted((s.strip() for s in known_sources if s.strip()), key=len, reverse=True):
+        if re.search(rf"(?<!\w){re.escape(name)}(?!\w)", head, re.I):
+            return name
+
+    for raw in [ln.strip() for ln in text.splitlines() if ln.strip()][:6]:
+        cand = _RIGHT_COL_RE.split(raw, maxsplit=1)[0].strip()
+        if (
+            not cand
+            or cand[0].isdigit()
+            or ":" in cand
+            or "$" in cand
+            or re.search(r"\d+\.\d{2}", cand)
+            or _GENERIC_HEADER_RE.match(cand)
+        ):
+            continue
+        if 2 <= len(cand) <= MAX_SOURCE_NAME_LENGTH and any(ch.isalpha() for ch in cand):
+            return cand
+    return None
+
+
+def _norm_cell(val: str | None) -> str:
+    return " ".join(re.sub(r"[^\w\s]", " ", val or "").lower().split())
+
+
+def _fields_from_tables(tables: Sequence[Sequence[Sequence[str | None]]]) -> dict[str, str]:
+    """Read ruled PDF summary tables (skipping unmapped columns like CIT Taxable Gross)."""
+    for table in tables:
+        for r_idx, row in enumerate(table):
+            col_map = {
+                c_idx: field
+                for c_idx, cell in enumerate(row)
+                if (field := _SUMMARY_CELL_MAP.get(_norm_cell(cell)))
+            }
+            if len(col_map) < 2:
+                continue
+
+            data_row: Sequence[str | None] | None = None
+            line_idx = 0
+            fallback_row: Sequence[str | None] | None = None
+            first_mapped = min(col_map)
+            for cand in table[r_idx + 1 : r_idx + 5]:
+                labels = [
+                    ln.strip()
+                    for c_idx in range(first_mapped)
+                    if c_idx < len(cand) and cand[c_idx]
+                    for ln in cand[c_idx].splitlines()
+                    if ln.strip()
+                ]
+                cur = next((i for i, lbl in enumerate(labels) if _PERIOD_ROW_RE.match(lbl)), None)
+                if cur is not None:
+                    data_row, line_idx = cand, cur
+                    break
+                if labels and _YTD_ROW_RE.match(labels[0]):
+                    continue
+                if (
+                    fallback_row is None
+                    and sum(clean_money(cand[c]) is not None for c in col_map if c < len(cand)) >= 2
+                ):
+                    fallback_row = cand
+
+            chosen = data_row or fallback_row
+            if not chosen:
+                continue
+            found: dict[str, str] = {}
+            for c_idx, field in col_map.items():
+                if c_idx >= len(chosen) or not chosen[c_idx]:
+                    continue
+                lines = [ln.strip() for ln in chosen[c_idx].splitlines() if ln.strip()]
+                raw_val = lines[line_idx] if line_idx < len(lines) else (lines[0] if lines else "")
+                if (cleaned := clean_money(raw_val)) is not None and field not in found:
+                    found[field] = cleaned
+            if len(found) >= 2:
+                return found
+    return {}
+
+
+def _fields_from_summary_lines(text: str) -> dict[str, str]:
+    """Read horizontal summary blocks from plain PDF text or RapidOCR visual rows."""
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    for i, line in enumerate(lines):
+        tokens = [m.lastgroup for m in _SUMMARY_HEADER_RE.finditer(line) if m.lastgroup]
+        if sum(not t.startswith("_") for t in tokens) < 2:
+            continue
+
+        matched_values: list[str] | None = None
+        fallback_values: list[str] | None = None
+        for cand in lines[i + 1 : i + 4]:
+            if _YTD_ROW_RE.match(cand):
+                continue
+            values = re.findall(_MONEY, cand)
+            if len(values) != len(tokens):
+                continue
+            if _PERIOD_ROW_RE.match(cand):
+                matched_values = values
+                break
+            if fallback_values is None:
+                fallback_values = values
+
+        chosen = matched_values or fallback_values
+        if chosen:
+            return {
+                field: val
+                for field, val in zip(tokens, chosen, strict=True)
+                if not field.startswith("_")
+            }
+    return {}
+
+
+def _sanitize_llm_fields(fields: dict) -> dict:
+    """Drop tax/deductions if a tiny LLM copied net pay into them and broke gross - net math."""
+    cleaned = dict(fields)
+    net = parse_cents(clean_money(cleaned.get("amount")), "Amount", required=False, allow_zero=True)
+    gross = parse_cents(clean_money(cleaned.get("gross")), "Gross", required=False, allow_zero=True)
+    if net and gross and gross >= net:
+        tax = (
+            parse_cents(clean_money(cleaned.get("tax")), "Tax", required=False, allow_zero=True)
+            or 0
+        )
+        ded = (
+            parse_cents(
+                clean_money(cleaned.get("deductions")), "Ded", required=False, allow_zero=True
+            )
+            or 0
+        )
+        if tax + ded > gross - net:
+            cleaned["tax"] = None
+            cleaned["deductions"] = None
+    return cleaned
 
 
 def _row_from_fields(fields: dict, note: str, confidence: float) -> ParsedPaychequeRow:
@@ -245,19 +429,33 @@ def _row_from_fields(fields: dict, note: str, confidence: float) -> ParsedPayche
 
 
 async def row_from_text(
-    text: str, filename: str, confidence: float
+    text: str,
+    filename: str,
+    confidence: float,
+    tables: Sequence[Sequence[Sequence[str | None]]] = (),
+    known_sources: Sequence[str] = (),
 ) -> tuple[ParsedPaychequeRow, bool]:
-    """Returns (row, used_llm). The LLM only runs when regex left warnings, and only wins
-    if its row has no more warnings than the regex row."""
+    """Returns (row, used_llm). Runs deterministic table/text rules first and only calls the
+    local LLM when warnings remain."""
     note = f"Imported from {filename}"[:MAX_NOTE_LENGTH]
-    found = {
-        k: (m.group(1) if (m := rx.search(text)) else None) for k, rx in _TEXT_PATTERNS.items()
-    }
+    found: dict[str, object] = {}
+    for key, rx in _TEXT_PATTERNS.items():
+        if m := rx.search(text):
+            found[key] = m.group(1)
+    if "paid_on" not in found and (m := _PAID_ON_NEXTLINE_RE.search(text)):
+        found["paid_on"] = m.group(1)
+    found.update(_fields_from_summary_lines(text))
+    found.update(_fields_from_tables(tables))
+    if "amount" not in found and (m := _DIST_TOTAL_RE.search(text)):
+        found["amount"] = m.group(1)
+    if source := _infer_source_name(text, known_sources):
+        found["source_name"] = source
+
     row = _row_from_fields(found, note, confidence)
     if not row.warnings or not text.strip() or not extractors.llm_available():
         return row, False
 
-    llm_fields = await asyncio.to_thread(extractors.llm_extract, text)
+    llm_fields = _sanitize_llm_fields(await asyncio.to_thread(extractors.llm_extract, text))
     llm_conf = min(confidence, 0.75)
     merged_fields = {**llm_fields, **{k: v for k, v in found.items() if v is not None}}
     candidates = [
@@ -280,7 +478,9 @@ async def row_from_text(
 # --- Entry point -------------------------------------------------------------------------
 
 
-async def parse_upload(content: bytes, filename: str) -> ParseResponse:
+async def parse_upload(
+    content: bytes, filename: str, known_sources: Sequence[str] = ()
+) -> ParseResponse:
     mime = detect_mime(content, filename)
     if mime not in {CSV, TSV, XLSX, PDF, *IMAGES}:
         raise UnsupportedFileType()
@@ -292,14 +492,17 @@ async def parse_upload(content: bytes, filename: str) -> ParseResponse:
                 **meta, parser_used="tabular", rows=rows, unmapped_columns=unmapped
             )
 
-        text, parser, confidence = "", "ocr", 0.5
+        text, tables, parser, confidence = "", [], "ocr", 0.5
         if mime == PDF:
-            text = await asyncio.to_thread(extractors.pdf_text, content)
+            text, tables = await asyncio.to_thread(extractors.pdf_extract, content)
             parser, confidence = "pdf_text", 0.9
         if len(text) < 20:  # scanned PDF (no text layer) or image -> OCR
             text, ocr_score = await asyncio.to_thread(extractors.ocr_text, content, mime)
+            tables = []
             parser, confidence = "ocr", min(ocr_score, 0.85) or 0.5
-        row, used_llm = await row_from_text(text, filename, confidence)
+        row, used_llm = await row_from_text(
+            text, filename, confidence, tables=tables, known_sources=known_sources
+        )
         return ParseResponse(**meta, parser_used=parser, used_llm_fallback=used_llm, rows=[row])
     except AppError:
         raise

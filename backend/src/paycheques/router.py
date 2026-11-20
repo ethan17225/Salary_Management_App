@@ -3,6 +3,7 @@ from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Query, Response, UploadFile, status
+from sqlalchemy import select
 
 from src.database import DBDep
 from src.exceptions import BadRequestError
@@ -20,6 +21,7 @@ from src.paycheques.schemas import (
     PaychequeResponse,
     PaychequeUpdate,
 )
+from src.sources.models import Source
 
 router = APIRouter(
     prefix="/api/paycheques",
@@ -152,13 +154,15 @@ async def import_paycheques(
         status.HTTP_415_UNSUPPORTED_MEDIA_TYPE: {"model": ErrorResponse},
     },
 )
-async def parse_paycheque_file(file: UploadFile) -> ParseResponse:
+async def parse_paycheque_file(file: UploadFile, db: DBDep) -> ParseResponse:
     content = await file.read(MAX_UPLOAD_BYTES + 1)
     if len(content) > MAX_UPLOAD_BYTES:
         raise FileTooLarge()
     if not content:
         raise BadRequestError("The file is empty.")
-    return await parse_upload(content, file.filename or "upload")
+    res = await db.execute(select(Source.name))
+    source_names = [name for (name,) in res.all()]
+    return await parse_upload(content, file.filename or "upload", known_sources=source_names)
 
 
 @export_router.get(

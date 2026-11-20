@@ -1,13 +1,15 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDialogs } from '@/components/ui/dialog-provider';
+import { Skeleton } from '@/components/ui/skeleton';
 import type { Source } from '@/types/payday';
 import { importPaychequesAction } from '../actions/import-paycheques';
 import { importRowSchema, type ParsedRow, type ParseResponse } from '../schemas/import-schema';
 
 type Row = ParsedRow & { _id: number };
 type Status = { tone: 'down' | 'warn' | 'up'; text: string };
+type ParsingFile = { name: string; size: number; kind: 'table' | 'pdf' | 'image' };
 
 const ACCEPT = '.csv,.tsv,.xlsx,.pdf,.png,.jpg,.jpeg,.webp';
 const MONEY_FIELDS = [
@@ -32,6 +34,31 @@ const SAMPLE_CSV_HREF =
 
 let nextRowId = 0;
 
+function fileKind(name: string): ParsingFile['kind'] {
+  const lower = name.toLowerCase();
+  if (lower.endsWith('.pdf')) return 'pdf';
+  if (/\.(png|jpe?g|webp)$/.test(lower)) return 'image';
+  return 'table';
+}
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function parseStageLabel(kind: ParsingFile['kind'], elapsedSec: number): string {
+  if (kind === 'table') return 'Reading spreadsheet rows…';
+  if (kind === 'pdf') {
+    if (elapsedSec < 1) return 'Reading PDF text and tables…';
+    if (elapsedSec < 4) return 'Checking layout and scanned pages…';
+    return 'Matching fields with local AI…';
+  }
+  if (elapsedSec < 1) return 'Uploading image…';
+  if (elapsedSec < 4) return 'Scanning paystub text with local OCR…';
+  return 'Matching fields with local AI…';
+}
+
 function rowStatus(row: Row): Status {
   const check = importRowSchema.safeParse(row);
   if (!check.success) return { tone: 'down', text: check.error.issues[0].message };
@@ -45,6 +72,7 @@ function rowStatus(row: Row): Status {
 export function ImportDialog({ sources }: { sources: Source[] }) {
   const dlgRef = useRef<HTMLDialogElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const { toast } = useDialogs();
 
   const [meta, setMeta] = useState<Omit<ParseResponse, 'rows'> | null>(null);
@@ -53,12 +81,29 @@ export function ImportDialog({ sources }: { sources: Source[] }) {
   const [dragOver, setDragOver] = useState(false);
   const [err, setErr] = useState('');
   const [pending, setPending] = useState<'' | 'parse' | 'import'>('');
+  const [parsingFile, setParsingFile] = useState<ParsingFile | null>(null);
+  const [elapsedSec, setElapsedSec] = useState(0);
 
   const statuses = rows.map(rowStatus);
   const blocked = statuses.filter((s) => s.tone === 'down').length;
   const missingSource = rows.some((r) => !r.source_name?.trim());
 
+  useEffect(() => {
+    if (pending !== 'parse') return;
+    const started = Date.now();
+    setElapsedSec(0);
+    const id = window.setInterval(() => {
+      setElapsedSec(Math.floor((Date.now() - started) / 1000));
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [pending]);
+
   function reset() {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setPending('');
+    setParsingFile(null);
+    setElapsedSec(0);
     setMeta(null);
     setRows([]);
     setDragOver(false);
@@ -68,12 +113,20 @@ export function ImportDialog({ sources }: { sources: Source[] }) {
 
   async function handleFile(file: File | undefined) {
     if (!file) return;
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
     setErr('');
+    setParsingFile({ name: file.name, size: file.size, kind: fileKind(file.name) });
     setPending('parse');
     try {
       const body = new FormData();
       body.append('file', file);
-      const res = await fetch('/api/paycheques/parse', { method: 'POST', body });
+      const res = await fetch('/api/paycheques/parse', {
+        method: 'POST',
+        body,
+        signal: controller.signal,
+      });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? `Couldn't read this file (${res.status}).`);
       const { rows: parsed, ...rest } = data as ParseResponse;
@@ -81,10 +134,15 @@ export function ImportDialog({ sources }: { sources: Source[] }) {
       setMeta(rest);
       setRows(parsed.map((r) => ({ ...r, _id: nextRowId++ })));
     } catch (e) {
+      if (e instanceof Error && e.name === 'AbortError') return;
       setErr(e instanceof Error ? e.message : "Couldn't read this file.");
       if (fileRef.current) fileRef.current.value = '';
     } finally {
-      setPending('');
+      if (abortRef.current === controller) {
+        abortRef.current = null;
+        setParsingFile(null);
+        setPending('');
+      }
     }
   }
 
@@ -158,7 +216,11 @@ export function ImportDialog({ sources }: { sources: Source[] }) {
         ref={dlgRef}
         aria-labelledby="importTitle"
         onCancel={(e) => {
-          if (pending) e.preventDefault();
+          if (pending === 'import') {
+            e.preventDefault();
+            return;
+          }
+          reset();
         }}
         className={meta ? 'w-[min(1040px,calc(100%-24px))]' : undefined}
       >
@@ -175,46 +237,91 @@ export function ImportDialog({ sources }: { sources: Source[] }) {
           </div>
 
           {!meta ? (
-            <div
-              onDragOver={(e) => {
-                e.preventDefault();
-                if (pending !== 'parse') setDragOver(true);
-              }}
-              onDragLeave={(e) => {
-                if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragOver(false);
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                setDragOver(false);
-                if (pending !== 'parse') void handleFile(e.dataTransfer.files?.[0]);
-              }}
-              className={`grid gap-1.5 text-sm font-medium rounded-xl border border-dashed p-4 transition-[border-color,background-color] duration-150 ${
-                dragOver ? 'border-accent bg-accent-soft' : 'border-line bg-bg'
-              }`}
-            >
-              <label htmlFor="importFileInput">File</label>
-              <input
-                id="importFileInput"
-                ref={fileRef}
-                type="file"
-                accept={ACCEPT}
-                disabled={pending === 'parse'}
-                className="py-2 cursor-pointer bg-card"
-                onChange={(e) => void handleFile(e.target.files?.[0])}
-              />
-              <p className="text-[13px] font-normal text-muted" aria-live="polite">
-                {pending === 'parse'
-                  ? 'Reading file… scans and photos can take a few seconds.'
-                  : 'Drop a file here or browse (up to 10 MB). You can review every row before anything is saved.'}
-              </p>
-              <a
-                href={SAMPLE_CSV_HREF}
-                download="payday-template.csv"
-                className="text-[13px] font-medium text-accent hover:underline justify-self-start"
+            pending === 'parse' && parsingFile ? (
+              <div
+                role="status"
+                aria-busy="true"
+                className="rounded-xl border border-line bg-bg p-4 grid gap-3"
               >
-                Download sample CSV template
-              </a>
-            </div>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span
+                      aria-hidden
+                      className="size-4 shrink-0 rounded-full border-2 border-accent/25 border-t-accent motion-safe:animate-spin"
+                    />
+                    <span className="text-sm font-medium text-ink truncate">
+                      {parsingFile.name}
+                    </span>
+                    <span className="num text-[13px] text-muted shrink-0">
+                      {formatSize(parsingFile.size)}
+                    </span>
+                  </div>
+                  <span className="num text-[13px] text-muted shrink-0">{elapsedSec}s</span>
+                </div>
+
+                <div className="h-2 w-full overflow-hidden rounded-full bg-surface">
+                  <div className="h-full w-1/3 rounded-full bg-accent motion-safe:animate-indeterminate" />
+                </div>
+
+                <p className="text-sm text-ink">
+                  {parseStageLabel(parsingFile.kind, elapsedSec)}
+                </p>
+
+                <div className="grid gap-2 pt-1" aria-hidden="true">
+                  <div className="grid grid-cols-4 gap-2">
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-full" />
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-8 w-full" />
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragOver(true);
+                }}
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragOver(false);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragOver(false);
+                  void handleFile(e.dataTransfer.files?.[0]);
+                }}
+                className={`grid gap-1.5 text-sm font-medium rounded-xl border border-dashed p-4 transition-[border-color,background-color] duration-150 ${
+                  dragOver ? 'border-accent bg-accent-soft' : 'border-line bg-bg'
+                }`}
+              >
+                <label htmlFor="importFileInput">File</label>
+                <input
+                  id="importFileInput"
+                  ref={fileRef}
+                  type="file"
+                  accept={ACCEPT}
+                  className="py-2 cursor-pointer bg-card"
+                  onChange={(e) => void handleFile(e.target.files?.[0])}
+                />
+                <p className="text-[13px] font-normal text-muted">
+                  Drop a file here or browse (up to 10 MB). You can review every row before anything
+                  is saved.
+                </p>
+                <a
+                  href={SAMPLE_CSV_HREF}
+                  download="payday-template.csv"
+                  className="text-[13px] font-medium text-accent hover:underline justify-self-start"
+                >
+                  Download sample CSV template
+                </a>
+              </div>
+            )
           ) : (
             <>
               <div className="flex flex-wrap items-end justify-between gap-3">
@@ -281,7 +388,7 @@ export function ImportDialog({ sources }: { sources: Source[] }) {
                               aria-label={`Source, row ${i + 1}`}
                               value={row.source_name ?? ''}
                               onChange={(e) => updateRow(row._id, { source_name: e.target.value })}
-                              className="min-h-[40px] min-w-[160px]"
+                              className="min-h-[40px] min-w-[185px]"
                             />
                           </td>
                           <td className="p-1.5">
@@ -309,7 +416,7 @@ export function ImportDialog({ sources }: { sources: Source[] }) {
                             </td>
                           ))}
                           <td className={`p-2 text-[13px] ${TONE_CLASS[status.tone]}`}>
-                            <span className="inline-flex items-center gap-1.5 min-w-[160px]">
+                            <span className="inline-flex items-center gap-1.5 min-w-[200px] whitespace-normal leading-snug">
                               <i
                                 aria-hidden
                                 className={`size-2 shrink-0 rounded-full ${DOT_CLASS[status.tone]}`}
@@ -367,8 +474,11 @@ export function ImportDialog({ sources }: { sources: Source[] }) {
             <button
               type="button"
               className="btn flex-1 sm:flex-initial"
-              disabled={!!pending}
-              onClick={() => dlgRef.current?.close()}
+              disabled={pending === 'import'}
+              onClick={() => {
+                reset();
+                dlgRef.current?.close();
+              }}
             >
               Cancel
             </button>
