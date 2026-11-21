@@ -67,6 +67,7 @@ type Nullable<T> = { [K in keyof T]: T[K] | null };
 
 /** A candidate row from POST /api/paycheques/parse (money as decimal strings). */
 export type ParsedRow = Nullable<z.input<typeof importRowSchema>> & {
+  document_type?: 'paystub' | 'cheque' | 'tabular';
   confidence: number;
   warnings: string[];
 };
@@ -74,7 +75,7 @@ export type ParsedRow = Nullable<z.input<typeof importRowSchema>> & {
 export interface ParseResponse {
   filename: string;
   detected_mime: string;
-  parser_used: 'tabular' | 'pdf_text' | 'ocr';
+  parser_used: 'tabular' | 'pdf_text' | 'vision' | 'ocr';
   used_llm_fallback: boolean;
   rows: ParsedRow[];
   unmapped_columns: string[];

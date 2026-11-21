@@ -21,6 +21,7 @@ const MONEY_FIELDS = [
 const READ_AS: Record<ParseResponse['parser_used'], string> = {
   tabular: 'spreadsheet',
   pdf_text: 'PDF text',
+  vision: 'local vision AI',
   ocr: 'scan (OCR)',
 };
 const TONE_CLASS = { down: 'text-down', warn: 'text-ink', up: 'text-up' } as const;
@@ -232,7 +233,7 @@ export function ImportDialog({ sources }: { sources: Source[] }) {
             <p className="text-sm text-muted mt-1">
               {meta
                 ? 'Check each row and fix anything flagged. Rows already saved are skipped.'
-                : 'Upload a spreadsheet (CSV, TSV, XLSX), a paystub PDF, or a photo of a paystub. Files are read on this server and never sent anywhere else.'}
+                : 'Upload a spreadsheet (CSV, TSV, XLSX), a paystub PDF, or a photo of a paystub or cheque. Files are read on this server and never sent anywhere else.'}
             </p>
           </div>
 
@@ -408,6 +409,11 @@ export function ImportDialog({ sources }: { sources: Source[] }) {
                                 inputMode="decimal"
                                 aria-label={`${label}, row ${i + 1}`}
                                 value={row[field] ?? ''}
+                                placeholder={
+                                  row.document_type === 'cheque' && field !== 'amount'
+                                    ? '—'
+                                    : undefined
+                                }
                                 onChange={(e) =>
                                   updateRow(row._id, { [field]: e.target.value.trim() || null })
                                 }

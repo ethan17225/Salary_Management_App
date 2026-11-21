@@ -9,9 +9,11 @@ import re
 from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
+from typing import Literal
 
 import openpyxl
 
+from src.config import settings
 from src.exceptions import AppError, BadRequestError
 from src.paycheques import extractors
 from src.paycheques.constants import MAX_HOURS, MAX_NOTE_LENGTH
@@ -60,11 +62,105 @@ _DATE_FORMATS = (
     "%d-%m-%Y",
     "%b %d %Y",
     "%B %d %Y",
+    "%b %d %y",
+    "%B %d %y",
     "%d %b %Y",
     "%d %B %Y",
     "%d-%b-%Y",
     "%d-%B-%Y",
 )
+
+_NUMBERED_CORP_RE = re.compile(
+    r"\b(\d{5,9})\s+(?:ONTARIO|CANADA|QUEBEC|ALBERTA|BC|INC\.?|LTD\.?|LIMITED|CORP\.?)\b",
+    re.I,
+)
+
+_UNITS = {
+    "zero": 0,
+    "one": 1,
+    "two": 2,
+    "three": 3,
+    "four": 4,
+    "five": 5,
+    "six": 6,
+    "seven": 7,
+    "eight": 8,
+    "nine": 9,
+    "ten": 10,
+    "eleven": 11,
+    "twelve": 12,
+    "thirteen": 13,
+    "fourteen": 14,
+    "fifteen": 15,
+    "sixteen": 16,
+    "seventeen": 17,
+    "eighteen": 18,
+    "nineteen": 19,
+}
+_TENS = {
+    "twenty": 20,
+    "thirty": 30,
+    "forty": 40,
+    "fifty": 50,
+    "sixty": 60,
+    "seventy": 70,
+    "eighty": 80,
+    "ninety": 90,
+}
+_NUM_WORD = (
+    r"(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|"
+    r"thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|"
+    r"twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|and)"
+)
+_WRITTEN_AMOUNT_RE = re.compile(
+    rf"\b((?:{_NUM_WORD}[\s,&-]*)+?)\s*(?:dollars?\s*)?(?:and\s+|&\s*)?"
+    rf"(\d{{1,2}}|xx|no)\s*/\s*100\b",
+    re.I,
+)
+
+
+def is_cheque_text(text: str) -> bool:
+    lowered = text.lower()
+    if "pay to the order of" in lowered or "/100 dollars" in lowered or "xx/100" in lowered:
+        return True
+    return ("cheque" in lowered or "void after" in lowered) and (
+        "dollars" in lowered or "/100" in lowered
+    )
+
+
+def parse_written_amount(text: str) -> str | None:
+    """Convert legal cheque line ('Six hundred eleven 86/100') into '611.86'."""
+    match = _WRITTEN_AMOUNT_RE.search(text)
+    if not match:
+        return None
+    words = re.findall(r"[a-z]+", match.group(1).lower())
+    total, current, has_number = 0, 0, False
+    for word in words:
+        if word == "and":
+            continue
+        if word in _UNITS:
+            current += _UNITS[word]
+            has_number = True
+        elif word in _TENS:
+            current += _TENS[word]
+            has_number = True
+        elif word == "hundred":
+            current = (current or 1) * 100
+            has_number = True
+        elif word == "thousand":
+            total += (current or 1) * 1000
+            current = 0
+            has_number = True
+        else:
+            return None
+    if not has_number:
+        return None
+    dollars = total + current
+    cents_tok = match.group(2).lower()
+    cents = 0 if cents_tok in {"xx", "no"} else int(cents_tok)
+    if dollars <= 0 and cents <= 0:
+        return None
+    return f"{dollars}.{cents:02d}"
 
 
 def clean_money(value: object) -> str | None:
@@ -83,7 +179,13 @@ def clean_money(value: object) -> str | None:
 def clean_date(value: object) -> str | None:
     if hasattr(value, "strftime"):  # Excel date/datetime cell
         return value.strftime("%Y-%m-%d")
-    raw = " ".join(re.sub(r"[.,]", " ", str(value or "")).split())
+    s = str(value or "").strip()
+    if not s:
+        return None
+    if s[0].isalpha():  # handle handwritten dates like "Nov 20 / 26" or "Nov 20 '26"
+        raw = " ".join(re.sub(r"[.,/'-]+", " ", s).split())
+    else:
+        raw = " ".join(re.sub(r"[.,]", " ", s).split())
     for fmt in _DATE_FORMATS:
         try:
             return datetime.strptime(raw, fmt).strftime("%Y-%m-%d")
@@ -105,18 +207,49 @@ def _clean_text(value: object) -> str | None:
     return text or None
 
 
-def check_row(row: ParsedPaychequeRow) -> ParsedPaychequeRow:
-    """Flag what the user must review, in exact integer cents, using the same breakdown rules
-    that /import enforces. Warnings never block; they only highlight the row."""
+def check_row(
+    row: ParsedPaychequeRow,
+    raw_text: str = "",
+    cheque_number: str | None = None,
+) -> ParsedPaychequeRow:
+    """Apply cheque sanity guards and flag review items in exact integer cents."""
 
     def cents(value: str | None) -> int | None:
         return parse_cents(value, "Amount", required=False, allow_zero=True)
+
+    if row.document_type == "cheque":
+        row.gross = None
+        row.tax = None
+        row.deductions = None
+        row.hours = None
+
+    ignored_reason = False
+    if row.amount:
+        whole_dollars = row.amount.split(".")[0].lstrip("0") or "0"
+        corp_ids = {cid.lstrip("0") or "0" for cid in _NUMBERED_CORP_RE.findall(raw_text)}
+        clean_cheque_no = re.sub(r"\D", "", cheque_number or "").lstrip("0")
+        net_c = cents(row.amount)
+
+        if whole_dollars in corp_ids:
+            row.amount = None
+            row.warnings.append("Ignored company registration number; enter cheque amount manually")
+            row.confidence = min(row.confidence, 0.3)
+            ignored_reason = True
+        elif clean_cheque_no and whole_dollars == clean_cheque_no:
+            row.amount = None
+            row.warnings.append("Ignored cheque number; enter cheque amount manually")
+            row.confidence = min(row.confidence, 0.3)
+            ignored_reason = True
+        elif net_c and net_c > settings.MAX_SINGLE_PAYCHEQUE_WARN_CENTS:
+            row.warnings.append("Unusually large amount — verify against source document")
+            row.confidence = min(row.confidence, 0.35)
 
     if not row.paid_on:
         row.warnings.append("Pay date not found")
     net = cents(row.amount)
     if not net:
-        row.warnings.append("Take-home amount not found")
+        if not ignored_reason:
+            row.warnings.append("Take-home amount not found")
     else:
         gross, tax, ded = cents(row.gross), cents(row.tax), cents(row.deductions)
         try:
@@ -204,18 +337,19 @@ def parse_table(content: bytes, mime: str) -> tuple[list[ParsedPaychequeRow], li
                     deductions=clean_money(cell("deductions")),
                     hours=clean_hours(cell("hours")),
                     note=(_clean_text(cell("note")) or "")[:MAX_NOTE_LENGTH] or None,
+                    document_type="tabular",
                 )
             )
         )
     return rows, unmapped
 
 
-# --- Tiers 2 & 3: one paystub's text/tables -> one row (deterministic first, LLM fallback) ---
+# --- Tiers 2 & 3: one paystub or cheque -> one row ----------------------------------------
 
 _MONEY = r"\$?\s*(\d[\d,]*\.\d{2})"
 _DATE = (
     r"(\d{4}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[-/]\d{1,2}[-/]\d{4}"
-    r"|[A-Za-z]{3,9}\.?\s+\d{1,2},?\s+\d{4}|\d{1,2}[\s-][A-Za-z]{3,9}[\s-]\d{4})"
+    r"|[A-Za-z]{3,9}\.?\s+\d{1,2}\s*[/,'-]?\s*\d{2,4}|\d{1,2}[\s-][A-Za-z]{3,9}[\s-]\d{4})"
 )
 _PAID_ON_LABELS = (
     r"pay\s*date|payment\s*date|date\s*paid|deposit\s*date|pay\s*day"
@@ -233,6 +367,8 @@ _TEXT_PATTERNS = {
     )
 }
 _PAID_ON_NEXTLINE_RE = re.compile(rf"(?:{_PAID_ON_LABELS})\s*:?\s*\n\s*{_DATE}", re.I)
+_CHEQUE_DATE_RE = re.compile(rf"\bdate\b[^\dA-Za-z\n]*{_DATE}", re.I)
+_CHEQUE_DATE_NEXTLINE_RE = re.compile(rf"\bdate\b\s*:?\s*\n\s*{_DATE}", re.I)
 _DIST_TOTAL_RE = re.compile(rf"net\s+pay\s+distribution[\s\S]{{0,200}}?total\s*:?\s*{_MONEY}", re.I)
 
 _PERIOD_ROW_RE = re.compile(r"^(?:current|this\s+period|period)\b", re.I)
@@ -275,9 +411,22 @@ _RIGHT_COL_RE = re.compile(
 _GENERIC_HEADER_RE = re.compile(
     r"^(?:earnings\s+statement|pay\s*stub|paystub|payslip|statement\s+of\s+earnings"
     r"|pay\s+advice|direct\s+deposit|confidential|tax\s+data|hours\s+and\s+earnings"
-    r"|net\s*pay|gross\s*pay|take[\s-]*home|total\s+(?:gross|tax|deductions|net))\b",
+    r"|net\s*pay|gross\s*pay|take[\s-]*home|total\s+(?:gross|tax|deductions|net)"
+    r"|pay\s+to\s+the\s+order\s+of|void\s+after|memo|date|dollars"
+    r"|royal\s+bank|td\s+canada|scotiabank|bmo|cibc|rbc)\b",
     re.I,
 )
+
+
+def _match_known_source(name: str | None, known_sources: Sequence[str]) -> str | None:
+    clean = _clean_text(name)
+    if not clean:
+        return None
+    lowered = clean.lower()
+    for known in known_sources:
+        if known.strip().lower() == lowered:
+            return known.strip()
+    return clean[:MAX_SOURCE_NAME_LENGTH]
 
 
 def _infer_source_name(text: str, known_sources: Sequence[str]) -> str | None:
@@ -294,6 +443,7 @@ def _infer_source_name(text: str, known_sources: Sequence[str]) -> str | None:
             or ":" in cand
             or "$" in cand
             or re.search(r"\d+\.\d{2}", cand)
+            or _NUMBERED_CORP_RE.search(cand)
             or _GENERIC_HEADER_RE.match(cand)
         ):
             continue
@@ -412,19 +562,83 @@ def _sanitize_llm_fields(fields: dict) -> dict:
     return cleaned
 
 
-def _row_from_fields(fields: dict, note: str, confidence: float) -> ParsedPaychequeRow:
+def _row_from_fields(
+    fields: dict,
+    note: str,
+    confidence: float,
+    document_type: Literal["paystub", "cheque", "tabular"] = "paystub",
+    raw_text: str = "",
+) -> ParsedPaychequeRow:
+    is_cheque = document_type == "cheque"
     return check_row(
         ParsedPaychequeRow(
             source_name=_clean_text(fields.get("source_name")),
             paid_on=clean_date(fields.get("paid_on")),
             amount=clean_money(fields.get("amount")),
-            gross=clean_money(fields.get("gross")),
-            tax=clean_money(fields.get("tax")),
-            deductions=clean_money(fields.get("deductions")),
-            hours=clean_hours(fields.get("hours")),
+            gross=None if is_cheque else clean_money(fields.get("gross")),
+            tax=None if is_cheque else clean_money(fields.get("tax")),
+            deductions=None if is_cheque else clean_money(fields.get("deductions")),
+            hours=None if is_cheque else clean_hours(fields.get("hours")),
             note=note,
+            document_type=document_type,
             confidence=confidence,
-        )
+        ),
+        raw_text=raw_text,
+    )
+
+
+def _row_from_vision(data: dict, filename: str, known_sources: Sequence[str]) -> ParsedPaychequeRow:
+    numeric_amt = clean_money(data.get("numeric_amount") or data.get("amount"))
+    raw_written = data.get("written_amount")
+    if isinstance(raw_written, (int, float)) or (
+        isinstance(raw_written, str) and re.fullmatch(r"[\s$,\d.]+", raw_written)
+    ):
+        written_amt = clean_money(raw_written)
+    else:
+        written_amt = parse_written_amount(str(raw_written or ""))
+
+    no_paystub_breakdown = all(data.get(k) is None for k in ("gross", "tax", "deductions"))
+    doc_type: Literal["paystub", "cheque"] = (
+        "cheque"
+        if data.get("document_type") == "cheque"
+        or (written_amt is not None and no_paystub_breakdown)
+        else "paystub"
+    )
+
+    warnings: list[str] = []
+    confidence = 0.85
+    if doc_type == "cheque":
+        if numeric_amt and written_amt:
+            if numeric_amt == written_amt:
+                amount, confidence = numeric_amt, 0.95
+            else:
+                amount, confidence = numeric_amt, 0.40
+                warnings.append(
+                    f"Numeric (${numeric_amt}) and written (${written_amt}) cheque amounts disagree"
+                )
+        else:
+            amount = numeric_amt or written_amt
+            confidence = 0.75
+    else:
+        amount = numeric_amt
+
+    row = ParsedPaychequeRow(
+        source_name=_match_known_source(data.get("source_name"), known_sources),
+        paid_on=clean_date(data.get("paid_on")),
+        amount=amount,
+        gross=None if doc_type == "cheque" else clean_money(data.get("gross")),
+        tax=None if doc_type == "cheque" else clean_money(data.get("tax")),
+        deductions=None if doc_type == "cheque" else clean_money(data.get("deductions")),
+        hours=None if doc_type == "cheque" else clean_hours(data.get("hours")),
+        note=f"Scanned from {filename}"[:MAX_NOTE_LENGTH],
+        document_type=doc_type,
+        confidence=confidence,
+        warnings=warnings,
+    )
+    return check_row(
+        row,
+        raw_text=" ".join(str(v) for v in data.values() if v is not None),
+        cheque_number=str(data.get("cheque_number") or "") or None,
     )
 
 
@@ -435,33 +649,54 @@ async def row_from_text(
     tables: Sequence[Sequence[Sequence[str | None]]] = (),
     known_sources: Sequence[str] = (),
 ) -> tuple[ParsedPaychequeRow, bool]:
-    """Returns (row, used_llm). Runs deterministic table/text rules first and only calls the
-    local LLM when warnings remain."""
+    """Returns (row, used_llm). Runs deterministic rules first and only calls the local LLM
+    when warnings remain."""
+    cheque_mode = is_cheque_text(text)
+    doc_type: Literal["paystub", "cheque"] = "cheque" if cheque_mode else "paystub"
     note = f"Imported from {filename}"[:MAX_NOTE_LENGTH]
+
     found: dict[str, object] = {}
     for key, rx in _TEXT_PATTERNS.items():
+        if cheque_mode and key in {"gross", "tax", "deductions"}:
+            continue
         if m := rx.search(text):
             found[key] = m.group(1)
     if "paid_on" not in found and (m := _PAID_ON_NEXTLINE_RE.search(text)):
         found["paid_on"] = m.group(1)
-    found.update(_fields_from_summary_lines(text))
-    found.update(_fields_from_tables(tables))
-    if "amount" not in found and (m := _DIST_TOTAL_RE.search(text)):
-        found["amount"] = m.group(1)
+    if cheque_mode and "paid_on" not in found:
+        if m := (_CHEQUE_DATE_RE.search(text) or _CHEQUE_DATE_NEXTLINE_RE.search(text)):
+            found["paid_on"] = m.group(1)
+
+    if cheque_mode:
+        if "amount" not in found and (written := parse_written_amount(text)):
+            found["amount"] = written
+    else:
+        found.update(_fields_from_summary_lines(text))
+        found.update(_fields_from_tables(tables))
+        if "amount" not in found and (m := _DIST_TOTAL_RE.search(text)):
+            found["amount"] = m.group(1)
+
     if source := _infer_source_name(text, known_sources):
         found["source_name"] = source
 
-    row = _row_from_fields(found, note, confidence)
+    row = _row_from_fields(found, note, confidence, document_type=doc_type, raw_text=text)
     if not row.warnings or not text.strip() or not extractors.llm_available():
         return row, False
 
-    llm_fields = _sanitize_llm_fields(await asyncio.to_thread(extractors.llm_extract, text))
+    llm_raw = await asyncio.to_thread(extractors.llm_extract, text, cheque_mode=cheque_mode)
+    llm_fields = _sanitize_llm_fields(llm_raw)
     llm_conf = min(confidence, 0.75)
     merged_fields = {**llm_fields, **{k: v for k, v in found.items() if v is not None}}
     candidates = [
         (row, False),
-        (_row_from_fields(merged_fields, note, llm_conf), True),
-        (_row_from_fields(llm_fields, note, llm_conf), True),
+        (
+            _row_from_fields(merged_fields, note, llm_conf, document_type=doc_type, raw_text=text),
+            True,
+        ),
+        (
+            _row_from_fields(llm_fields, note, llm_conf, document_type=doc_type, raw_text=text),
+            True,
+        ),
     ]
 
     def rank(pair: tuple[ParsedPaychequeRow, bool]) -> tuple[int, bool, bool, int]:
@@ -496,8 +731,30 @@ async def parse_upload(
         if mime == PDF:
             text, tables = await asyncio.to_thread(extractors.pdf_extract, content)
             parser, confidence = "pdf_text", 0.9
-        if len(text) < 20:  # scanned PDF (no text layer) or image -> OCR
-            text, ocr_score = await asyncio.to_thread(extractors.ocr_text, content, mime)
+        if len(text) < 20:  # scanned PDF or photo -> optional Vision OCR -> RapidOCR fallback
+            images = (
+                await asyncio.to_thread(extractors.prepare_images, content, mime)
+                if extractors.vision_available()
+                else None
+            )
+            if images is not None:
+                try:
+                    vision_data = await extractors.vision_extract(
+                        images, known_sources=known_sources
+                    )
+                    row = _row_from_vision(vision_data, filename, known_sources)
+                    return ParseResponse(
+                        **meta, parser_used="vision", used_llm_fallback=False, rows=[row]
+                    )
+                except Exception:
+                    log.warning(
+                        "Vision OCR failed for %s; falling back to RapidOCR",
+                        filename,
+                        exc_info=True,
+                    )
+            text, ocr_score = await asyncio.to_thread(
+                extractors.ocr_text, content, mime, images=images
+            )
             tables = []
             parser, confidence = "ocr", min(ocr_score, 0.85) or 0.5
         row, used_llm = await row_from_text(

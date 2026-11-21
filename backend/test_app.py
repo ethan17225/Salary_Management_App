@@ -633,12 +633,12 @@ async def test_parse_pdf_ocr_escalation_and_llm_fallback(
 
     # No text layer -> OCR tier; regex misses the date -> local LLM fallback wins
     monkeypatch.setattr(extractors, "pdf_extract", lambda _c: ("", []))
-    monkeypatch.setattr(extractors, "ocr_text", lambda _c, _m: ("Net Pay 1,842.50", 0.93))
+    monkeypatch.setattr(extractors, "ocr_text", lambda _c, _m, **_kw: ("Net Pay 1,842.50", 0.93))
     monkeypatch.setattr(extractors, "llm_available", lambda: True)
     monkeypatch.setattr(
         extractors,
         "llm_extract",
-        lambda _t: {"paid_on": "2026-11-14", "amount": 1842.5, "source_name": "Acme"},
+        lambda _t, **_kw: {"paid_on": "2026-11-14", "amount": 1842.5, "source_name": "Acme"},
     )
     data = (await _upload(client, "scan.pdf", b"%PDF-1.7 fake")).json()
     [row] = data["rows"]
@@ -715,7 +715,7 @@ async def test_peoplesoft_paystub_tables_known_sources_and_llm_guard(
     monkeypatch.setattr(
         extractors,
         "llm_extract",
-        lambda _t: {
+        lambda _t, **_kw: {
             "source_name": "Sheridan College",
             "paid_on": "2026-09-18",
             "gross": "142.78",
@@ -733,80 +733,151 @@ async def test_peoplesoft_paystub_tables_known_sources_and_llm_guard(
         None,
         None,
     )
+
+
+def test_cheque_preprocessing_dates_written_amount_and_sanity_guards() -> None:
+    from PIL import Image
+
+    from src.paycheques.parsers import check_row, clean_date, parse_written_amount
+    from src.paycheques.schemas import ParsedPaychequeRow
+
+    # Dark countertop background auto-crops; clean white scan stays uncropped
+    dark = Image.new("RGB", (400, 300), (30, 30, 30))
+    dark.paste(Image.new("RGB", (260, 170), (245, 245, 240)), (70, 65))
+    cropped = extractors.preprocess_document_image(dark)
+    assert cropped.mode == "RGB" and cropped.size[0] < 340 and cropped.size[1] < 240
+
+    white = Image.new("RGB", (400, 300), (255, 255, 255))
+    assert extractors.preprocess_document_image(white).size == (400, 300)
+
+    assert clean_date("Nov 20 / 26") == "2026-11-20"
+    assert clean_date("Nov 20/26") == "2026-11-20"
+    assert parse_written_amount("Six hundred eleven 86/100 DOLLARS") == "611.86"
+    assert parse_written_amount("One thousand two hundred fifty and 00/100") == "1250.00"
+
+    # Guard 1: reject numbered-corp ID & zero out gross/tax/deductions/hours in cheque mode
+    corp_row = check_row(
+        ParsedPaychequeRow(
+            source_name="Kung Fu Tea",
+            paid_on="2026-11-20",
+            amount="5024721.00",
+            gross="5024721.00",
+            tax="10.00",
+            deductions="5.00",
+            hours=40.0,
+            document_type="cheque",
+        ),
+        raw_text="5024721 ONTARIO LIMITED\nKUNG FU TEA\nPAY TO THE ORDER OF",
+    )
+    assert corp_row.amount is None and corp_row.gross is None and corp_row.tax is None
+    assert corp_row.deductions is None and corp_row.hours is None and corp_row.confidence <= 0.3
+    assert "Ignored company registration number; enter cheque amount manually" in corp_row.warnings
+
+    # Guard 2: reject cheque number collision
+    chq_row = check_row(
+        ParsedPaychequeRow(
+            source_name="Acme", paid_on="2026-11-20", amount="730.00", document_type="cheque"
+        ),
+        cheque_number="0730",
+    )
+    assert chq_row.amount is None
+    assert "Ignored cheque number; enter cheque amount manually" in chq_row.warnings
+
+    # Guard 3: outlier threshold > $25,000
+    big_row = check_row(
+        ParsedPaychequeRow(source_name="Acme", paid_on="2026-11-20", amount="26000.00")
+    )
+    assert big_row.amount == "26000.00" and big_row.confidence <= 0.35
+    assert "Unusually large amount — verify against source document" in big_row.warnings
 
 
 @pytest.mark.asyncio
-async def test_peoplesoft_paystub_tables_known_sources_and_llm_guard(
+async def test_vision_ocr_cheque_cross_check_and_rapidocr_fallback(
     client: AsyncClient, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    sheridan_ocr = (
-        "Sheridan College   Pay Group: NFT\n"
-        "Pay Begin Date: 08/23/2026\n"
-        "Pay End Date: 09/05/2026\n"
-        "Advice Date: 09/18/2026\n"
-        "TOTAL GROSS CIT TAXABLE GROSS TOTAL TAXES TOTAL DEDUCTIONS NET PAY\n"
-        "Current: 142.78 139.03 2.82 3.75 136.21\n"
-        "YTD: 142.78 139.03 2.82 3.75 136.21\n"
-    )
-    monkeypatch.setattr(extractors, "pdf_extract", lambda _c: (sheridan_ocr, []))
-    res = (await _upload(client, "sheridan.pdf", b"%PDF-1.7 fake")).json()
-    [row] = res["rows"]
-    assert res["parser_used"] == "pdf_text" and not res["used_llm_fallback"]
-    assert (
-        row["source_name"],
-        row["paid_on"],
-        row["gross"],
-        row["tax"],
-        row["deductions"],
-        row["amount"],
-    ) == ("Sheridan College", "2026-09-18", "142.78", "2.82", "3.75", "136.21")
-    assert row["warnings"] == []
+    import httpx
+    from PIL import Image
 
-    # Ruled pdfplumber table with packed Current/YTD cells + known DB source match
-    tables = [
-        [
-            ["", "TOTAL GROSS", "CIT TAXABLE GROSS", "TOTAL TAXES", "TOTAL DEDUCTIONS", "NET PAY"],
-            ["Current:\nYTD:", "142.78\n142.78", "139.03\n139.03", "2.82\n2.82", "3.75\n3.75", "136.21\n136.21"],
-        ]
-    ]
-    monkeypatch.setattr(
-        extractors,
-        "pdf_extract",
-        lambda _c: ("PAY ADVICE\nKung Fu Tea\nAdvice Date: 09/18/2026\n", tables),
-    )
-    res2 = (await _upload(client, "ruled.pdf", b"%PDF-1.7 fake")).json()
-    [row2] = res2["rows"]
-    assert not res2["used_llm_fallback"] and row2["warnings"] == []
-    assert (row2["source_name"], row2["paid_on"], row2["amount"], row2["gross"]) == (
+    buf = io.BytesIO()
+    Image.new("RGB", (200, 100), "white").save(buf, format="PNG")
+    png_bytes = buf.getvalue()
+
+    monkeypatch.setattr(extractors, "vision_available", lambda: True)
+
+    async def _vision_match(_images: list, **_kw: object) -> dict:
+        return {
+            "document_type": "cheque",
+            "source_name": "Kung Fu Tea",
+            "paid_on": "2026-11-20",
+            "numeric_amount": "611.86",
+            "written_amount": "Six hundred eleven 86/100",
+            "cheque_number": "0730",
+        }
+
+    monkeypatch.setattr(extractors, "vision_extract", _vision_match)
+    res1 = (await _upload(client, "cheque.png", png_bytes)).json()
+    [r1] = res1["rows"]
+    assert res1["parser_used"] == "vision" and r1["document_type"] == "cheque"
+    assert (r1["source_name"], r1["paid_on"], r1["amount"], r1["confidence"]) == (
         "Kung Fu Tea",
-        "2026-09-18",
-        "136.21",
-        "142.78",
+        "2026-11-20",
+        "611.86",
+        0.95,
     )
+    assert r1["warnings"] == []
 
-    # LLM math-collapse guard clears copied net pay out of tax/deductions
-    monkeypatch.setattr(extractors, "pdf_extract", lambda _c: ("Unlabeled stub text 2026", []))
-    monkeypatch.setattr(extractors, "llm_available", lambda: True)
-    monkeypatch.setattr(
-        extractors,
-        "llm_extract",
-        lambda _t: {
-            "source_name": "Sheridan College",
-            "paid_on": "2026-09-18",
-            "gross": "142.78",
-            "tax": "136.21",
-            "deductions": "136.21",
-            "amount": "136.21",
-        },
+    async def _vision_mismatch(_images: list, **_kw: object) -> dict:
+        return {
+            "document_type": "cheque",
+            "source_name": "Kung Fu Tea",
+            "paid_on": "2026-11-20",
+            "numeric_amount": "611.86",
+            "written_amount": "618.86",
+        }
+
+    monkeypatch.setattr(extractors, "vision_extract", _vision_mismatch)
+    [r2] = (await _upload(client, "cheque.png", png_bytes)).json()["rows"]
+    assert r2["confidence"] == 0.4 and "disagree" in r2["warnings"][0]
+
+    async def _vision_offline(_images: list, **_kw: object) -> dict:
+        raise httpx.ConnectError("vision server offline")
+
+    monkeypatch.setattr(extractors, "vision_extract", _vision_offline)
+    cheque_ocr = (
+        "5024721 ONTARIO LIMITED\nKUNG FU TEA\n"
+        "PAY TO THE ORDER OF   DATE Nov 20 / 26\n"
+        "Six hundred eleven 86/100 DOLLARS\n"
     )
-    res3 = (await _upload(client, "weird.pdf", b"%PDF-1.7 fake")).json()
-    [row3] = res3["rows"]
-    assert res3["used_llm_fallback"] and row3["warnings"] == []
-    assert (row3["gross"], row3["amount"], row3["tax"], row3["deductions"]) == (
-        "142.78",
-        "136.21",
-        None,
-        None,
+    monkeypatch.setattr(extractors, "ocr_text", lambda _c, _m, **_kw: (cheque_ocr, 0.91))
+    res3 = (await _upload(client, "cheque.png", png_bytes)).json()
+    [r3] = res3["rows"]
+    assert res3["parser_used"] == "ocr" and r3["document_type"] == "cheque"
+    assert (r3["source_name"], r3["paid_on"], r3["amount"]) == (
+        "Kung Fu Tea",
+        "2026-11-20",
+        "611.86",
+    )
+    assert r3["warnings"] == []
+
+
+def test_ocr_runtime_switch() -> None:
+    from src.config import AppConfig
+
+    assert (
+        AppConfig(
+            OCR_RUNTIME="docker", VISION_API_BASE_URL="http://host.docker.internal:11434/v1"
+        ).effective_vision_base_url
+        is None
+    )
+    assert (
+        AppConfig(OCR_RUNTIME="LOCAL").effective_vision_base_url
+        == "http://host.docker.internal:11434/v1"
+    )
+    assert (
+        AppConfig(
+            OCR_RUNTIME="local", VISION_API_BASE_URL="http://localhost:1234/v1"
+        ).effective_vision_base_url
+        == "http://localhost:1234/v1"
     )
 
 

@@ -145,6 +145,7 @@ class ParsedPaychequeRow(CustomModel):
     deductions: str | None = None
     hours: float | None = None
     note: str | None = None
+    document_type: Literal["paystub", "cheque", "tabular"] = "paystub"
     confidence: float = Field(default=1.0, ge=0.0, le=1.0)
     warnings: list[str] = Field(default_factory=list)
 
@@ -152,7 +153,7 @@ class ParsedPaychequeRow(CustomModel):
 class ParseResponse(CustomModel):
     filename: str
     detected_mime: str
-    parser_used: Literal["tabular", "pdf_text", "ocr"]
+    parser_used: Literal["tabular", "pdf_text", "vision", "ocr"]
     used_llm_fallback: bool = False
     rows: list[ParsedPaychequeRow]
     unmapped_columns: list[str] = Field(default_factory=list)
