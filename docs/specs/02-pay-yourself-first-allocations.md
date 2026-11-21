@@ -1,3 +1,9 @@
+---
+status: shipped
+date: 2026-11-08
+commits: [88d4f06]
+---
+
 # AI Agent Implementation Spec: Feature 2 — "Pay Yourself First" Allocation Engine (`allocations`)
 
 > **Target System**: Payday — Salary & Income Management App

@@ -1,3 +1,9 @@
+---
+status: shipped
+date: 2026-11-08
+commits: [439398a, f360a1f]
+---
+
 # AI Agent Implementation Spec: Feature 1 — Gross-to-Net & Tax Intelligence (`paystub-breakdown`)
 
 > **Target System**: Payday — Salary & Income Management App  

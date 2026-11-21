@@ -1,4 +1,10 @@
-# AI Agent Implementation Spec: Feature 4 — Idempotent Bulk CSV / Paystub Importer (`paystub-import`)
+---
+status: shipped
+date: 2026-11-08
+commits: [f7d4f27]
+---
+
+# AI Agent Implementation Spec: Feature 3 — Idempotent Bulk CSV / Paystub Importer (`paystub-import`)
 
 > **Target System**: Payday — Salary & Income Management App
 >

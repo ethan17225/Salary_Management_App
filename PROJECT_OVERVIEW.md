@@ -214,10 +214,9 @@ Salary_Management_App/
 │       ├── lib/                        # Allocation engine, tax intelligence, DB client, utils
 │       ├── styles/globals.css          # Tailwind v4 theme tokens, base & component layers
 │       └── types/payday.ts             # Shared domain TypeScript interfaces
-├── features/                           # Feature specifications
-├── improvement-plan/                   # Master UI/UX improvement blueprint
-├── refactor/                           # UX pain-point analyses
-├── ui-audit/                           # UI craft & accessibility audit findings
+├── docs/                               # Specs, active plans, solutions, decisions & archived audits
+├── AGENTS.md                           # AI agent instructions & invariants
+├── CONCEPTS.md                         # Shared domain vocabulary
 ├── docker-compose.yml                  # Multi-container orchestration
 ├── PROJECT_OVERVIEW.md                 # Architecture & feature overview
 └── README.md                           # Quick start & reference

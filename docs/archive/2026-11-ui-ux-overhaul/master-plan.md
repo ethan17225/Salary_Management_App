@@ -1,3 +1,9 @@
+---
+status: shipped
+date: 2026-11-19
+commits: [f7d4f27]
+---
+
 # Master UI/UX, Accessibility & Feature Improvement Plan (Ponytail Edition)
 
 - **Date**: 2026-11-19
@@ -112,7 +118,7 @@
 - **3-Step First-Run Onboarding (`overview-dashboard.tsx`, `latest-paycheques-list.tsx`)**:
   - When `paycheques.length === 0` (every new user in a multi-user deployment), replace blank KPI boxes and 3 empty charts with a focused **Get Started in 3 Steps** `.card`: (1) Add an income source (checked once `sources.length > 0`) → (2) Log first paycheque or Import CSV (`/paycheques`) → (3) Set a yearly goal or allocation preset (`/allocations`).
   - Hide `"Press N"` on touch devices via `hidden [@media(pointer:fine)]:inline`.
-- **Goal Pace Lines (`overview-charts.tsx`, `overview-dashboard.tsx`, `features/feature_4`)**:
+- **Goal Pace Lines (`overview-charts.tsx`, `overview-dashboard.tsx`, `docs/specs/04-goal-pace-chart-overlays.md`)**:
   - When `!isAll && goal > 0`, add 1 dashed line dataset (`goal / 1200`) to `MonthlyIncomeChart` (excluded from stacked bar tooltip footer) and 1 dashed pace line (`goal * (m + 1) / 1200`) to `CumulativeIncomeChart`.
   - Add 1 inline `▲ ahead / ▼ behind pace` line in the Yearly Goal card (`goalSum - Math.round((goal * daysDone) / daysInYr)`).
 
@@ -122,14 +128,14 @@
 
 | Original Spec Item | Disposition | Replaced By / Add When |
 | :--- | :--- | :--- |
-| `color-swatch-picker.tsx` ([ui-audit/06](../ui-audit/06-unified-color-swatch-picker-and-touch-sizing.md)) | **Cut** | Native `<input type="color">` in both dialogs; add `<datalist>` or custom picker if curated preset clicks are requested. |
-| Custom `YearDropdown` ARIA keyboard logic ([ui-audit/03](../ui-audit/03-year-dropdown-keyboard-navigation-and-focus.md)) | **Replaced** | Native `<select>` + deleted `use-outside-click.ts`; restore custom popover only if rich multi-column rows are required. |
-| `PaydayChecklistDialog` + `localStorage` checkboxes ([refactor/02](../refactor/02-actionable-payday-transfer-checklist.md)) | **Cut** | 1-click `Copy` buttons in `PaychequeLedger` split + post-save toast summary (browser-only `localStorage` also does not sync across multi-user devices); add DB-backed transfer tracking only if needed. |
-| 2-mode `PaychequeDialog` field reorder & inline 0-source subform ([refactor/01](../refactor/01-paystub-entry-and-smart-dialog.md), [refactor/07](../refactor/07-first-run-onboarding-and-mobile-navigation.md)) | **Simplified** | Existing collapsible drawer with auto-net sync + existing `+ New source` callback. |
-| Fixed mobile bottom tab bar + custom icons ([refactor/07](../refactor/07-first-run-onboarding-and-mobile-navigation.md)) | **Replaced** | 3-line CSS horizontal-scroll nav pills on `< md`; add bottom bar if mobile usage dominates. |
-| `Allocations` inline `Rebalance` mode, `PUT /api/allocations/rebalance`, preset `<dialog>` + snapshot Undo, simulator reserve selector ([refactor/06](../refactor/06-interactive-allocation-rebalancing-and-safety.md)) | **Cut** | 1-line `window.confirm()` guards preset overwrite; add atomic batch rebalance endpoint if juggling 5+ buckets at 100% becomes routine. |
-| 3-step client-side CSV parser & column-mapping wizard ([feature_5](../features/feature_5_filtered_csv_export_and_import_ui_wizard.md)) | **Simplified** | Compact `<dialog>` file upload straight to Python stdlib `csv.DictReader` + `hashlib.sha256` (`POST /api/paycheques/import`); add column mapper UI when arbitrary third-party bank CSV schemas are needed. |
-| Untouched-file cosmetic sweeps (`rounded` on untouched cards, placeholder `…`, `~` vs `≈`) ([ui-audit/07](../ui-audit/07-concentric-border-radii-on-nested-surfaces.md), [ui-audit/10](../ui-audit/10-form-attributes-typography-and-placeholder-standards.md)) | **Cut** | Fix radii/attributes only in files already edited. |
+| `color-swatch-picker.tsx` ([ui-audit/06](./ui-audit/06-unified-color-swatch-picker-and-touch-sizing.md)) | **Cut** | Native `<input type="color">` in both dialogs; add `<datalist>` or custom picker if curated preset clicks are requested. |
+| Custom `YearDropdown` ARIA keyboard logic ([ui-audit/03](./ui-audit/03-year-dropdown-keyboard-navigation-and-focus.md)) | **Replaced** | Native `<select>` + deleted `use-outside-click.ts`; restore custom popover only if rich multi-column rows are required. |
+| `PaydayChecklistDialog` + `localStorage` checkboxes ([refactor/02](./refactor/02-actionable-payday-transfer-checklist.md)) | **Cut** | 1-click `Copy` buttons in `PaychequeLedger` split + post-save toast summary (browser-only `localStorage` also does not sync across multi-user devices); add DB-backed transfer tracking only if needed. |
+| 2-mode `PaychequeDialog` field reorder & inline 0-source subform ([refactor/01](./refactor/01-paystub-entry-and-smart-dialog.md), [refactor/07](./refactor/07-first-run-onboarding-and-mobile-navigation.md)) | **Simplified** | Existing collapsible drawer with auto-net sync + existing `+ New source` callback. |
+| Fixed mobile bottom tab bar + custom icons ([refactor/07](./refactor/07-first-run-onboarding-and-mobile-navigation.md)) | **Replaced** | 3-line CSS horizontal-scroll nav pills on `< md`; add bottom bar if mobile usage dominates. |
+| `Allocations` inline `Rebalance` mode, `PUT /api/allocations/rebalance`, preset `<dialog>` + snapshot Undo, simulator reserve selector ([refactor/06](./refactor/06-interactive-allocation-rebalancing-and-safety.md)) | **Cut** | 1-line `window.confirm()` guards preset overwrite; add atomic batch rebalance endpoint if juggling 5+ buckets at 100% becomes routine. |
+| 3-step client-side CSV parser & column-mapping wizard ([feature_5](../../specs/05-filtered-csv-export-and-import-ui.md)) | **Simplified** | Compact `<dialog>` file upload straight to Python stdlib `csv.DictReader` + `hashlib.sha256` (`POST /api/paycheques/import`); add column mapper UI when arbitrary third-party bank CSV schemas are needed. |
+| Untouched-file cosmetic sweeps (`rounded` on untouched cards, placeholder `…`, `~` vs `≈`) ([ui-audit/07](./ui-audit/07-concentric-border-radii-on-nested-surfaces.md), [ui-audit/10](./ui-audit/10-form-attributes-typography-and-placeholder-standards.md)) | **Cut** | Fix radii/attributes only in files already edited. |
 
 ---
 

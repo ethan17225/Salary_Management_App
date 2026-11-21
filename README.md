@@ -149,10 +149,9 @@ Salary_Management_App/
 │       ├── features/            # Feature-sliced UI, actions, schemas, services
 │       ├── lib/                 # Allocation engine, tax intelligence, DB & env helpers
 │       └── styles/              # Tailwind CSS v4 design tokens & utility layers
-├── features/                    # Feature specifications
-├── improvement-plan/            # Master UI/UX improvement blueprint
-├── refactor/                    # UX pain-point analyses
-├── ui-audit/                    # UI craft & accessibility audit findings
+├── docs/                        # Specs, active plans, solutions, decisions & archived audits
+├── AGENTS.md                    # AI agent instructions & invariants
+├── CONCEPTS.md                  # Shared domain vocabulary
 ├── docker-compose.yml           # Multi-container orchestration
 ├── PROJECT_OVERVIEW.md          # Detailed architecture & feature documentation
 └── README.md                    # Project quick start & reference

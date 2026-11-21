@@ -1,8 +1,14 @@
+---
+status: shipped
+date: 2026-11-19
+commits: [f7d4f27]
+---
+
 # Feature 5 — CSV Import UI Wizard & Filtered CSV Export
 
 - **Date**: 2026-11-19
 - **Title**: Drag-and-Drop CSV Import Wizard & Query-Filtered CSV Export
-- **Status**: Planned Feature (Wishlist Item 6, Frontend Complement to `feature_3_idempotent_bulk_csv_paystub_importer_spec.md`)
+- **Status**: Shipped (commit `f7d4f27`, frontend complement to `03-bulk-csv-paystub-importer.md`)
 - **Primary Targets**:
   - `frontend/src/features/paycheques/components/paycheques-view.tsx`
   - `frontend/src/features/paycheques/components/paycheque-ledger.tsx`
@@ -14,7 +20,7 @@
 
 ## Description
 
-While `features/feature_3_idempotent_bulk_csv_paystub_importer_spec.md` outlines the backend SHA-256 deduplicated batch importer, the frontend currently has no CSV import user interface, and the existing `Export to CSV` button ignores active ledger filters—always exporting the entire database. Adding a guided drag-and-drop CSV import modal alongside filtered CSV export turns `/paycheques` into a complete bidirectional ledger for tax time, spreadsheet backups, and historical onboarding.
+While `docs/specs/03-bulk-csv-paystub-importer.md` outlines the backend SHA-256 deduplicated batch importer, the frontend currently has no CSV import user interface, and the existing `Export to CSV` button ignores active ledger filters—always exporting the entire database. Adding a guided drag-and-drop CSV import modal alongside filtered CSV export turns `/paycheques` into a complete bidirectional ledger for tax time, spreadsheet backups, and historical onboarding.
 
 ---
 
@@ -54,7 +60,7 @@ async def export_paycheques_csv(db: DBDep) -> Response:
    - When filters are active, display `"Export filtered CSV (X)"` linking to `/api/export.csv?year=...&source_id=...&q=...` (plus a quick link or option to export all if desired).
 
 ### Solution 2: 3-Step CSV Import Modal (`CsvImportDialog`)
-Add an **`Import CSV`** button beside `Export to CSV` in `paycheques-view.tsx` opening a native `<dialog>` wizard implementing the frontend side of `feature_3_idempotent_bulk_csv_paystub_importer_spec.md`:
+Add an **`Import CSV`** button beside `Export to CSV` in `paycheques-view.tsx` opening a native `<dialog>` wizard implementing the frontend side of `03-bulk-csv-paystub-importer.md`:
 1. **Step 1 — File Drop / Paste & Template Download**:
    - Accessible file picker + drag-and-drop dropzone accepting `.csv` files (plus a `"Download sample CSV template"` link matching `/api/export.csv` headers).
    - Client-side RFC-4180 CSV parser handling quoted fields, BOM stripping, and `$` / `,` numeric cleanup into integer cents.

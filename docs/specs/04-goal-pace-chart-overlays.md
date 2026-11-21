@@ -1,8 +1,14 @@
+---
+status: shipped
+date: 2026-11-19
+commits: [f7d4f27]
+---
+
 # Feature 4 — Goal Pace Target Line on Charts & Pacing Projections
 
 - **Date**: 2026-11-19
 - **Title**: Annual Goal Target Pace Lines & Ahead/Behind Delta Indicators on Overview Charts
-- **Status**: Planned Feature (Wishlist Item 5)
+- **Status**: Shipped (commit `f7d4f27`; originally Wishlist Item 5)
 - **Primary Targets**:
   - `frontend/src/features/overview/components/overview-charts.tsx`
   - `frontend/src/features/overview/components/overview-dashboard.tsx`

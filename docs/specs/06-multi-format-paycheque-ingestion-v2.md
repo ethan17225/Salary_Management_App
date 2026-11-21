@@ -1,3 +1,9 @@
+---
+status: shipped
+date: 2026-11-20
+commits: [4cf53e5, bd840d3, b832904, a85a790]
+---
+
 # Superior Import — Dynamic Multi-Format Paycheque Ingestion Specification
 
 > **Target Project:** Payday (Salary & Income Management App)

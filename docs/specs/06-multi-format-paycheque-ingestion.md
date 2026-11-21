@@ -1,3 +1,10 @@
+---
+status: superseded
+date: 2026-11-20
+commits: [1060caa, b9f12af]
+superseded_by: docs/specs/06-multi-format-paycheque-ingestion-v2.md
+---
+
 # Feature 6 — Superior Multi-Format Paycheque Ingestion Specification
 
 - **Date:** 2026-11-20

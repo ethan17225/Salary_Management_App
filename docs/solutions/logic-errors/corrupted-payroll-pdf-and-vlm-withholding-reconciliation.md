@@ -80,5 +80,5 @@ ded_sum = sum(c for _, c in parsed_items) - tax_sum
 - Maintain `test_corrupted_adp_pdf_escalates_to_vision_and_reconciles_withholdings` in `backend/test_app.py` to guard both local Vision escalation + withholding reconciliation and Docker-mode CID-to-RapidOCR fallback.
 
 ## Related Issues
-- `features/superiror_import_specification_v2.md` (vision preprocessing and hybrid ingestion design).
+- `docs/specs/06-multi-format-paycheque-ingestion-v2.md` (vision preprocessing and hybrid ingestion design).
 - GitHub issue search skipped (`gh` CLI not installed in this environment); no prior docs existed under `docs/solutions/`.
