@@ -6,6 +6,7 @@ import csv
 import io
 import logging
 import re
+import time
 from collections.abc import Sequence
 from datetime import datetime
 from pathlib import Path
@@ -18,6 +19,12 @@ from src.exceptions import AppError, BadRequestError
 from src.paycheques import extractors
 from src.paycheques.constants import MAX_HOURS, MAX_NOTE_LENGTH
 from src.paycheques.exceptions import UnsupportedFileType
+from src.paycheques.import_logs import (
+    MAX_STORED_ROWS,
+    MAX_STORED_TABLES,
+    PipelineTrace,
+    truncate_text,
+)
 from src.paycheques.schemas import ParsedPaychequeRow, ParseResponse
 from src.paycheques.utils import parse_cents, validate_paystub_breakdown
 from src.sources.constants import MAX_SOURCE_NAME_LENGTH
@@ -370,6 +377,17 @@ _PAID_ON_NEXTLINE_RE = re.compile(rf"(?:{_PAID_ON_LABELS})\s*:?\s*\n\s*{_DATE}",
 _CHEQUE_DATE_RE = re.compile(rf"\bdate\b[^\dA-Za-z\n]*{_DATE}", re.I)
 _CHEQUE_DATE_NEXTLINE_RE = re.compile(rf"\bdate\b\s*:?\s*\n\s*{_DATE}", re.I)
 _DIST_TOTAL_RE = re.compile(rf"net\s+pay\s+distribution[\s\S]{{0,200}}?total\s*:?\s*{_MONEY}", re.I)
+_CID_GARBAGE_RE = re.compile(r"\(cid:\d+\)")
+_BROKEN_MONEY_RE = re.compile(r"\$\s*\d[\d\s]+\d{2}\b")
+_STATUTORY_TAX_RE = re.compile(
+    r"\b(?:tax(?:es)?|cpp|qpp|ei|e\.i\.|c\.p\.p\.|fica|medicare|oasdi"
+    r"|social\s+security|withholding|cit)\b",
+    re.I,
+)
+_IGNORED_WITHHOLDING_RE = re.compile(
+    r"\b(?:deposit|net\s+pay|net\s+cheque|net\s+check|employer\s+paid|wsib)\b",
+    re.I,
+)
 
 _PERIOD_ROW_RE = re.compile(r"^(?:current|this\s+period|period)\b", re.I)
 _YTD_ROW_RE = re.compile(r"^(?:ytd|year\s+to\s+date)\b", re.I)
@@ -587,7 +605,60 @@ def _row_from_fields(
     )
 
 
-def _row_from_vision(data: dict, filename: str, known_sources: Sequence[str]) -> ParsedPaychequeRow:
+def _reconcile_vision_withholdings(
+    data: dict,
+    gross: str | None,
+    amount: str | None,
+    tax: str | None,
+    deductions: str | None,
+) -> tuple[str | None, str | None]:
+    def cents(value: str | None) -> int | None:
+        return parse_cents(value, "Amount", required=False, allow_zero=True)
+
+    gross_c, net_c, tax_c, ded_c = cents(gross), cents(amount), cents(tax), cents(deductions)
+    if gross_c is None or net_c is None or gross_c < net_c:
+        return tax, deductions
+
+    expected = gross_c - net_c
+    if (tax_c is not None or ded_c is not None) and abs(
+        (tax_c or 0) + (ded_c or 0) - expected
+    ) <= 1:
+        return tax, deductions
+
+    raw_items = data.get("withholdings")
+    if isinstance(raw_items, list):
+        parsed_items: list[tuple[str, int]] = []
+        for item in raw_items:
+            if not isinstance(item, dict):
+                continue
+            label = _clean_text(item.get("label")) or ""
+            if _IGNORED_WITHHOLDING_RE.search(label):
+                continue
+            amt_c = cents(clean_money(item.get("amount")))
+            if amt_c is not None and 0 < amt_c <= expected:
+                parsed_items.append((label, amt_c))
+        if parsed_items and abs(sum(c for _, c in parsed_items) - expected) <= 1:
+            tax_sum = sum(c for lbl, c in parsed_items if _STATUTORY_TAX_RE.search(lbl))
+            ded_sum = sum(c for _, c in parsed_items) - tax_sum
+            return (
+                f"{tax_sum // 100}.{tax_sum % 100:02d}",
+                f"{ded_sum // 100}.{ded_sum % 100:02d}",
+            )
+
+    if tax_c is not None and ded_c is not None and (tax_c + ded_c) > expected:
+        if 0 <= tax_c <= expected < ded_c:
+            return tax, None
+        if 0 <= ded_c <= expected < tax_c:
+            return None, deductions
+    return tax, deductions
+
+
+def _row_from_vision(
+    data: dict,
+    filename: str,
+    known_sources: Sequence[str],
+    trace: PipelineTrace | None = None,
+) -> ParsedPaychequeRow:
     numeric_amt = clean_money(data.get("numeric_amount") or data.get("amount"))
     raw_written = data.get("written_amount")
     if isinstance(raw_written, (int, float)) or (
@@ -622,35 +693,57 @@ def _row_from_vision(data: dict, filename: str, known_sources: Sequence[str]) ->
     else:
         amount = numeric_amt
 
+    gross_val = None if doc_type == "cheque" else clean_money(data.get("gross"))
+    raw_tax_val = None if doc_type == "cheque" else clean_money(data.get("tax"))
+    raw_ded_val = None if doc_type == "cheque" else clean_money(data.get("deductions"))
+    tax_val, ded_val = raw_tax_val, raw_ded_val
+    if doc_type == "paystub":
+        tax_val, ded_val = _reconcile_vision_withholdings(
+            data, gross_val, amount, raw_tax_val, raw_ded_val
+        )
+        if trace is not None:
+            raw_wh = data.get("withholdings")
+            trace.record(
+                "reconcile_withholdings",
+                {
+                    "before": {"tax": raw_tax_val, "deductions": raw_ded_val},
+                    "after": {"tax": tax_val, "deductions": ded_val},
+                    "withholdings_count": len(raw_wh) if isinstance(raw_wh, list) else 0,
+                },
+            )
+
     row = ParsedPaychequeRow(
         source_name=_match_known_source(data.get("source_name"), known_sources),
         paid_on=clean_date(data.get("paid_on")),
         amount=amount,
-        gross=None if doc_type == "cheque" else clean_money(data.get("gross")),
-        tax=None if doc_type == "cheque" else clean_money(data.get("tax")),
-        deductions=None if doc_type == "cheque" else clean_money(data.get("deductions")),
+        gross=gross_val,
+        tax=tax_val,
+        deductions=ded_val,
         hours=None if doc_type == "cheque" else clean_hours(data.get("hours")),
         note=f"Scanned from {filename}"[:MAX_NOTE_LENGTH],
         document_type=doc_type,
         confidence=confidence,
         warnings=warnings,
     )
-    return check_row(
+    checked_row = check_row(
         row,
         raw_text=" ".join(str(v) for v in data.values() if v is not None),
         cheque_number=str(data.get("cheque_number") or "") or None,
     )
+    if trace is not None:
+        trace.record("vision_row", {"row": checked_row.model_dump()})
+    return checked_row
 
 
-async def row_from_text(
+def _deterministic_text_row(
     text: str,
     filename: str,
     confidence: float,
     tables: Sequence[Sequence[Sequence[str | None]]] = (),
     known_sources: Sequence[str] = (),
-) -> tuple[ParsedPaychequeRow, bool]:
-    """Returns (row, used_llm). Runs deterministic rules first and only calls the local LLM
-    when warnings remain."""
+    trace: PipelineTrace | None = None,
+) -> tuple[ParsedPaychequeRow, dict[str, object], Literal["paystub", "cheque"], str]:
+    t0 = time.monotonic()
     cheque_mode = is_cheque_text(text)
     doc_type: Literal["paystub", "cheque"] = "cheque" if cheque_mode else "paystub"
     note = f"Imported from {filename}"[:MAX_NOTE_LENGTH]
@@ -680,9 +773,34 @@ async def row_from_text(
         found["source_name"] = source
 
     row = _row_from_fields(found, note, confidence, document_type=doc_type, raw_text=text)
+    if trace is not None:
+        trace.record(
+            "deterministic_text",
+            {
+                "document_type": doc_type,
+                "found_fields": found,
+                "row": row.model_dump(),
+                "warnings": list(row.warnings),
+            },
+            duration_ms=int((time.monotonic() - t0) * 1000),
+        )
+    return row, found, doc_type, note
+
+
+async def _llm_fallback_for_text(
+    row: ParsedPaychequeRow,
+    found: dict[str, object],
+    doc_type: Literal["paystub", "cheque"],
+    note: str,
+    text: str,
+    confidence: float,
+    trace: PipelineTrace | None = None,
+) -> tuple[ParsedPaychequeRow, bool]:
     if not row.warnings or not text.strip() or not extractors.llm_available():
         return row, False
 
+    t0 = time.monotonic()
+    cheque_mode = doc_type == "cheque"
     llm_raw = await asyncio.to_thread(extractors.llm_extract, text, cheque_mode=cheque_mode)
     llm_fields = _sanitize_llm_fields(llm_raw)
     llm_conf = min(confidence, 0.75)
@@ -707,60 +825,238 @@ async def row_from_text(
         )
         return (len(r.warnings), not r.paid_on, not r.amount, -filled)
 
-    return min(candidates, key=rank)
+    chosen = min(candidates, key=rank)
+    if trace is not None:
+        trace.record(
+            "llm_extract",
+            {
+                "cheque_mode": cheque_mode,
+                "raw_fields": llm_raw,
+                "sanitized_fields": llm_fields,
+                "chosen_used_llm": chosen[1],
+                "chosen_row": chosen[0].model_dump(),
+            },
+            duration_ms=int((time.monotonic() - t0) * 1000),
+        )
+    return chosen
+
+
+async def row_from_text(
+    text: str,
+    filename: str,
+    confidence: float,
+    tables: Sequence[Sequence[Sequence[str | None]]] = (),
+    known_sources: Sequence[str] = (),
+    trace: PipelineTrace | None = None,
+) -> tuple[ParsedPaychequeRow, bool]:
+    """Returns (row, used_llm). Runs deterministic rules first and only calls the local LLM
+    when warnings remain."""
+    row, found, doc_type, note = _deterministic_text_row(
+        text, filename, confidence, tables=tables, known_sources=known_sources, trace=trace
+    )
+    return await _llm_fallback_for_text(row, found, doc_type, note, text, confidence, trace=trace)
 
 
 # --- Entry point -------------------------------------------------------------------------
 
 
+async def _try_vision_parse(
+    content: bytes,
+    mime: str,
+    filename: str,
+    known_sources: Sequence[str],
+    meta: dict[str, str],
+    trace: PipelineTrace | None = None,
+) -> tuple[ParseResponse | None, list | None]:
+    if not extractors.vision_available():
+        return None, None
+
+    t0 = time.monotonic()
+    try:
+        images = await asyncio.to_thread(extractors.prepare_images, content, mime)
+    except ModuleNotFoundError:
+        raise
+    except Exception as exc:
+        if trace is not None:
+            trace.record(
+                "prepare_images",
+                {"error": str(exc)},
+                status="error",
+                duration_ms=int((time.monotonic() - t0) * 1000),
+            )
+        log.warning("Image preparation failed for %s; falling back", filename, exc_info=True)
+        return None, None
+    if trace is not None:
+        trace.record(
+            "prepare_images",
+            {"page_count": len(images), "sizes": [list(img.size) for img in images]},
+            duration_ms=int((time.monotonic() - t0) * 1000),
+        )
+
+    t_vis = time.monotonic()
+    got_vision = False
+    try:
+        vision_data = await extractors.vision_extract(images, known_sources=known_sources)
+        got_vision = True
+        if trace is not None:
+            trace.record(
+                "vision_extract",
+                {"model": settings.VISION_MODEL_NAME, "raw_output": vision_data},
+                duration_ms=int((time.monotonic() - t_vis) * 1000),
+            )
+        row = _row_from_vision(vision_data, filename, known_sources, trace=trace)
+        return (
+            ParseResponse(**meta, parser_used="vision", used_llm_fallback=False, rows=[row]),
+            images,
+        )
+    except Exception as exc:
+        if trace is not None:
+            trace.record(
+                "vision_row" if got_vision else "vision_extract",
+                {"model": settings.VISION_MODEL_NAME, "error": str(exc)},
+                status="error",
+                duration_ms=int((time.monotonic() - t_vis) * 1000),
+            )
+        log.warning("Vision OCR failed for %s; falling back to RapidOCR", filename, exc_info=True)
+        return None, images
+
+
 async def parse_upload(
-    content: bytes, filename: str, known_sources: Sequence[str] = ()
+    content: bytes,
+    filename: str,
+    known_sources: Sequence[str] = (),
+    trace: PipelineTrace | None = None,
 ) -> ParseResponse:
     mime = detect_mime(content, filename)
     if mime not in {CSV, TSV, XLSX, PDF, *IMAGES}:
         raise UnsupportedFileType()
+    if trace is not None:
+        trace.record("detect_mime", {"detected_mime": mime, "file_size_bytes": len(content)})
     meta = {"filename": filename, "detected_mime": mime}
     try:
         if mime in {CSV, TSV, XLSX}:
+            t0 = time.monotonic()
             rows, unmapped = await asyncio.to_thread(parse_table, content, mime)
+            if trace is not None:
+                trace.record(
+                    "parse_table",
+                    {
+                        "row_count": len(rows),
+                        "unmapped_columns": unmapped,
+                        "sample_rows": [r.model_dump() for r in rows[:MAX_STORED_ROWS]],
+                    },
+                    duration_ms=int((time.monotonic() - t0) * 1000),
+                )
             return ParseResponse(
                 **meta, parser_used="tabular", rows=rows, unmapped_columns=unmapped
             )
 
-        text, tables, parser, confidence = "", [], "ocr", 0.5
+        images = None
         if mime == PDF:
-            text, tables = await asyncio.to_thread(extractors.pdf_extract, content)
-            parser, confidence = "pdf_text", 0.9
-        if len(text) < 20:  # scanned PDF or photo -> optional Vision OCR -> RapidOCR fallback
-            images = (
-                await asyncio.to_thread(extractors.prepare_images, content, mime)
-                if extractors.vision_available()
-                else None
-            )
-            if images is not None:
-                try:
-                    vision_data = await extractors.vision_extract(
-                        images, known_sources=known_sources
-                    )
-                    row = _row_from_vision(vision_data, filename, known_sources)
+            t0 = time.monotonic()
+            raw_text, tables = await asyncio.to_thread(extractors.pdf_extract, content)
+            has_cid_garbage = "(cid:" in raw_text
+            text = _CID_GARBAGE_RE.sub("", raw_text).strip()
+            if trace is not None:
+                trace.record(
+                    "pdf_extract",
+                    {
+                        "raw_text_len": len(raw_text),
+                        "clean_text_len": len(text),
+                        "has_cid_garbage": has_cid_garbage,
+                        "tables_count": len(tables),
+                        "text_preview": truncate_text(text),
+                        "tables_preview": tables[:MAX_STORED_TABLES],
+                    },
+                    duration_ms=int((time.monotonic() - t0) * 1000),
+                )
+            if len(text) >= 20:
+                det_row, found, doc_type, note = _deterministic_text_row(
+                    text,
+                    filename,
+                    0.9,
+                    tables=tables,
+                    known_sources=known_sources,
+                    trace=trace,
+                )
+                if not det_row.warnings:
                     return ParseResponse(
-                        **meta, parser_used="vision", used_llm_fallback=False, rows=[row]
+                        **meta, parser_used="pdf_text", used_llm_fallback=False, rows=[det_row]
                     )
-                except Exception:
-                    log.warning(
-                        "Vision OCR failed for %s; falling back to RapidOCR",
-                        filename,
-                        exc_info=True,
-                    )
-            text, ocr_score = await asyncio.to_thread(
-                extractors.ocr_text, content, mime, images=images
-            )
-            tables = []
-            parser, confidence = "ocr", min(ocr_score, 0.85) or 0.5
-        row, used_llm = await row_from_text(
-            text, filename, confidence, tables=tables, known_sources=known_sources
+
+                vision_resp, images = await _try_vision_parse(
+                    content, mime, filename, known_sources, meta, trace=trace
+                )
+                if vision_resp is not None:
+                    return vision_resp
+
+                if has_cid_garbage or (not det_row.amount and bool(_BROKEN_MONEY_RE.search(text))):
+                    t_ocr = time.monotonic()
+                    try:
+                        ocr_txt, ocr_score = await asyncio.to_thread(
+                            extractors.ocr_text, content, mime, images=images
+                        )
+                        if trace is not None:
+                            trace.record(
+                                "ocr_text",
+                                {
+                                    "score": round(ocr_score, 4),
+                                    "text_len": len(ocr_txt),
+                                    "text_preview": truncate_text(ocr_txt),
+                                },
+                                duration_ms=int((time.monotonic() - t_ocr) * 1000),
+                            )
+                    except Exception as exc:
+                        if trace is not None:
+                            trace.record(
+                                "ocr_text",
+                                {"error": str(exc)},
+                                status="error",
+                                duration_ms=int((time.monotonic() - t_ocr) * 1000),
+                            )
+                        log.warning("RapidOCR escalation failed for %s", filename, exc_info=True)
+                        ocr_txt = ""
+                    if ocr_txt.strip():
+                        row, used_llm = await row_from_text(
+                            ocr_txt,
+                            filename,
+                            min(ocr_score, 0.85) or 0.5,
+                            known_sources=known_sources,
+                            trace=trace,
+                        )
+                        return ParseResponse(
+                            **meta, parser_used="ocr", used_llm_fallback=used_llm, rows=[row]
+                        )
+
+                row, used_llm = await _llm_fallback_for_text(
+                    det_row, found, doc_type, note, text, 0.9, trace=trace
+                )
+                return ParseResponse(
+                    **meta, parser_used="pdf_text", used_llm_fallback=used_llm, rows=[row]
+                )
+
+        vision_resp, images = await _try_vision_parse(
+            content, mime, filename, known_sources, meta, trace=trace
         )
-        return ParseResponse(**meta, parser_used=parser, used_llm_fallback=used_llm, rows=[row])
+        if vision_resp is not None:
+            return vision_resp
+
+        t_ocr = time.monotonic()
+        text, ocr_score = await asyncio.to_thread(extractors.ocr_text, content, mime, images=images)
+        if trace is not None:
+            trace.record(
+                "ocr_text",
+                {
+                    "score": round(ocr_score, 4),
+                    "text_len": len(text),
+                    "text_preview": truncate_text(text),
+                },
+                duration_ms=int((time.monotonic() - t_ocr) * 1000),
+            )
+        row, used_llm = await row_from_text(
+            text, filename, min(ocr_score, 0.85) or 0.5, known_sources=known_sources, trace=trace
+        )
+        return ParseResponse(**meta, parser_used="ocr", used_llm_fallback=used_llm, rows=[row])
     except AppError:
         raise
     except ModuleNotFoundError as exc:

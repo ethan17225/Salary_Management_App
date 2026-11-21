@@ -131,6 +131,7 @@ class PaychequeImportPayload(CustomModel):
     csv_text: str | None = None
     rows: list[dict[str, Any]] | None = None
     auto_create_sources: bool = True
+    parse_log_id: int | None = None
 
 
 class ParsedPaychequeRow(CustomModel):
@@ -157,6 +158,7 @@ class ParseResponse(CustomModel):
     used_llm_fallback: bool = False
     rows: list[ParsedPaychequeRow]
     unmapped_columns: list[str] = Field(default_factory=list)
+    parse_log_id: int | None = None
 
 
 class PaychequeImportResponse(CustomModel):
@@ -166,3 +168,30 @@ class PaychequeImportResponse(CustomModel):
     created_sources: int
     error_count: int
     errors: list[dict[str, Any]]
+
+
+class ImportPipelineLogSummary(CustomModel):
+    id: int
+    created_at: str
+    stage: Literal["parse", "import"]
+    status: Literal["ok", "error"]
+    parse_log_id: int | None = None
+    filename: str | None = None
+    file_size_bytes: int | None = None
+    file_sha256: str | None = None
+    detected_mime: str | None = None
+    ocr_runtime: str | None = None
+    vision_model: str | None = None
+    parser_used: Literal["tabular", "pdf_text", "vision", "ocr"] | None = None
+    used_llm_fallback: bool = False
+    duration_ms: int
+    row_count: int
+    warning_count: int
+    error_message: str | None = None
+    step_names: list[str] = Field(default_factory=list)
+
+
+class ImportPipelineLogDetail(ImportPipelineLogSummary):
+    steps: list[dict[str, Any]] = Field(default_factory=list)
+    response: dict[str, Any] | None = None
+    linked_import_ids: list[int] = Field(default_factory=list)

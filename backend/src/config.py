@@ -16,7 +16,7 @@ class AppConfig(BaseSettings):
     # Switch: "local" uses host Vision AI (Ollama Metal GPU); "docker" stays inside container
     OCR_RUNTIME: Literal["docker", "local"] = "docker"
     VISION_API_BASE_URL: str | None = None
-    VISION_MODEL_NAME: str = "qwen3-vl:8b-instruct"
+    VISION_MODEL_NAME: str = "qwen3-vl:4b-instruct"
     VISION_API_KEY: str = "ollama"
     VISION_TIMEOUT_SECONDS: float = 45.0
 

@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import (
 
 from src.config import settings
 from src.models import Base
-from src.paycheques.models import Paycheque
+from src.paycheques.models import ImportPipelineLog, Paycheque  # noqa: F401
 from src.paycheques.utils import parse_cents
 from src.settings.models import Setting  # noqa: F401
 from src.sources.models import Source
@@ -144,9 +144,7 @@ def _exec_sql(conn: Any, sql: str) -> Any:
 
 def ensure_schema_migrations(conn: Any) -> None:
     """Idempotently adds Gross-to-Net and Tax Intelligence columns to existing databases."""
-    source_cols = {
-        row[1] for row in _exec_sql(conn, "PRAGMA table_info(sources)").fetchall()
-    }
+    source_cols = {row[1] for row in _exec_sql(conn, "PRAGMA table_info(sources)").fetchall()}
     if "is_tax_withheld" not in source_cols:
         _exec_sql(
             conn,
@@ -167,9 +165,7 @@ def ensure_schema_migrations(conn: Any) -> None:
             "('auto', 'weekly', 'biweekly', 'semimonthly', 'monthly', 'irregular'))",
         )
 
-    paycheque_cols = {
-        row[1] for row in _exec_sql(conn, "PRAGMA table_info(paycheques)").fetchall()
-    }
+    paycheque_cols = {row[1] for row in _exec_sql(conn, "PRAGMA table_info(paycheques)").fetchall()}
     if "gross_cents" not in paycheque_cols:
         _exec_sql(
             conn,
@@ -222,6 +218,49 @@ def ensure_schema_migrations(conn: Any) -> None:
                         CHECK (active IN (0, 1))
         )
         """,
+    )
+    _exec_sql(
+        conn,
+        """
+        CREATE TABLE IF NOT EXISTS import_pipeline_logs (
+            id                INTEGER PRIMARY KEY AUTOINCREMENT,
+            created_at        TEXT NOT NULL,
+            stage             TEXT NOT NULL CHECK (stage IN ('parse', 'import')),
+            status            TEXT NOT NULL CHECK (status IN ('ok', 'error')),
+            parse_log_id      INTEGER NULL REFERENCES import_pipeline_logs(id) ON DELETE SET NULL,
+            filename          TEXT NULL,
+            file_size_bytes   INTEGER NULL CHECK (file_size_bytes IS NULL OR file_size_bytes >= 0),
+            file_sha256       TEXT NULL,
+            detected_mime     TEXT NULL,
+            ocr_runtime       TEXT NULL,
+            vision_model      TEXT NULL,
+            parser_used       TEXT NULL CHECK (
+                parser_used IS NULL OR parser_used IN ('tabular', 'pdf_text', 'vision', 'ocr')
+            ),
+            used_llm_fallback INTEGER NOT NULL DEFAULT 0 CHECK (used_llm_fallback IN (0, 1)),
+            duration_ms       INTEGER NOT NULL DEFAULT 0 CHECK (duration_ms >= 0),
+            row_count         INTEGER NOT NULL DEFAULT 0 CHECK (row_count >= 0),
+            warning_count     INTEGER NOT NULL DEFAULT 0 CHECK (warning_count >= 0),
+            error_message     TEXT NULL,
+            steps_json        TEXT NOT NULL DEFAULT '[]',
+            response_json     TEXT NULL
+        )
+        """,
+    )
+    _exec_sql(
+        conn,
+        "CREATE INDEX IF NOT EXISTS idx_import_pipeline_logs_created_at "
+        "ON import_pipeline_logs (created_at)",
+    )
+    _exec_sql(
+        conn,
+        "CREATE INDEX IF NOT EXISTS idx_import_pipeline_logs_stage_status "
+        "ON import_pipeline_logs (stage, status)",
+    )
+    _exec_sql(
+        conn,
+        "CREATE INDEX IF NOT EXISTS idx_import_pipeline_logs_parse_log_id "
+        "ON import_pipeline_logs (parse_log_id) WHERE parse_log_id IS NOT NULL",
     )
 
     if not hasattr(conn, "exec_driver_sql") and hasattr(conn, "commit"):

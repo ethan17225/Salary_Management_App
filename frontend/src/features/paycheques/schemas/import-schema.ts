@@ -61,6 +61,7 @@ export const importRowSchema = z
 export const importRowsSchema = z.object({
   rows: z.array(importRowSchema).min(1, 'Add at least one row').max(5000),
   auto_create_sources: z.boolean(),
+  parse_log_id: z.number().int().positive().nullable().optional(),
 });
 
 type Nullable<T> = { [K in keyof T]: T[K] | null };
@@ -79,4 +80,5 @@ export interface ParseResponse {
   used_llm_fallback: boolean;
   rows: ParsedRow[];
   unmapped_columns: string[];
+  parse_log_id?: number | null;
 }

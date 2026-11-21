@@ -23,7 +23,7 @@ from src.config import settings
 MAX_PDF_TEXT_PAGES = 5
 MAX_OCR_PAGES = 2
 MAX_OCR_IMAGE_PX = 1800
-MAX_VISION_IMAGE_PX = 1024
+MAX_VISION_IMAGE_PX = 1280
 OCR_PDF_SCALE = 1.75
 MAX_LLM_CHARS = 1800
 
@@ -186,16 +186,22 @@ VISION_PROMPT = (
     '{"document_type":"cheque"|"paystub","source_name":string|null,'
     '"paid_on":"YYYY-MM-DD"|null,"numeric_amount":"0.00"|null,'
     '"written_amount":"0.00"|null,"gross":"0.00"|null,"tax":"0.00"|null,'
-    '"deductions":"0.00"|null,"hours":number|null,"cheque_number":string|null}\n'
-    "- For cheques: source_name = payer trade name (prefer trade name over numbered corp); "
-    'numeric_amount = "$" box (superscript cents like 611^86 -> "611.86"); '
+    '"deductions":"0.00"|null,"withholdings":[{"label":string,"amount":"0.00"}],'
+    '"hours":number|null,"cheque_number":string|null}\n'
+    "- source_name: employer or payer trade/brand name (from logo or header; "
+    "ignore numbered corps like '5024721 ONTARIO LIMITED').\n"
+    '- For cheques: numeric_amount = "$" box (superscript cents like 611^86 -> "611.86"); '
     'written_amount = spelled-out legal line ("611.86" or verbatim words); '
     "paid_on = YYYY-MM-DD (Nov 20 / 26 -> 2026-11-20); "
     "NEVER use company IDs, cheque numbers, or MICR digits as amounts; "
-    "set gross, tax, deductions, hours to null.\n"
-    "- For paystubs: CURRENT PERIOD figures only (ignore YTD); "
-    "paid_on = pay/advice/check/issue date as YYYY-MM-DD (NOT Pay Begin/End Date); "
-    "numeric_amount = net take-home pay; written_amount = null."
+    "set gross, tax, deductions, hours to null and withholdings to [].\n"
+    "- For paystubs: CURRENT PERIOD figures only (ignore YTD, Exemptions/Allowances, "
+    "and Deposit Acct / Direct Deposit lines); "
+    "paid_on = Advice Date / Pay Date / Check Date as YYYY-MM-DD (NEVER Pay Begin/End Date); "
+    "numeric_amount = Net Pay; written_amount = null; "
+    "tax = printed Total Taxes (or null); deductions = printed Total Deductions (or null); "
+    "list individual current-period tax/statutory/deduction lines in withholdings "
+    "as positive amounts."
 )
 
 

@@ -163,7 +163,11 @@ export function ImportDialog({ sources }: { sources: Source[] }) {
     setErr('');
     setPending('import');
     try {
-      const res = await importPaychequesAction({ rows, auto_create_sources: autoCreate });
+      const res = await importPaychequesAction({
+        rows,
+        auto_create_sources: autoCreate,
+        parse_log_id: meta?.parse_log_id ?? null,
+      });
       if (!res.success) {
         setErr(res.error);
         return;

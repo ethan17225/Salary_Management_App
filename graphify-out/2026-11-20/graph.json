@@ -1396,7 +1396,7 @@
       "file_type": "code",
       "norm_label": "llm_available()",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L296"
+      "source_location": "L297"
     },
     {
       "id": "backend_src_paycheques_parsers_check_row",
@@ -2176,7 +2176,7 @@
       "file_type": "code",
       "norm_label": "_compact_for_llm()",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L317"
+      "source_location": "L318"
     },
     {
       "id": "backend_src_paycheques_extractors_encode_vision_jpeg_b64",
@@ -2188,7 +2188,7 @@
       "file_type": "code",
       "norm_label": "_encode_vision_jpeg_b64()",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L205"
+      "source_location": "L206"
     },
     {
       "id": "backend_src_paycheques_extractors_enhance_ink_contrast",
@@ -2224,7 +2224,7 @@
       "file_type": "code",
       "norm_label": "_llm()",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L304"
+      "source_location": "L305"
     },
     {
       "id": "backend_src_paycheques_extractors_llm_extract",
@@ -2236,7 +2236,7 @@
       "file_type": "code",
       "norm_label": "llm_extract()",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L330"
+      "source_location": "L331"
     },
     {
       "id": "backend_src_paycheques_extractors_ocr_engine",
@@ -2272,7 +2272,7 @@
       "file_type": "code",
       "norm_label": "_parse_json_object()",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L216"
+      "source_location": "L217"
     },
     {
       "id": "backend_src_paycheques_extractors_pdf_extract",
@@ -2320,7 +2320,7 @@
       "file_type": "code",
       "norm_label": "vision_available()",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L201"
+      "source_location": "L202"
     },
     {
       "id": "backend_src_paycheques_extractors_vision_extract",
@@ -2332,7 +2332,7 @@
       "file_type": "code",
       "norm_label": "vision_extract()",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L228"
+      "source_location": "L229"
     },
     {
       "id": "backend_src_paycheques_extractors_visual_lines",
@@ -5400,7 +5400,7 @@
       "source_location": "L166"
     },
     {
-      "id": "backend_src_paycheques_extractors_rationale_318",
+      "id": "backend_src_paycheques_extractors_rationale_319",
       "label": "Keep header lines (employer + dates) and numeric/summary lines inside a small\u2026",
       "_origin": "ast",
       "community": 28,
@@ -5408,7 +5408,7 @@
       "file_type": "rationale",
       "norm_label": "keep header lines (employer + dates) and numeric/summary lines inside a small...",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L318"
+      "source_location": "L319"
     },
     {
       "id": "ui_audit_10_form_attributes_typography_and_placeholder_standards",
@@ -9783,7 +9783,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L333",
+      "source_location": "L334",
       "weight": 1.0
     },
     {
@@ -9795,7 +9795,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L336",
+      "source_location": "L337",
       "weight": 1.0
     },
     {
@@ -9807,7 +9807,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L342",
+      "source_location": "L343",
       "weight": 1.0
     },
     {
@@ -9903,7 +9903,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L258",
+      "source_location": "L259",
       "weight": 1.0
     },
     {
@@ -19898,7 +19898,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L201",
+      "source_location": "L202",
       "weight": 1.0
     },
     {
@@ -19909,7 +19909,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L205",
+      "source_location": "L206",
       "weight": 1.0
     },
     {
@@ -19920,7 +19920,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L216",
+      "source_location": "L217",
       "weight": 1.0
     },
     {
@@ -19931,7 +19931,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L228",
+      "source_location": "L229",
       "weight": 1.0
     },
     {
@@ -19942,7 +19942,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L296",
+      "source_location": "L297",
       "weight": 1.0
     },
     {
@@ -19953,7 +19953,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L304",
+      "source_location": "L305",
       "weight": 1.0
     },
     {
@@ -19975,7 +19975,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L317",
+      "source_location": "L318",
       "weight": 1.0
     },
     {
@@ -19986,7 +19986,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L330",
+      "source_location": "L331",
       "weight": 1.0
     },
     {
@@ -25675,14 +25675,14 @@
       "weight": 1.0
     },
     {
-      "source": "backend_src_paycheques_extractors_rationale_318",
+      "source": "backend_src_paycheques_extractors_rationale_319",
       "target": "backend_src_paycheques_extractors_compact_for_llm",
       "relation": "rationale_for",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L318",
+      "source_location": "L319",
       "weight": 1.0
     },
     {
@@ -26003,7 +26003,7 @@
       "confidence_score": 0.85,
       "context": "argument",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L239",
+      "source_location": "L240",
       "weight": 1.0
     },
     {
@@ -27584,5 +27584,5 @@
       "source_file": "docker-compose.yml"
     }
   ],
-  "built_at_commit": "29f356cee1634f2523daf83af312bd34f7cf915e"
+  "built_at_commit": "4cf53e5d9cfaf9713c30dad1f83623b52cff3097"
 }

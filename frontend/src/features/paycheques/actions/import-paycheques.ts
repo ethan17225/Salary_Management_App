@@ -17,6 +17,7 @@ export interface PaychequeImportResult {
 export async function importPaychequesAction(input: {
   rows: ParsedRow[];
   auto_create_sources: boolean;
+  parse_log_id?: number | null;
 }): Promise<ActionState<PaychequeImportResult>> {
   const parsed = importRowsSchema.safeParse(input);
   if (!parsed.success) {

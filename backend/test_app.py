@@ -881,5 +881,222 @@ def test_ocr_runtime_switch() -> None:
     )
 
 
+@pytest.mark.asyncio
+async def test_corrupted_adp_pdf_escalates_to_vision_and_reconciles_withholdings(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from PIL import Image
+
+    from src.paycheques.parsers import _reconcile_vision_withholdings
+
+    corrupted_adp = (
+        "(cid:0)(cid:0)(cid:0) Earnings Statement\n"
+        "Period Beginning: 08/16/2026\nPeriod Ending: 08/31/2026\nPay Date: 08/31/2026\n"
+        "Gross Pay $1 718 09\nNet Pay $1 405 71\n"
+    )
+    monkeypatch.setattr(extractors, "pdf_extract", lambda _c: (corrupted_adp, []))
+
+    # Case 1 (local Vision): broken pdf_text escalates to Vision & reconciles statutory lines
+    monkeypatch.setattr(extractors, "vision_available", lambda: True)
+    monkeypatch.setattr(
+        extractors, "prepare_images", lambda _c, _m: [Image.new("RGB", (50, 50), "white")]
+    )
+
+    async def _adp_vision(_images: list, **_kw: object) -> dict:
+        return {
+            "document_type": "paystub",
+            "source_name": "Softchoice",
+            "paid_on": "2026-08-31",
+            "numeric_amount": "1405.71",
+            "gross": "1718.09",
+            "tax": "190.83",
+            "deductions": "405.71",
+            "withholdings": [
+                {"label": "Federal Tax", "amount": "190.83"},
+                {"label": "EI", "amount": "28.00"},
+                {"label": "CPP", "amount": "93.55"},
+            ],
+            "hours": 78.67,
+        }
+
+    monkeypatch.setattr(extractors, "vision_extract", _adp_vision)
+    res1 = (await _upload(client, "adp.pdf", b"%PDF-1.7 fake")).json()
+    [r1] = res1["rows"]
+    assert res1["parser_used"] == "vision" and not res1["used_llm_fallback"]
+    assert (
+        r1["source_name"],
+        r1["paid_on"],
+        r1["amount"],
+        r1["gross"],
+        r1["tax"],
+        r1["deductions"],
+        r1["hours"],
+    ) == ("Softchoice", "2026-08-31", "1405.71", "1718.09", "312.38", "0.00", 78.67)
+    assert r1["warnings"] == []
+
+    # Case 2 (Docker mode): CID-corrupted pdf_text escalates to RapidOCR
+    monkeypatch.setattr(extractors, "vision_available", lambda: False)
+    clean_ocr = "Softchoice\nPay Date: 08/31/2026\nGross Pay $1,718.09\nNet Pay $1,405.71\n"
+    monkeypatch.setattr(extractors, "ocr_text", lambda _c, _m, **_kw: (clean_ocr, 0.98))
+    res2 = (await _upload(client, "adp.pdf", b"%PDF-1.7 fake")).json()
+    [r2] = res2["rows"]
+    assert res2["parser_used"] == "ocr"
+    assert (r2["source_name"], r2["paid_on"], r2["amount"], r2["gross"]) == (
+        "Softchoice",
+        "2026-08-31",
+        "1405.71",
+        "1718.09",
+    )
+    assert r2["warnings"] == []
+
+    # Case 3: Preserve already-reconciled totals & clear impossible deductions without withholdings
+    assert _reconcile_vision_withholdings({}, "142.78", "136.21", "2.82", "3.75") == (
+        "2.82",
+        "3.75",
+    )
+    assert _reconcile_vision_withholdings({}, "1718.09", "1405.71", "190.83", "405.71") == (
+        "190.83",
+        None,
+    )
+
+
+@pytest.mark.asyncio
+async def test_import_pipeline_logs_capture_parse_steps_errors_and_linked_imports(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import sqlite3
+
+    from PIL import Image
+
+    corrupted_adp = (
+        "(cid:0)(cid:0) Earnings Statement\n"
+        "Period Beginning: 08/16/2026\nPeriod Ending: 08/31/2026\nPay Date: 08/31/2026\n"
+        "Gross Pay $1 718 09\nNet Pay $1 405 71\n"
+    )
+    monkeypatch.setattr(extractors, "pdf_extract", lambda _c: (corrupted_adp, []))
+    monkeypatch.setattr(extractors, "vision_available", lambda: True)
+    monkeypatch.setattr(
+        extractors, "prepare_images", lambda _c, _m: [Image.new("RGB", (80, 100), "white")]
+    )
+    raw_vision_payload = {
+        "document_type": "paystub",
+        "source_name": "Softchoice",
+        "paid_on": "2026-08-31",
+        "numeric_amount": "1405.71",
+        "gross": "1718.09",
+        "tax": "190.83",
+        "deductions": "405.71",
+        "withholdings": [
+            {"label": "Federal Tax", "amount": "190.83"},
+            {"label": "EI", "amount": "28.00"},
+            {"label": "CPP", "amount": "93.55"},
+        ],
+        "hours": 78.67,
+    }
+
+    async def _mock_vision(_images: list, **_kw: object) -> dict:
+        return raw_vision_payload
+
+    monkeypatch.setattr(extractors, "vision_extract", _mock_vision)
+    parse_res = (await _upload(client, "softchoice_adp.pdf", b"%PDF-1.7 fake adp")).json()
+    parse_log_id = parse_res["parse_log_id"]
+    assert isinstance(parse_log_id, int) and parse_log_id > 0
+
+    logs = (await client.get("/api/paycheques/import-logs")).json()
+    assert any(item["id"] == parse_log_id for item in logs)
+
+    detail = (await client.get(f"/api/paycheques/import-logs/{parse_log_id}")).json()
+    assert detail["stage"] == "parse" and detail["status"] == "ok"
+    assert detail["parser_used"] == "vision" and detail["warning_count"] == 0
+    assert detail["step_names"] == [
+        "detect_mime",
+        "pdf_extract",
+        "deterministic_text",
+        "prepare_images",
+        "vision_extract",
+        "reconcile_withholdings",
+        "vision_row",
+    ]
+    steps_by_name = {s["step"]: s for s in detail["steps"]}
+    assert steps_by_name["prepare_images"]["output"]["sizes"] == [[80, 100]]
+    assert steps_by_name["vision_extract"]["output"]["raw_output"] == raw_vision_payload
+    assert steps_by_name["reconcile_withholdings"]["output"]["after"] == {
+        "tax": "312.38",
+        "deductions": "0.00",
+    }
+    assert detail["response"]["rows"][0]["amount"] == "1405.71"
+
+    # Stage 2: submit reviewed row linked to Stage 1 parse_log_id
+    imp = await client.post(
+        "/api/paycheques/import",
+        json={
+            "parse_log_id": parse_log_id,
+            "auto_create_sources": True,
+            "rows": [
+                {
+                    "source_name": "Softchoice",
+                    "paid_on": "2026-09-15",
+                    "amount": "1405.71",
+                    "gross": "1718.09",
+                    "tax": "312.38",
+                    "deductions": "0.00",
+                    "hours": 78.67,
+                    "note": "Verified from ADP",
+                }
+            ],
+        },
+    )
+    assert imp.status_code == 200 and imp.json()["imported_count"] == 1
+
+    import_logs = (await client.get("/api/paycheques/import-logs?stage=import")).json()
+    assert len(import_logs) == 1
+    import_log_id = import_logs[0]["id"]
+    assert import_logs[0]["parse_log_id"] == parse_log_id
+
+    import_detail = (await client.get(f"/api/paycheques/import-logs/{import_log_id}")).json()
+    assert import_detail["steps"][0]["output"]["submitted_rows"]["rows"][0]["note"] == (
+        "Verified from ADP"
+    )
+    refreshed_parse = (await client.get(f"/api/paycheques/import-logs/{parse_log_id}")).json()
+    assert import_log_id in refreshed_parse["linked_import_ids"]
+
+    # Warning filter: upload CSV with warning row + unsupported 415 error
+    bad_csv = b"date,source,amount,gross\n2026-11-28,Acme,900,800\n"
+    warn_res = (await _upload(client, "warn.csv", bad_csv)).json()
+    warn_logs = (await client.get("/api/paycheques/import-logs?has_warnings=true")).json()
+    assert any(item["id"] == warn_res["parse_log_id"] for item in warn_logs)
+
+    bad_upload = await _upload(client, "bad.exe", b"MZ\x90\x00")
+    assert bad_upload.status_code == 415
+    err_logs = (await client.get("/api/paycheques/import-logs?status=error")).json()
+    assert len(err_logs) == 1 and err_logs[0]["filename"] == "bad.exe"
+
+    assert (await client.get("/api/paycheques/import-logs/999999")).status_code == 404
+
+    # ensure_schema_migrations creates import_pipeline_logs on older SQLite schemas idempotently
+    conn = sqlite3.connect(":memory:")
+    conn.execute(
+        "CREATE TABLE sources ("
+        "id INTEGER PRIMARY KEY, name TEXT, kind TEXT, color TEXT, archived INTEGER)"
+    )
+    conn.execute(
+        "CREATE TABLE paycheques ("
+        "id INTEGER PRIMARY KEY, source_id INTEGER, paid_on TEXT, "
+        "amount_cents INTEGER, hours REAL, note TEXT)"
+    )
+    ensure_schema_migrations(conn)
+    ensure_schema_migrations(conn)
+    log_cols = {r[1] for r in conn.execute("PRAGMA table_info(import_pipeline_logs)").fetchall()}
+    assert {
+        "id",
+        "created_at",
+        "stage",
+        "status",
+        "parse_log_id",
+        "steps_json",
+        "response_json",
+    } <= log_cols
+
+
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-v"]))

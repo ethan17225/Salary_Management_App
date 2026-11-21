@@ -6,7 +6,7 @@ services:
     environment:
       - OCR_RUNTIME=${OCR_RUNTIME:-docker}
       - VISION_API_BASE_URL=${VISION_API_BASE_URL:-http://host.docker.internal:11434/v1}
-      - VISION_MODEL_NAME=${VISION_MODEL_NAME:-qwen3-vl:8b-instruct}
+      - VISION_MODEL_NAME=${VISION_MODEL_NAME:-qwen3-vl:4b-instruct}
       - VISION_API_KEY=${VISION_API_KEY:-ollama}
     extra_hosts:
       - "host.docker.internal:host-gateway"
