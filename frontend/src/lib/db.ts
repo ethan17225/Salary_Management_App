@@ -37,6 +37,23 @@ export const db = {
     return res.json() as Promise<PaydayState>;
   }),
 
+  async get<T>(path: string): Promise<T> {
+    const res = await fetchBackend(path);
+    if (!res.ok) {
+      throw new Error(`Failed to fetch ${path} (${res.status})`);
+    }
+    return res.json() as Promise<T>;
+  },
+
+  async getOptional<T>(path: string): Promise<T | null> {
+    const res = await fetchBackend(path);
+    if (res.status === 404) return null;
+    if (!res.ok) {
+      throw new Error(`Failed to fetch ${path} (${res.status})`);
+    }
+    return res.json() as Promise<T>;
+  },
+
   async request<T = Record<string, unknown>>(
     method: 'POST' | 'PUT' | 'DELETE',
     path: string,

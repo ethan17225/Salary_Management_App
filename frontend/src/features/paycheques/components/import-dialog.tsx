@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useDialogs } from '@/components/ui/dialog-provider';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Source } from '@/types/payday';
@@ -335,6 +336,20 @@ export function ImportDialog({ sources }: { sources: Source[] }) {
                   <span className="num">{rows.length}</span> row{rows.length === 1 ? '' : 's'} ·
                   read as {READ_AS[meta.parser_used]}
                   {meta.used_llm_fallback ? ' with the local AI model' : ''}
+                  {meta.parse_log_id ? (
+                    <>
+                      {' '}
+                      ·{' '}
+                      <Link
+                        href={`/paycheques/logs/${meta.parse_log_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-accent font-medium hover:underline"
+                      >
+                        Inspect log #{meta.parse_log_id}
+                      </Link>
+                    </>
+                  ) : null}
                   {meta.unmapped_columns.length > 0 ? (
                     <span className="block">Ignored columns: {meta.unmapped_columns.join(', ')}</span>
                   ) : null}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import Link from 'next/link';
 import { useDialogs } from '@/components/ui/dialog-provider';
 import { allocateCentsLargestRemainder, type AllocationRule } from '@/lib/allocation-engine';
 import { computePaychequeBreakdown } from '@/lib/tax-intelligence';
@@ -124,6 +125,12 @@ export function PaychequeLedger({
         </div>
         <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto">
           <ImportDialog sources={sources} />
+          <Link
+            className="btn w-full sm:w-auto"
+            href={fYear ? `/paycheques/logs?year=${encodeURIComponent(fYear)}` : '/paycheques/logs'}
+          >
+            Import logs
+          </Link>
           <a className="btn w-full sm:w-auto" href={exportHref} download>
             {isFiltered ? `Export filtered CSV (${filteredRows.length})` : 'Export to CSV'}
           </a>
