@@ -342,15 +342,15 @@
     "semantic_hash": "758da8246a90578db78126211c4e3e82"
   },
   "PROJECT_OVERVIEW.md": {
-    "mtime": 1795122494.9625897,
-    "seen": 1795126346.667645,
-    "ast_hash": "eb63880323d450048f8764d0501f5faf",
+    "mtime": 1795291501.225173,
+    "seen": 1795291539.789842,
+    "ast_hash": "9dcf4e555e003b6bc18ca2e9ec446d47",
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1795123098.8671274,
-    "seen": 1795126346.667646,
-    "ast_hash": "3fddf247c9378e44479a3173cfe8a902",
+    "mtime": 1795291499.9975421,
+    "seen": 1795291539.7898428,
+    "ast_hash": "4b2038bb676669cc274b33e7b1fb5cc4",
     "semantic_hash": ""
   },
   "docker-compose.yml": {
@@ -378,117 +378,9 @@
     "semantic_hash": ""
   },
   "AGENTS.md": {
-    "mtime": 1795123752.5887709,
-    "seen": 1795126346.6676438,
-    "ast_hash": "81babff9ed5fb2f0a34506e3eaed7697",
-    "semantic_hash": ""
-  },
-  "improvement-plan/master-ui-ux-improvement-plan.md": {
-    "mtime": 1795104180.0499835,
-    "seen": 1795126346.667648,
-    "ast_hash": "8e63090cb3bbc91c50bf217cef8d80ca",
-    "semantic_hash": ""
-  },
-  "refactor/01-paystub-entry-and-smart-dialog.md": {
-    "mtime": 1795101979.7174034,
-    "seen": 1795126346.667649,
-    "ast_hash": "d03356937122465a962068ea695e8c05",
-    "semantic_hash": ""
-  },
-  "refactor/02-actionable-payday-transfer-checklist.md": {
-    "mtime": 1795101981.0817327,
-    "seen": 1795126346.66765,
-    "ast_hash": "71ed5e2e2601f250e3389b8668d8e159",
-    "semantic_hash": ""
-  },
-  "refactor/03-interactive-next-paydays-and-schedules.md": {
-    "mtime": 1795101982.362283,
-    "seen": 1795126346.6676512,
-    "ast_hash": "4b57885630d285473fa7aa43e370820b",
-    "semantic_hash": ""
-  },
-  "refactor/04-hero-consistency-tax-math-and-plain-copy.md": {
-    "mtime": 1795101983.6753933,
-    "seen": 1795126346.6676512,
-    "ast_hash": "f02c86b697013861d18c2e08e2a0ee9f",
-    "semantic_hash": ""
-  },
-  "refactor/05-persistent-year-and-url-filter-state.md": {
-    "mtime": 1795101989.1713665,
-    "seen": 1795126346.6676521,
-    "ast_hash": "acaede918dba33f95b5bb54f08b2760c",
-    "semantic_hash": ""
-  },
-  "refactor/06-interactive-allocation-rebalancing-and-safety.md": {
-    "mtime": 1795101990.7603493,
-    "seen": 1795126346.667653,
-    "ast_hash": "1ed85e061aadb0d78240e19b8d56c442",
-    "semantic_hash": ""
-  },
-  "refactor/07-first-run-onboarding-and-mobile-navigation.md": {
-    "mtime": 1795101992.450387,
-    "seen": 1795126346.6676538,
-    "ast_hash": "e98197e77f5841fccf38d1855a5a8051",
-    "semantic_hash": ""
-  },
-  "ui-audit/01-semantic-card-navigation-and-link-overlay.md": {
-    "mtime": 1795102080.2816298,
-    "seen": 1795126346.667655,
-    "ast_hash": "d080ca0a402337af32e73b41afe6598e",
-    "semantic_hash": ""
-  },
-  "ui-audit/02-table-row-interactions-and-touch-targets.md": {
-    "mtime": 1795102081.7598867,
-    "seen": 1795126346.667656,
-    "ast_hash": "d9f15bfddd4efad9bcbd0ae8e68cc7ef",
-    "semantic_hash": ""
-  },
-  "ui-audit/03-year-dropdown-keyboard-navigation-and-focus.md": {
-    "mtime": 1795102082.976891,
-    "seen": 1795126346.667657,
-    "ast_hash": "f37fc14277dc9c45ea182ca005ac4c82",
-    "semantic_hash": ""
-  },
-  "ui-audit/04-async-form-pending-states-and-double-submit-prevention.md": {
-    "mtime": 1795102084.3796535,
-    "seen": 1795126346.667658,
-    "ast_hash": "16fdad647ec30ef2bb166791d6342adf",
-    "semantic_hash": ""
-  },
-  "ui-audit/05-taxes-retention-bar-and-legend-color-consistency.md": {
-    "mtime": 1795102085.938824,
-    "seen": 1795126346.667659,
-    "ast_hash": "e0478fa909f686483e1402c550719ea2",
-    "semantic_hash": ""
-  },
-  "ui-audit/06-unified-color-swatch-picker-and-touch-sizing.md": {
-    "mtime": 1795102087.203038,
-    "seen": 1795126346.667659,
-    "ast_hash": "8006533603a36329a8005b75d3027f91",
-    "semantic_hash": ""
-  },
-  "ui-audit/07-concentric-border-radii-on-nested-surfaces.md": {
-    "mtime": 1795102088.4067142,
-    "seen": 1795126346.66766,
-    "ast_hash": "5c184fd094182c5e7a48b6c63bc04b54",
-    "semantic_hash": ""
-  },
-  "ui-audit/08-compositor-safe-transitions-and-motion-restraint.md": {
-    "mtime": 1795102089.689672,
-    "seen": 1795126346.667661,
-    "ast_hash": "0cff11c644da022c275d4d5fdca03cf3",
-    "semantic_hash": ""
-  },
-  "ui-audit/09-structural-loading-skeletons-and-cls-prevention.md": {
-    "mtime": 1795102091.4861367,
-    "seen": 1795126346.6676621,
-    "ast_hash": "abfaa72bfce355874c6990455185f11c",
-    "semantic_hash": ""
-  },
-  "ui-audit/10-form-attributes-typography-and-placeholder-standards.md": {
-    "mtime": 1795102092.732343,
-    "seen": 1795126346.667663,
-    "ast_hash": "2bc9c9d9872c28a4bb449675c4269824",
+    "mtime": 1795291529.4286711,
+    "seen": 1795291539.78984,
+    "ast_hash": "c6ae953af970b91c7467d0540b7cf4f9",
     "semantic_hash": ""
   },
   "backend/src/paycheques/extractors.py": {
@@ -519,6 +411,336 @@
     "mtime": 1795283582.2535753,
     "seen": 1795283627.02103,
     "ast_hash": "9cfb5b4ccec4091115d3975bbb216605",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/allocations/actions.ts": {
+    "mtime": 1795019081.7908428,
+    "seen": 1795291539.7897952,
+    "ast_hash": "b1a0c46004dec3068f1f237004061110",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/allocations/components/allocations-dashboard.tsx": {
+    "mtime": 1795126764.9744418,
+    "seen": 1795291539.789796,
+    "ast_hash": "2aa237ae8d4e7fea068f7e8e8fb6c8a8",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/allocations/index.ts": {
+    "mtime": 1794182530.6161537,
+    "seen": 1795291539.789797,
+    "ast_hash": "12869d4b4469f26a7295360e792ff570",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/allocations/schemas.ts": {
+    "mtime": 1794182530.6160412,
+    "seen": 1795291539.7897978,
+    "ast_hash": "a99afed2b084e80283980f18e8ea439a",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/overview/actions/update-goal.ts": {
+    "mtime": 1795019081.8945673,
+    "seen": 1795291539.789799,
+    "ast_hash": "5ec87d2b8ec579aeae55235daaac1173",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/overview/components/goal-dialog.tsx": {
+    "mtime": 1795104590.7152483,
+    "seen": 1795291539.789799,
+    "ast_hash": "27e0780b46e4dea2e525f7b73e2365eb",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/overview/components/hero-total-counter.tsx": {
+    "mtime": 1795021166.6047397,
+    "seen": 1795291539.7898,
+    "ast_hash": "306d2e840bfbbe968df7c982260b8e6a",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/overview/components/latest-paycheques-list.tsx": {
+    "mtime": 1795104802.6723237,
+    "seen": 1795291539.789801,
+    "ast_hash": "8dec38ec12d82cb3cebf078e36af0efc",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/overview/components/overview-charts.tsx": {
+    "mtime": 1795104820.0505078,
+    "seen": 1795291539.789801,
+    "ast_hash": "873e86525ddb3d216740dbadc1120d2a",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/overview/components/overview-dashboard.tsx": {
+    "mtime": 1795185790.6437614,
+    "seen": 1795291539.789802,
+    "ast_hash": "47b213ade925af611361396939b5cd06",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/overview/components/upcoming-paydays-list.tsx": {
+    "mtime": 1795104798.1207445,
+    "seen": 1795291539.789803,
+    "ast_hash": "7accaa08c026b4cfa76ea2039c1d9b3f",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/overview/index.ts": {
+    "mtime": 1794173072.5849557,
+    "seen": 1795291539.789803,
+    "ast_hash": "e01748fdbe86b44edc70107f1ad311fe",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/overview/lib/compute-overview.ts": {
+    "mtime": 1795126636.4208617,
+    "seen": 1795291539.789804,
+    "ast_hash": "26a57480a8394c5970205f0249894d11",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/overview/schemas/goal-schema.ts": {
+    "mtime": 1794173072.6103985,
+    "seen": 1795291539.7898052,
+    "ast_hash": "1fe88cce121e0c0dde6e7c4b4bad8ead",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/overview/services/get-overview-data.ts": {
+    "mtime": 1795126765.2150161,
+    "seen": 1795291539.7898052,
+    "ast_hash": "81ad7a4cc14f0688486b863f38b7d2f0",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/overview/types/overview-types.ts": {
+    "mtime": 1794248457.0667672,
+    "seen": 1795291539.7898061,
+    "ast_hash": "58f342913e4dbdd7db637035053691c3",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/paycheques/actions/delete-paycheque.ts": {
+    "mtime": 1795019082.1040905,
+    "seen": 1795291539.789807,
+    "ast_hash": "47a42e15a7319badc40a99ab39922fa0",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/paycheques/actions/import-paycheques.ts": {
+    "mtime": 1795282686.7813182,
+    "seen": 1795291539.78981,
+    "ast_hash": "ac1fd0750808ce485282676312db9169",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/paycheques/actions/save-paycheque.ts": {
+    "mtime": 1795019082.1432948,
+    "seen": 1795291539.78981,
+    "ast_hash": "d6276f7fa16be75f2062590f5ddecf86",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/paycheques/components/copy-json-button.tsx": {
+    "mtime": 1795283565.4384515,
+    "seen": 1795291539.789811,
+    "ast_hash": "81b39ea88482ce7635a1d4d0f04264b1",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/paycheques/components/import-dialog.tsx": {
+    "mtime": 1795283595.8548307,
+    "seen": 1795291539.7898118,
+    "ast_hash": "defee4285a33df6c0730fdb24e1a8ea5",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/paycheques/components/import-log-detail-view.tsx": {
+    "mtime": 1795283568.0652695,
+    "seen": 1795291539.7898118,
+    "ast_hash": "00dd2d9693acfaf5a08548cb9e108476",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/paycheques/components/import-logs-view.tsx": {
+    "mtime": 1795283566.670619,
+    "seen": 1795291539.789813,
+    "ast_hash": "d1525b34d14345bf1c7ba1b226c6e6b3",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/paycheques/components/paycheque-dialog.tsx": {
+    "mtime": 1795104699.9155476,
+    "seen": 1795291539.789814,
+    "ast_hash": "b69163dad8afcb8ae3a47f094f037518",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/paycheques/components/paycheque-ledger.tsx": {
+    "mtime": 1795283594.573068,
+    "seen": 1795291539.789815,
+    "ast_hash": "e739c2eb28e81ae8419fc38b49f555b0",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/paycheques/components/paycheques-view.tsx": {
+    "mtime": 1795104737.4371457,
+    "seen": 1795291539.789815,
+    "ast_hash": "0f8645b416f500f3273851ec8b0d6a03",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/paycheques/index.ts": {
+    "mtime": 1795283580.5166132,
+    "seen": 1795291539.7898161,
+    "ast_hash": "39e4ad87d4b2de7f7b52b85ddbb3f24d",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/paycheques/lib/format-import-log.ts": {
+    "mtime": 1795283564.4291704,
+    "seen": 1795291539.789817,
+    "ast_hash": "09d6aa1501d918b3e994fd645a331bfb",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/paycheques/schemas/import-schema.ts": {
+    "mtime": 1795282684.2355244,
+    "seen": 1795291539.789817,
+    "ast_hash": "c5ad8a0f011bde46c1d7ef1b2258dad6",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/paycheques/schemas/paycheque-schema.ts": {
+    "mtime": 1795019082.3127468,
+    "seen": 1795291539.789818,
+    "ast_hash": "ba30634a3f25d4fa2ee7d991c9ab237c",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/paycheques/services/get-import-logs.ts": {
+    "mtime": 1795283497.0152736,
+    "seen": 1795291539.7898188,
+    "ast_hash": "ce4a40325b8966efa557503b1f8c6e7c",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/paycheques/services/get-paycheques.ts": {
+    "mtime": 1794182499.1467683,
+    "seen": 1795291539.7898188,
+    "ast_hash": "383bbf3e0e9a16014caea25a8bc33185",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/paycheques/types/import-log-types.ts": {
+    "mtime": 1795283495.7465355,
+    "seen": 1795291539.78982,
+    "ast_hash": "04ab88cd722f3dd7109cab825a53a555",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/paycheques/types/paycheque-types.ts": {
+    "mtime": 1794182497.4033234,
+    "seen": 1795291539.789821,
+    "ast_hash": "be5c74fa5b614d7c0c7c1827d5f468e6",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/sources/actions/delete-source.ts": {
+    "mtime": 1795019082.3517542,
+    "seen": 1795291539.789821,
+    "ast_hash": "065e5998e025d948a2dfad2f0b76e6eb",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/sources/actions/save-source.ts": {
+    "mtime": 1795104647.5681458,
+    "seen": 1795291539.7898219,
+    "ast_hash": "16e0cbc21be6145defd91955307c8f5a",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/sources/components/source-card.tsx": {
+    "mtime": 1795104525.170247,
+    "seen": 1795291539.789823,
+    "ast_hash": "2d6f9dc7f32734e7c3e85fe1a067034f",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/sources/components/source-detail-actions.tsx": {
+    "mtime": 1795021167.0463314,
+    "seen": 1795291539.789823,
+    "ast_hash": "79730f7bef4884f1212ccc0a76551594",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/sources/components/source-detail-view.tsx": {
+    "mtime": 1795126765.3159027,
+    "seen": 1795291539.789824,
+    "ast_hash": "d12ba0eb5e17d8f48674d8bce7e2400f",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/sources/components/source-dialog.tsx": {
+    "mtime": 1795104648.8716912,
+    "seen": 1795291539.789825,
+    "ast_hash": "3e53f2b3e1dfd542488dbf3873c81411",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/sources/components/source-grid.tsx": {
+    "mtime": 1795122206.8461783,
+    "seen": 1795291539.789825,
+    "ast_hash": "64d9f059275c687399ea22beabb41f24",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/sources/components/source-income-chart.tsx": {
+    "mtime": 1795021167.2661192,
+    "seen": 1795291539.7898262,
+    "ast_hash": "ffa7959d3faf84a68a386f8db6eff29a",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/sources/components/source-paycheque-ledger.tsx": {
+    "mtime": 1795104589.4228253,
+    "seen": 1795291539.789827,
+    "ast_hash": "48483a83824c504f792f1290baac0cc8",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/sources/index.ts": {
+    "mtime": 1795104795.0987842,
+    "seen": 1795291539.789827,
+    "ast_hash": "b7005fac41fd6840112ecd2fc68bf3e8",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/sources/lib/compute-source-detail.ts": {
+    "mtime": 1795126668.1764593,
+    "seen": 1795291539.789828,
+    "ast_hash": "0f4ad39c30c6eb351f95b7ef1fe6b2b6",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/sources/schemas/source-schema.ts": {
+    "mtime": 1795104646.4661725,
+    "seen": 1795291539.789829,
+    "ast_hash": "2fbb6606f7e25b58c94c34d48a34735c",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/sources/services/get-source-by-id.ts": {
+    "mtime": 1795126765.366004,
+    "seen": 1795291539.789829,
+    "ast_hash": "8f4b2becf7117cfbdc9a6b6dc8e5384f",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/sources/services/get-sources.ts": {
+    "mtime": 1794173073.5022411,
+    "seen": 1795291539.78983,
+    "ast_hash": "fa56a622488854d728953b7c65a7786d",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/sources/types/source-types.ts": {
+    "mtime": 1795126666.4981048,
+    "seen": 1795291539.789831,
+    "ast_hash": "494fd77a58d8144d90c01d187ba83969",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/taxes/components/taxes-dashboard.tsx": {
+    "mtime": 1795126765.466321,
+    "seen": 1795291539.789831,
+    "ast_hash": "357a5625fb01df88b89038bc25ad8c5e",
+    "semantic_hash": ""
+  },
+  "frontend/src/features/taxes/index.ts": {
+    "mtime": 1794249920.960383,
+    "seen": 1795291539.7898319,
+    "ast_hash": "243140917dd30eb78d0cddb1f13d4a05",
+    "semantic_hash": ""
+  },
+  "CONCEPTS.md": {
+    "mtime": 1795290592.7620833,
+    "seen": 1795291539.789841,
+    "ast_hash": "c619e1d766ab9c3155cf0f3dc3178bd0",
+    "semantic_hash": ""
+  },
+  "docs/README.md": {
+    "mtime": 1795291495.4912462,
+    "seen": 1795291539.789844,
+    "ast_hash": "304c6596c3aba82831c174e9de7c1b9a",
+    "semantic_hash": ""
+  },
+  "docs/solutions/logic-errors/corrupted-payroll-pdf-and-vlm-withholding-reconciliation.md": {
+    "mtime": 1795291498.179693,
+    "seen": 1795291539.789845,
+    "ast_hash": "9cd8aa7bfc90c6fb6496f74fb2ac4cc6",
+    "semantic_hash": ""
+  },
+  "docs/solutions/ui-bugs/year-dropdown-multi-click-stall-and-popover-sizing.md": {
+    "mtime": 1795291399.5935495,
+    "seen": 1795291539.789846,
+    "ast_hash": "5ec829d26d45b8a4bc4ffea8038c592d",
     "semantic_hash": ""
   }
 }
