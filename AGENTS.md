@@ -61,7 +61,7 @@ Switch levels with `/ponytail lite|ultra`. Turn it off with "stop ponytail" or "
 - **Frontend features:** `frontend/src/features/<allocations|overview|paycheques|sources|taxes>/{actions,components,schemas,services,types}`. Shared code lives in `components/{layout,ui}`, `lib/` (`allocation-engine.ts`, `tax-intelligence.ts`, `utils.ts`), `hooks/`, and `types/`. Design tokens are in `styles/globals.css`.
 - **Backend domains:** `backend/src/<sources|paycheques|settings>/{router,service,schemas,models,dependencies,exceptions,constants}.py` plus `allocations.py`. Tests are in `backend/test_app.py`.
 - **Data flow:** UI → Server Actions (Zod) → `/api/[...path]` proxy → FastAPI → SQLite.
-- **Docs:** `PROJECT_OVERVIEW.md` (features, business rules, API), `CONCEPTS.md` (shared domain vocabulary — entities, named processes, and status concepts relevant when orienting to the codebase), `features/` (feature specs), `docs/solutions/` (captured dev problems & fixes), `docs/decisions/` (architectural & design decisions), `refactor/`, `ui-audit/`, and `improvement-plan/` (plans already done or in progress).
+- **Docs:** `PROJECT_OVERVIEW.md` (features, business rules, API), `CONCEPTS.md` (shared domain vocabulary — entities, named processes, and status concepts relevant when orienting to the codebase), and `docs/` (`docs/README.md` index, `docs/specs/` feature specs, `docs/plans/` active plans, `docs/solutions/` solved problems, `docs/decisions/` decisions, `docs/archive/` completed plans & audits).
 
 ## 4. Invariants (do not break)
 
@@ -84,16 +84,17 @@ Project (`.agents/skills/`):
 
 Global (`~/.gemini/config/skills/`):
 - `ce-compound`: capture solved dev problems and refresh stale learnings
-- `spec-driven-development`: write feature specs before implementing
+- `spec-driven-development`: write feature specs before implementing (`docs/specs/`)
 
 ## 6. Capture problems, decisions, and feature specs
 
-Always record the hard-won problems you solve and the non-obvious decisions you make while developing, so future sessions don't repeat mistakes or reverse intentional trade-offs. Create `docs/solutions/` or `docs/decisions/` on first use.
+Always record the hard-won problems you solve and the non-obvious decisions you make while developing, so future sessions don't repeat mistakes or reverse intentional trade-offs. Create `docs/plans/`, `docs/solutions/`, or `docs/decisions/` on first use.
 
 - **Problems solved → `docs/solutions/`:** Whenever you hit and verify a fix for a non-trivial bug, unexpected runtime/tool behavior, failed approach, wrong assumption, or review defect, invoke the `ce-compound` skill (or write a concise entry under `docs/solutions/YYYY-MM-DD-<slug>.md`) capturing: **Problem / Symptom**, **Root cause (why)**, **Solution**, and **Prevention / Guardrail** (prefer encoding prevention as a test, lint rule, or invariant when cheaper). Skip trivial typos or work that went as first planned.
 - **Decisions made → `docs/decisions/`:** Whenever development involves a meaningful architectural, schema, API, UX, library, or trade-off choice, record a short decision note in `docs/decisions/YYYY-MM-DD-<slug>.md` (or update the existing note when superseding a prior decision) covering: **Context**, **Decision**, **Alternatives considered**, and **Consequences / Trade-offs**.
-- **New features → `features/`:** Before implementing a new feature or significant change, use `spec-driven-development` to write or update a spec in `features/`.
-- **Check first:** Before changing a tricky subsystem or revisiting an existing design, check `docs/solutions/` and `docs/decisions/` (or query `graphify` once updated).
+- **New features → `docs/specs/`:** Before implementing a new feature or significant change, use `spec-driven-development` to write or update a spec at `docs/specs/NN-<slug>.md`.
+- **Multi-step plans & audits → `docs/plans/` → `docs/archive/`:** Track active refactors or audits under `docs/plans/YYYY-MM-<initiative>/`, then `git mv` to `docs/archive/YYYY-MM-<initiative>/` once shipped.
+- **Check first:** Before changing a tricky subsystem or revisiting an existing design, check `docs/README.md`, `docs/solutions/`, and `docs/decisions/` (or query `graphify` once updated).
 
 ## 7. Verify before you say "done"
 
@@ -120,7 +121,7 @@ If the rebuild or healthcheck fails, check `docker compose logs <service>`, fix 
   1. Schema / backend domain changes + backend tests
   2. Frontend API/types/actions and UI components
   3. Refactors or bug fixes separated from new features
-  4. Docs, specs, captured solutions/decisions (`features/`, `docs/`), and `graphify-out/` updates
+  4. Docs, specs, captured solutions/decisions (`docs/`), and `graphify-out/` updates
 - **Keep every commit self-contained and working** — don't leave broken imports or half-migrated state in an intermediate commit.
 - **Match repo commit style:** use Conventional Commits (`feat:`, `fix:`, `refactor:`, `perf:`, `docs:`, `test:`, `chore:`) with a concise imperative summary explaining *what* and *why*.
 - **Stage intentionally** (`git add <paths>` or `git add -p`), never blind `git add -A` when unrelated or generated files are present. Only commit and push when asked by the user.
