@@ -194,6 +194,7 @@ VISION_PROMPT = (
     "NEVER use company IDs, cheque numbers, or MICR digits as amounts; "
     "set gross, tax, deductions, hours to null.\n"
     "- For paystubs: CURRENT PERIOD figures only (ignore YTD); "
+    "paid_on = pay/advice/check/issue date as YYYY-MM-DD (NOT Pay Begin/End Date); "
     "numeric_amount = net take-home pay; written_amount = null."
 )
 

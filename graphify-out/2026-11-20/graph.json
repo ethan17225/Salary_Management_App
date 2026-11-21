@@ -1396,7 +1396,7 @@
       "file_type": "code",
       "norm_label": "llm_available()",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L292"
+      "source_location": "L296"
     },
     {
       "id": "backend_src_paycheques_parsers_check_row",
@@ -1576,7 +1576,7 @@
       "file_type": "code",
       "norm_label": "parse_upload()",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L711"
+      "source_location": "L716"
     },
     {
       "id": "backend_src_paycheques_parsers_parse_written_amount",
@@ -1624,7 +1624,7 @@
       "file_type": "code",
       "norm_label": "row_from_text()",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L640"
+      "source_location": "L645"
     },
     {
       "id": "backend_src_paycheques_parsers_row_from_text_rank",
@@ -1636,7 +1636,7 @@
       "file_type": "code",
       "norm_label": "rank()",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L697"
+      "source_location": "L702"
     },
     {
       "id": "backend_src_paycheques_parsers_row_from_vision",
@@ -2164,7 +2164,7 @@
       "file_type": "code",
       "norm_label": "_auto_crop_paper()",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L59"
+      "source_location": "L60"
     },
     {
       "id": "backend_src_paycheques_extractors_compact_for_llm",
@@ -2176,7 +2176,7 @@
       "file_type": "code",
       "norm_label": "_compact_for_llm()",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L313"
+      "source_location": "L317"
     },
     {
       "id": "backend_src_paycheques_extractors_encode_vision_jpeg_b64",
@@ -2188,7 +2188,7 @@
       "file_type": "code",
       "norm_label": "_encode_vision_jpeg_b64()",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L207"
+      "source_location": "L205"
     },
     {
       "id": "backend_src_paycheques_extractors_enhance_ink_contrast",
@@ -2200,7 +2200,7 @@
       "file_type": "code",
       "norm_label": "_enhance_ink_contrast()",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L97"
+      "source_location": "L98"
     },
     {
       "id": "backend_src_paycheques_extractors_is_dark_background",
@@ -2212,7 +2212,7 @@
       "file_type": "code",
       "norm_label": "_is_dark_background()",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L40"
+      "source_location": "L41"
     },
     {
       "id": "backend_src_paycheques_extractors_llm",
@@ -2224,7 +2224,7 @@
       "file_type": "code",
       "norm_label": "_llm()",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L300"
+      "source_location": "L304"
     },
     {
       "id": "backend_src_paycheques_extractors_llm_extract",
@@ -2236,7 +2236,7 @@
       "file_type": "code",
       "norm_label": "llm_extract()",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L326"
+      "source_location": "L330"
     },
     {
       "id": "backend_src_paycheques_extractors_ocr_engine",
@@ -2248,7 +2248,7 @@
       "file_type": "code",
       "norm_label": "_ocr_engine()",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L145"
+      "source_location": "L146"
     },
     {
       "id": "backend_src_paycheques_extractors_ocr_text",
@@ -2260,7 +2260,7 @@
       "file_type": "code",
       "norm_label": "ocr_text()",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L164"
+      "source_location": "L165"
     },
     {
       "id": "backend_src_paycheques_extractors_parse_json_object",
@@ -2272,7 +2272,7 @@
       "file_type": "code",
       "norm_label": "_parse_json_object()",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L218"
+      "source_location": "L216"
     },
     {
       "id": "backend_src_paycheques_extractors_pdf_extract",
@@ -2284,7 +2284,7 @@
       "file_type": "code",
       "norm_label": "pdf_extract()",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L30"
+      "source_location": "L31"
     },
     {
       "id": "backend_src_paycheques_extractors_prepare_images",
@@ -2296,7 +2296,7 @@
       "file_type": "code",
       "norm_label": "prepare_images()",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L124"
+      "source_location": "L125"
     },
     {
       "id": "backend_src_paycheques_extractors_preprocess_document_image",
@@ -2308,7 +2308,7 @@
       "file_type": "code",
       "norm_label": "preprocess_document_image()",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L108"
+      "source_location": "L109"
     },
     {
       "id": "backend_src_paycheques_extractors_vision_available",
@@ -2320,7 +2320,7 @@
       "file_type": "code",
       "norm_label": "vision_available()",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L203"
+      "source_location": "L201"
     },
     {
       "id": "backend_src_paycheques_extractors_vision_extract",
@@ -2332,7 +2332,7 @@
       "file_type": "code",
       "norm_label": "vision_extract()",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L230"
+      "source_location": "L228"
     },
     {
       "id": "backend_src_paycheques_extractors_visual_lines",
@@ -2344,7 +2344,7 @@
       "file_type": "code",
       "norm_label": "_visual_lines()",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L151"
+      "source_location": "L152"
     },
     {
       "id": "frontend_src_lib_utils_shortcurrency",
@@ -2515,6 +2515,30 @@
       "source_location": "L22"
     },
     {
+      "id": "backend_src_paycheques_router_list_paycheques",
+      "label": "list_paycheques()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "allocations.py",
+      "file_type": "code",
+      "norm_label": "list_paycheques()",
+      "source_file": "backend/src/paycheques/router.py",
+      "source_location": "L43"
+    },
+    {
+      "id": "backend_src_paycheques_service_list_paycheques",
+      "label": "list_paycheques()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "allocations.py",
+      "file_type": "code",
+      "norm_label": "list_paycheques()",
+      "source_file": "backend/src/paycheques/service.py",
+      "source_location": "L58"
+    },
+    {
       "id": "backend_src_paycheques_utils_parse_tax_reserve_bps",
       "label": "parse_tax_reserve_bps()",
       "_callable": true,
@@ -2633,18 +2657,6 @@
       "norm_label": "paychequespage()",
       "source_file": "frontend/src/app/(dashboard)/paycheques/page.tsx",
       "source_location": "L7"
-    },
-    {
-      "id": "frontend_src_components_layout_navbar_navbar",
-      "label": "Navbar()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 35,
-      "community_name": "Navbar",
-      "file_type": "code",
-      "norm_label": "navbar()",
-      "source_file": "frontend/src/components/layout/navbar.tsx",
-      "source_location": "L119"
     },
     {
       "id": "frontend_src_app_dashboard_layout_dashboardlayout",
@@ -2815,18 +2827,6 @@
       "source_location": "L136"
     },
     {
-      "id": "backend_src_paycheques_router_list_paycheques",
-      "label": "list_paycheques()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "paycheques/service.py",
-      "file_type": "code",
-      "norm_label": "list_paycheques()",
-      "source_file": "backend/src/paycheques/router.py",
-      "source_location": "L43"
-    },
-    {
       "id": "backend_src_paycheques_router_parse_paycheque_file",
       "label": "parse_paycheque_file()",
       "_callable": true,
@@ -2921,18 +2921,6 @@
       "norm_label": "import_paycheques_batch()",
       "source_file": "backend/src/paycheques/service.py",
       "source_location": "L198"
-    },
-    {
-      "id": "backend_src_paycheques_service_list_paycheques",
-      "label": "list_paycheques()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "paycheques/service.py",
-      "file_type": "code",
-      "norm_label": "list_paycheques()",
-      "source_file": "backend/src/paycheques/service.py",
-      "source_location": "L58"
     },
     {
       "id": "backend_src_paycheques_service_pick_alias",
@@ -3031,16 +3019,28 @@
       "source_location": "L9"
     },
     {
-      "id": "frontend_src_app_not_found_notfound",
-      "label": "NotFound()",
+      "id": "frontend_src_app_dashboard_sources_page_sourcespage",
+      "label": "SourcesPage()",
       "_callable": true,
       "_origin": "ast",
       "community": 41,
       "community_name": "[id]/page.tsx",
       "file_type": "code",
-      "norm_label": "notfound()",
-      "source_file": "frontend/src/app/not-found.tsx",
+      "norm_label": "sourcespage()",
+      "source_file": "frontend/src/app/(dashboard)/sources/page.tsx",
       "source_location": "L3"
+    },
+    {
+      "id": "frontend_src_components_layout_navbar_navbar",
+      "label": "Navbar()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 46,
+      "community_name": "navbar.tsx",
+      "file_type": "code",
+      "norm_label": "navbar()",
+      "source_file": "frontend/src/components/layout/navbar.tsx",
+      "source_location": "L119"
     },
     {
       "id": "frontend_src_components_layout_navbar_navbarsearchparamssync",
@@ -3101,6 +3101,18 @@
       "norm_label": "rootlayout()",
       "source_file": "frontend/src/app/layout.tsx",
       "source_location": "L28"
+    },
+    {
+      "id": "frontend_src_app_not_found_notfound",
+      "label": "NotFound()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 48,
+      "community_name": "app/layout.tsx",
+      "file_type": "code",
+      "norm_label": "notfound()",
+      "source_file": "frontend/src/app/not-found.tsx",
+      "source_location": "L3"
     },
     {
       "id": "backend_src_allocations_allocationpresetpayload_validate_preset",
@@ -3197,18 +3209,6 @@
       "norm_label": "parse_weight_bps()",
       "source_file": "backend/src/allocations.py",
       "source_location": "L106"
-    },
-    {
-      "id": "frontend_src_app_dashboard_sources_page_sourcespage",
-      "label": "SourcesPage()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "sources/page.tsx",
-      "file_type": "code",
-      "norm_label": "sourcespage()",
-      "source_file": "frontend/src/app/(dashboard)/sources/page.tsx",
-      "source_location": "L3"
     },
     {
       "id": "backend_src_main_add_no_store_header",
@@ -4291,7 +4291,7 @@
       "source_location": "L544"
     },
     {
-      "id": "backend_src_paycheques_parsers_rationale_647",
+      "id": "backend_src_paycheques_parsers_rationale_652",
       "label": "Returns (row, used_llm). Runs deterministic rules first and only calls the\u2026",
       "_origin": "ast",
       "community": 15,
@@ -4299,7 +4299,7 @@
       "file_type": "rationale",
       "norm_label": "returns (row, used_llm). runs deterministic rules first and only calls the...",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L647"
+      "source_location": "L652"
     },
     {
       "id": "backend_src_paycheques_schemas_rationale_137",
@@ -5367,7 +5367,7 @@
       "source_location": "L1"
     },
     {
-      "id": "backend_src_paycheques_extractors_rationale_109",
+      "id": "backend_src_paycheques_extractors_rationale_110",
       "label": "EXIF-orient, auto-crop bright cheques off dark backgrounds with CLAHE, and\u2026",
       "_origin": "ast",
       "community": 28,
@@ -5375,10 +5375,10 @@
       "file_type": "rationale",
       "norm_label": "exif-orient, auto-crop bright cheques off dark backgrounds with clahe, and...",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L109"
+      "source_location": "L110"
     },
     {
-      "id": "backend_src_paycheques_extractors_rationale_152",
+      "id": "backend_src_paycheques_extractors_rationale_153",
       "label": "Group OCR boxes into visual rows (top-to-bottom, then left-to-right) so a line\u2026",
       "_origin": "ast",
       "community": 28,
@@ -5386,10 +5386,10 @@
       "file_type": "rationale",
       "norm_label": "group ocr boxes into visual rows (top-to-bottom, then left-to-right) so a line...",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L152"
+      "source_location": "L153"
     },
     {
-      "id": "backend_src_paycheques_extractors_rationale_165",
+      "id": "backend_src_paycheques_extractors_rationale_166",
       "label": "Returns (text, mean OCR score).",
       "_origin": "ast",
       "community": 28,
@@ -5397,10 +5397,10 @@
       "file_type": "rationale",
       "norm_label": "returns (text, mean ocr score).",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L165"
+      "source_location": "L166"
     },
     {
-      "id": "backend_src_paycheques_extractors_rationale_314",
+      "id": "backend_src_paycheques_extractors_rationale_318",
       "label": "Keep header lines (employer + dates) and numeric/summary lines inside a small\u2026",
       "_origin": "ast",
       "community": 28,
@@ -5408,7 +5408,7 @@
       "file_type": "rationale",
       "norm_label": "keep header lines (employer + dates) and numeric/summary lines inside a small...",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L314"
+      "source_location": "L318"
     },
     {
       "id": "ui_audit_10_form_attributes_typography_and_placeholder_standards",
@@ -5748,6 +5748,17 @@
       "norm_label": "paycheques/router.py",
       "source_file": "backend/src/paycheques/router.py",
       "source_location": "L1"
+    },
+    {
+      "id": "backend_src_paycheques_router_py_get",
+      "label": "get",
+      "_origin": "ast",
+      "community": 3,
+      "community_name": "allocations.py",
+      "file_type": "code",
+      "norm_label": "get",
+      "source_file": "",
+      "source_location": ""
     },
     {
       "id": "backend_src_settings_init",
@@ -6388,7 +6399,7 @@
       "label": "08-compositor-safe-transitions-and-motion-restraint.md",
       "_origin": "ast",
       "community": 35,
-      "community_name": "Navbar",
+      "community_name": "Detailed Problem",
       "file_type": "document",
       "node_kind": "page",
       "norm_label": "08-compositor-safe-transitions-and-motion-restraint.md",
@@ -6400,7 +6411,7 @@
       "label": "1. Prohibited `transition-all` Usages",
       "_origin": "ast",
       "community": 35,
-      "community_name": "Navbar",
+      "community_name": "Detailed Problem",
       "file_type": "document",
       "node_kind": "heading",
       "norm_label": "1. prohibited `transition-all` usages",
@@ -6412,7 +6423,7 @@
       "label": "2. Layout-Triggering Property Transitions",
       "_origin": "ast",
       "community": 35,
-      "community_name": "Navbar",
+      "community_name": "Detailed Problem",
       "file_type": "document",
       "node_kind": "heading",
       "norm_label": "2. layout-triggering property transitions",
@@ -6424,7 +6435,7 @@
       "label": "3. Press Scale Consistency",
       "_origin": "ast",
       "community": 35,
-      "community_name": "Navbar",
+      "community_name": "Detailed Problem",
       "file_type": "document",
       "node_kind": "heading",
       "norm_label": "3. press scale consistency",
@@ -6436,7 +6447,7 @@
       "label": "Description",
       "_origin": "ast",
       "community": 35,
-      "community_name": "Navbar",
+      "community_name": "Detailed Problem",
       "file_type": "document",
       "node_kind": "heading",
       "norm_label": "description",
@@ -6448,7 +6459,7 @@
       "label": "Detailed Problem",
       "_origin": "ast",
       "community": 35,
-      "community_name": "Navbar",
+      "community_name": "Detailed Problem",
       "file_type": "document",
       "node_kind": "heading",
       "norm_label": "detailed problem",
@@ -6460,7 +6471,7 @@
       "label": "Detailed Solutions",
       "_origin": "ast",
       "community": 35,
-      "community_name": "Navbar",
+      "community_name": "Detailed Problem",
       "file_type": "document",
       "node_kind": "heading",
       "norm_label": "detailed solutions",
@@ -6472,7 +6483,7 @@
       "label": "UI Audit 08 \u2014 Compositor-Safe Transitions, Reduced Motion & Removal of `transition-all`",
       "_origin": "ast",
       "community": 35,
-      "community_name": "Navbar",
+      "community_name": "Detailed Problem",
       "file_type": "document",
       "node_kind": "heading",
       "norm_label": "ui audit 08 \u2014 compositor-safe transitions, reduced motion & removal of `transition-all`",
@@ -6484,7 +6495,7 @@
       "label": "Verification Criteria",
       "_origin": "ast",
       "community": 35,
-      "community_name": "Navbar",
+      "community_name": "Detailed Problem",
       "file_type": "document",
       "node_kind": "heading",
       "norm_label": "verification criteria",
@@ -7103,17 +7114,6 @@
       "source_location": ""
     },
     {
-      "id": "backend_src_paycheques_router_py_get",
-      "label": "get",
-      "_origin": "ast",
-      "community": 4,
-      "community_name": "paycheques/service.py",
-      "file_type": "code",
-      "norm_label": "get",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
       "id": "backend_src_paycheques_router_py_paychequecreate",
       "label": "PaychequeCreate",
       "_origin": "ast",
@@ -7301,94 +7301,6 @@
       "source_location": "L45"
     },
     {
-      "id": "frontend_package_devdependencies",
-      "label": "devDependencies",
-      "_origin": "ast",
-      "community": 40,
-      "community_name": "devDependencies",
-      "file_type": "code",
-      "norm_label": "devdependencies",
-      "source_file": "frontend/package.json",
-      "source_location": "L18"
-    },
-    {
-      "id": "frontend_package_devdependencies_postcss",
-      "label": "postcss",
-      "_origin": "ast",
-      "community": 40,
-      "community_name": "devDependencies",
-      "file_type": "code",
-      "norm_label": "postcss",
-      "source_file": "frontend/package.json",
-      "source_location": "L23"
-    },
-    {
-      "id": "frontend_package_devdependencies_tailwindcss",
-      "label": "tailwindcss",
-      "_origin": "ast",
-      "community": 40,
-      "community_name": "devDependencies",
-      "file_type": "code",
-      "norm_label": "tailwindcss",
-      "source_file": "frontend/package.json",
-      "source_location": "L24"
-    },
-    {
-      "id": "frontend_package_devdependencies_tailwindcss_postcss",
-      "label": "@tailwindcss/postcss",
-      "_origin": "ast",
-      "community": 40,
-      "community_name": "devDependencies",
-      "file_type": "code",
-      "norm_label": "@tailwindcss/postcss",
-      "source_file": "frontend/package.json",
-      "source_location": "L19"
-    },
-    {
-      "id": "frontend_package_devdependencies_types_node",
-      "label": "@types/node",
-      "_origin": "ast",
-      "community": 40,
-      "community_name": "devDependencies",
-      "file_type": "code",
-      "norm_label": "@types/node",
-      "source_file": "frontend/package.json",
-      "source_location": "L20"
-    },
-    {
-      "id": "frontend_package_devdependencies_types_react",
-      "label": "@types/react",
-      "_origin": "ast",
-      "community": 40,
-      "community_name": "devDependencies",
-      "file_type": "code",
-      "norm_label": "@types/react",
-      "source_file": "frontend/package.json",
-      "source_location": "L21"
-    },
-    {
-      "id": "frontend_package_devdependencies_types_react_dom",
-      "label": "@types/react-dom",
-      "_origin": "ast",
-      "community": 40,
-      "community_name": "devDependencies",
-      "file_type": "code",
-      "norm_label": "@types/react-dom",
-      "source_file": "frontend/package.json",
-      "source_location": "L22"
-    },
-    {
-      "id": "frontend_package_devdependencies_typescript",
-      "label": "typescript",
-      "_origin": "ast",
-      "community": 40,
-      "community_name": "devDependencies",
-      "file_type": "code",
-      "norm_label": "typescript",
-      "source_file": "frontend/package.json",
-      "source_location": "L25"
-    },
-    {
       "id": "frontend_src_app_dashboard_sources_id_page",
       "label": "[id]/page.tsx",
       "_origin": "ast",
@@ -7400,26 +7312,15 @@
       "source_location": "L1"
     },
     {
-      "id": "frontend_src_app_not_found",
-      "label": "not-found.tsx",
+      "id": "frontend_src_app_dashboard_sources_page",
+      "label": "sources/page.tsx",
       "_origin": "ast",
       "community": 41,
       "community_name": "[id]/page.tsx",
       "file_type": "code",
-      "norm_label": "not-found.tsx",
-      "source_file": "frontend/src/app/not-found.tsx",
+      "norm_label": "sources/page.tsx",
+      "source_file": "frontend/src/app/(dashboard)/sources/page.tsx",
       "source_location": "L1"
-    },
-    {
-      "id": "ref_next",
-      "label": "next",
-      "_origin": "ast",
-      "community": 41,
-      "community_name": "[id]/page.tsx",
-      "file_type": "concept",
-      "norm_label": "next",
-      "source_file": "frontend/package.json",
-      "source_location": "L12"
     },
     {
       "id": "frontend_src_types_payday",
@@ -7515,83 +7416,6 @@
       "norm_label": "verification criteria",
       "source_file": "ui-audit/01-semantic-card-navigation-and-link-overlay.md",
       "source_location": "L111"
-    },
-    {
-      "id": "frontend_package_dependencies",
-      "label": "dependencies",
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "dependencies",
-      "file_type": "code",
-      "norm_label": "dependencies",
-      "source_file": "frontend/package.json",
-      "source_location": "L10"
-    },
-    {
-      "id": "frontend_package_dependencies_chart_js",
-      "label": "chart.js",
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "dependencies",
-      "file_type": "code",
-      "norm_label": "chart.js",
-      "source_file": "frontend/package.json",
-      "source_location": "L11"
-    },
-    {
-      "id": "frontend_package_dependencies_next",
-      "label": "next",
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "dependencies",
-      "file_type": "code",
-      "norm_label": "next",
-      "source_file": "frontend/package.json",
-      "source_location": "L12"
-    },
-    {
-      "id": "frontend_package_dependencies_react",
-      "label": "react",
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "dependencies",
-      "file_type": "code",
-      "norm_label": "react",
-      "source_file": "frontend/package.json",
-      "source_location": "L13"
-    },
-    {
-      "id": "frontend_package_dependencies_react_dom",
-      "label": "react-dom",
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "dependencies",
-      "file_type": "code",
-      "norm_label": "react-dom",
-      "source_file": "frontend/package.json",
-      "source_location": "L14"
-    },
-    {
-      "id": "frontend_package_dependencies_server_only",
-      "label": "server-only",
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "dependencies",
-      "file_type": "code",
-      "norm_label": "server-only",
-      "source_file": "frontend/package.json",
-      "source_location": "L15"
-    },
-    {
-      "id": "frontend_package_dependencies_zod",
-      "label": "zod",
-      "_origin": "ast",
-      "community": 44,
-      "community_name": "dependencies",
-      "file_type": "code",
-      "norm_label": "zod",
-      "source_file": "frontend/package.json",
-      "source_location": "L16"
     },
     {
       "id": "improvement_plan_master_ui_ux_improvement_plan",
@@ -7862,59 +7686,26 @@
       "source_location": "L26"
     },
     {
-      "id": "frontend_package_scripts",
-      "label": "scripts",
+      "id": "frontend_src_app_not_found",
+      "label": "not-found.tsx",
       "_origin": "ast",
-      "community": 49,
-      "community_name": "scripts",
+      "community": 48,
+      "community_name": "app/layout.tsx",
       "file_type": "code",
-      "norm_label": "scripts",
-      "source_file": "frontend/package.json",
-      "source_location": "L4"
+      "norm_label": "not-found.tsx",
+      "source_file": "frontend/src/app/not-found.tsx",
+      "source_location": "L1"
     },
     {
-      "id": "frontend_package_scripts_build",
-      "label": "build",
+      "id": "ref_next",
+      "label": "next",
       "_origin": "ast",
-      "community": 49,
-      "community_name": "scripts",
-      "file_type": "code",
-      "norm_label": "build",
+      "community": 48,
+      "community_name": "app/layout.tsx",
+      "file_type": "concept",
+      "norm_label": "next",
       "source_file": "frontend/package.json",
-      "source_location": "L6"
-    },
-    {
-      "id": "frontend_package_scripts_dev",
-      "label": "dev",
-      "_origin": "ast",
-      "community": 49,
-      "community_name": "scripts",
-      "file_type": "code",
-      "norm_label": "dev",
-      "source_file": "frontend/package.json",
-      "source_location": "L5"
-    },
-    {
-      "id": "frontend_package_scripts_start",
-      "label": "start",
-      "_origin": "ast",
-      "community": 49,
-      "community_name": "scripts",
-      "file_type": "code",
-      "norm_label": "start",
-      "source_file": "frontend/package.json",
-      "source_location": "L7"
-    },
-    {
-      "id": "frontend_package_scripts_typecheck",
-      "label": "typecheck",
-      "_origin": "ast",
-      "community": 49,
-      "community_name": "scripts",
-      "file_type": "code",
-      "norm_label": "typecheck",
-      "source_file": "frontend/package.json",
-      "source_location": "L8"
+      "source_location": "L12"
     },
     {
       "id": "backend_src_allocations_py_any",
@@ -7959,17 +7750,6 @@
       "norm_label": "extracts integer basis points (1..10000) from `weight_bps` or `percentage`.",
       "source_file": "backend/src/allocations.py",
       "source_location": "L107"
-    },
-    {
-      "id": "frontend_src_app_dashboard_sources_page",
-      "label": "sources/page.tsx",
-      "_origin": "ast",
-      "community": 50,
-      "community_name": "sources/page.tsx",
-      "file_type": "code",
-      "norm_label": "sources/page.tsx",
-      "source_file": "frontend/src/app/(dashboard)/sources/page.tsx",
-      "source_location": "L1"
     },
     {
       "id": "refactor_06_interactive_allocation_rebalancing_and_safety_detailed_solutions",
@@ -8218,6 +7998,171 @@
       "source_location": "L1"
     },
     {
+      "id": "frontend_package_dependencies",
+      "label": "dependencies",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "package.json",
+      "file_type": "code",
+      "norm_label": "dependencies",
+      "source_file": "frontend/package.json",
+      "source_location": "L10"
+    },
+    {
+      "id": "frontend_package_dependencies_chart_js",
+      "label": "chart.js",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "package.json",
+      "file_type": "code",
+      "norm_label": "chart.js",
+      "source_file": "frontend/package.json",
+      "source_location": "L11"
+    },
+    {
+      "id": "frontend_package_dependencies_next",
+      "label": "next",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "package.json",
+      "file_type": "code",
+      "norm_label": "next",
+      "source_file": "frontend/package.json",
+      "source_location": "L12"
+    },
+    {
+      "id": "frontend_package_dependencies_react",
+      "label": "react",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "package.json",
+      "file_type": "code",
+      "norm_label": "react",
+      "source_file": "frontend/package.json",
+      "source_location": "L13"
+    },
+    {
+      "id": "frontend_package_dependencies_react_dom",
+      "label": "react-dom",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "package.json",
+      "file_type": "code",
+      "norm_label": "react-dom",
+      "source_file": "frontend/package.json",
+      "source_location": "L14"
+    },
+    {
+      "id": "frontend_package_dependencies_server_only",
+      "label": "server-only",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "package.json",
+      "file_type": "code",
+      "norm_label": "server-only",
+      "source_file": "frontend/package.json",
+      "source_location": "L15"
+    },
+    {
+      "id": "frontend_package_dependencies_zod",
+      "label": "zod",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "package.json",
+      "file_type": "code",
+      "norm_label": "zod",
+      "source_file": "frontend/package.json",
+      "source_location": "L16"
+    },
+    {
+      "id": "frontend_package_devdependencies",
+      "label": "devDependencies",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "package.json",
+      "file_type": "code",
+      "norm_label": "devdependencies",
+      "source_file": "frontend/package.json",
+      "source_location": "L18"
+    },
+    {
+      "id": "frontend_package_devdependencies_postcss",
+      "label": "postcss",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "package.json",
+      "file_type": "code",
+      "norm_label": "postcss",
+      "source_file": "frontend/package.json",
+      "source_location": "L23"
+    },
+    {
+      "id": "frontend_package_devdependencies_tailwindcss",
+      "label": "tailwindcss",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "package.json",
+      "file_type": "code",
+      "norm_label": "tailwindcss",
+      "source_file": "frontend/package.json",
+      "source_location": "L24"
+    },
+    {
+      "id": "frontend_package_devdependencies_tailwindcss_postcss",
+      "label": "@tailwindcss/postcss",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "package.json",
+      "file_type": "code",
+      "norm_label": "@tailwindcss/postcss",
+      "source_file": "frontend/package.json",
+      "source_location": "L19"
+    },
+    {
+      "id": "frontend_package_devdependencies_types_node",
+      "label": "@types/node",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "package.json",
+      "file_type": "code",
+      "norm_label": "@types/node",
+      "source_file": "frontend/package.json",
+      "source_location": "L20"
+    },
+    {
+      "id": "frontend_package_devdependencies_types_react",
+      "label": "@types/react",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "package.json",
+      "file_type": "code",
+      "norm_label": "@types/react",
+      "source_file": "frontend/package.json",
+      "source_location": "L21"
+    },
+    {
+      "id": "frontend_package_devdependencies_types_react_dom",
+      "label": "@types/react-dom",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "package.json",
+      "file_type": "code",
+      "norm_label": "@types/react-dom",
+      "source_file": "frontend/package.json",
+      "source_location": "L22"
+    },
+    {
+      "id": "frontend_package_devdependencies_typescript",
+      "label": "typescript",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "package.json",
+      "file_type": "code",
+      "norm_label": "typescript",
+      "source_file": "frontend/package.json",
+      "source_location": "L25"
+    },
+    {
       "id": "frontend_package_name",
       "label": "name",
       "_origin": "ast",
@@ -8238,6 +8183,61 @@
       "norm_label": "private",
       "source_file": "frontend/package.json",
       "source_location": "L3"
+    },
+    {
+      "id": "frontend_package_scripts",
+      "label": "scripts",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "package.json",
+      "file_type": "code",
+      "norm_label": "scripts",
+      "source_file": "frontend/package.json",
+      "source_location": "L4"
+    },
+    {
+      "id": "frontend_package_scripts_build",
+      "label": "build",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "package.json",
+      "file_type": "code",
+      "norm_label": "build",
+      "source_file": "frontend/package.json",
+      "source_location": "L6"
+    },
+    {
+      "id": "frontend_package_scripts_dev",
+      "label": "dev",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "package.json",
+      "file_type": "code",
+      "norm_label": "dev",
+      "source_file": "frontend/package.json",
+      "source_location": "L5"
+    },
+    {
+      "id": "frontend_package_scripts_start",
+      "label": "start",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "package.json",
+      "file_type": "code",
+      "norm_label": "start",
+      "source_file": "frontend/package.json",
+      "source_location": "L7"
+    },
+    {
+      "id": "frontend_package_scripts_typecheck",
+      "label": "typecheck",
+      "_origin": "ast",
+      "community": 7,
+      "community_name": "package.json",
+      "file_type": "code",
+      "norm_label": "typecheck",
+      "source_file": "frontend/package.json",
+      "source_location": "L8"
     },
     {
       "id": "ref_chart_js",
@@ -9473,6 +9473,18 @@
       "type": "external"
     },
     {
+      "id": "frontend_src_features_sources_index",
+      "label": "frontend_src_features_sources_index",
+      "_origin": "semantic",
+      "community": 41,
+      "community_name": "[id]/page.tsx",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "frontend_src_features_sources_index",
+      "source_file": "",
+      "type": "external"
+    },
+    {
       "id": "frontend_src_features_sources_index_getsourcebyid",
       "label": "frontend_src_features_sources_index_getsourcebyid",
       "_origin": "semantic",
@@ -9481,6 +9493,18 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "frontend_src_features_sources_index_getsourcebyid",
+      "source_file": "",
+      "type": "external"
+    },
+    {
+      "id": "frontend_src_features_sources_index_getsourcesdata",
+      "label": "frontend_src_features_sources_index_getsourcesdata",
+      "_origin": "semantic",
+      "community": 41,
+      "community_name": "[id]/page.tsx",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "frontend_src_features_sources_index_getsourcesdata",
       "source_file": "",
       "type": "external"
     },
@@ -9497,6 +9521,18 @@
       "type": "external"
     },
     {
+      "id": "frontend_src_features_sources_index_sourcegrid",
+      "label": "frontend_src_features_sources_index_sourcegrid",
+      "_origin": "semantic",
+      "community": 41,
+      "community_name": "[id]/page.tsx",
+      "external": true,
+      "file_type": "concept",
+      "norm_label": "frontend_src_features_sources_index_sourcegrid",
+      "source_file": "",
+      "type": "external"
+    },
+    {
       "id": "frontend_src_styles_globals",
       "label": "frontend_src_styles_globals",
       "_origin": "semantic",
@@ -9505,42 +9541,6 @@
       "external": true,
       "file_type": "concept",
       "norm_label": "frontend_src_styles_globals",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "frontend_src_features_sources_index",
-      "label": "frontend_src_features_sources_index",
-      "_origin": "semantic",
-      "community": 50,
-      "community_name": "sources/page.tsx",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "frontend_src_features_sources_index",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "frontend_src_features_sources_index_getsourcesdata",
-      "label": "frontend_src_features_sources_index_getsourcesdata",
-      "_origin": "semantic",
-      "community": 50,
-      "community_name": "sources/page.tsx",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "frontend_src_features_sources_index_getsourcesdata",
-      "source_file": "",
-      "type": "external"
-    },
-    {
-      "id": "frontend_src_features_sources_index_sourcegrid",
-      "label": "frontend_src_features_sources_index_sourcegrid",
-      "_origin": "semantic",
-      "community": 50,
-      "community_name": "sources/page.tsx",
-      "external": true,
-      "file_type": "concept",
-      "norm_label": "frontend_src_features_sources_index_sourcegrid",
       "source_file": "",
       "type": "external"
     },
@@ -9783,7 +9783,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L329",
+      "source_location": "L333",
       "weight": 1.0
     },
     {
@@ -9795,7 +9795,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L332",
+      "source_location": "L336",
       "weight": 1.0
     },
     {
@@ -9807,7 +9807,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L338",
+      "source_location": "L342",
       "weight": 1.0
     },
     {
@@ -9819,7 +9819,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L168",
+      "source_location": "L169",
       "weight": 1.0
     },
     {
@@ -9831,7 +9831,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L172",
+      "source_location": "L173",
       "weight": 1.0
     },
     {
@@ -9843,7 +9843,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L175",
+      "source_location": "L176",
       "weight": 1.0
     },
     {
@@ -9855,7 +9855,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L141",
+      "source_location": "L142",
       "weight": 1.0
     },
     {
@@ -9867,7 +9867,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L114",
+      "source_location": "L115",
       "weight": 1.0
     },
     {
@@ -9879,7 +9879,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L117",
+      "source_location": "L118",
       "weight": 1.0
     },
     {
@@ -9891,7 +9891,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L118",
+      "source_location": "L119",
       "weight": 1.0
     },
     {
@@ -9903,7 +9903,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L254",
+      "source_location": "L258",
       "weight": 1.0
     },
     {
@@ -10095,7 +10095,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L714",
+      "source_location": "L719",
       "weight": 1.0
     },
     {
@@ -10107,7 +10107,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L716",
+      "source_location": "L721",
       "weight": 1.0
     },
     {
@@ -10119,7 +10119,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L721",
+      "source_location": "L726",
       "weight": 1.0
     },
     {
@@ -10131,7 +10131,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L732",
+      "source_location": "L737",
       "weight": 1.0
     },
     {
@@ -10143,7 +10143,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L737",
+      "source_location": "L742",
       "weight": 1.0
     },
     {
@@ -10155,7 +10155,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L738",
+      "source_location": "L745",
       "weight": 1.0
     },
     {
@@ -10167,7 +10167,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L753",
+      "source_location": "L760",
       "weight": 1.0
     },
     {
@@ -10179,7 +10179,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L760",
+      "source_location": "L767",
       "weight": 1.0
     },
     {
@@ -10263,7 +10263,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L649",
+      "source_location": "L654",
       "weight": 1.0
     },
     {
@@ -10275,7 +10275,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L666",
+      "source_location": "L671",
       "weight": 1.0
     },
     {
@@ -10287,7 +10287,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L669",
+      "source_location": "L674",
       "weight": 1.0
     },
     {
@@ -10299,7 +10299,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L670",
+      "source_location": "L675",
       "weight": 1.0
     },
     {
@@ -10311,7 +10311,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L674",
+      "source_location": "L679",
       "weight": 1.0
     },
     {
@@ -10323,7 +10323,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L677",
+      "source_location": "L682",
       "weight": 1.0
     },
     {
@@ -10335,7 +10335,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L678",
+      "source_location": "L683",
       "weight": 1.0
     },
     {
@@ -10347,7 +10347,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L682",
+      "source_location": "L687",
       "weight": 1.0
     },
     {
@@ -10359,7 +10359,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L594",
+      "source_location": "L591",
       "weight": 1.0
     },
     {
@@ -10371,7 +10371,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L601",
+      "source_location": "L598",
       "weight": 1.0
     },
     {
@@ -10383,7 +10383,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L620",
+      "source_location": "L625",
       "weight": 1.0
     },
     {
@@ -10395,7 +10395,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L621",
+      "source_location": "L626",
       "weight": 1.0
     },
     {
@@ -10407,7 +10407,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L622",
+      "source_location": "L627",
       "weight": 1.0
     },
     {
@@ -10419,7 +10419,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L627",
+      "source_location": "L632",
       "weight": 1.0
     },
     {
@@ -10431,7 +10431,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L633",
+      "source_location": "L638",
       "weight": 1.0
     },
     {
@@ -13095,7 +13095,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L18",
+      "source_location": "L19",
       "weight": 1.0
     },
     {
@@ -15752,7 +15752,7 @@
     },
     {
       "source": "backend_src_paycheques_extractors",
-      "target": "functools",
+      "target": "collections_abc",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -15764,7 +15764,7 @@
     },
     {
       "source": "backend_src_paycheques_extractors",
-      "target": "importlib_util",
+      "target": "functools",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -15776,7 +15776,7 @@
     },
     {
       "source": "backend_src_paycheques_extractors",
-      "target": "pathlib",
+      "target": "importlib_util",
       "relation": "imports_from",
       "_origin": "ast",
       "confidence": "EXTRACTED",
@@ -15788,6 +15788,18 @@
     },
     {
       "source": "backend_src_paycheques_extractors",
+      "target": "pathlib",
+      "relation": "imports_from",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "context": "import",
+      "source_file": "backend/src/paycheques/extractors.py",
+      "source_location": "L17",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_src_paycheques_extractors",
       "target": "backend_src_config",
       "relation": "imports_from",
       "_origin": "ast",
@@ -15795,7 +15807,7 @@
       "confidence_score": 1.0,
       "context": "import",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L20",
+      "source_location": "L21",
       "weight": 1.0
     },
     {
@@ -19831,7 +19843,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L108",
+      "source_location": "L109",
       "weight": 1.0
     },
     {
@@ -19842,7 +19854,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L124",
+      "source_location": "L125",
       "weight": 1.0
     },
     {
@@ -19853,7 +19865,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L145",
+      "source_location": "L146",
       "weight": 1.0
     },
     {
@@ -19864,7 +19876,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L151",
+      "source_location": "L152",
       "weight": 1.0
     },
     {
@@ -19875,7 +19887,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L164",
+      "source_location": "L165",
       "weight": 1.0
     },
     {
@@ -19886,7 +19898,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L203",
+      "source_location": "L201",
       "weight": 1.0
     },
     {
@@ -19897,7 +19909,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L207",
+      "source_location": "L205",
       "weight": 1.0
     },
     {
@@ -19908,7 +19920,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L218",
+      "source_location": "L216",
       "weight": 1.0
     },
     {
@@ -19919,7 +19931,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L230",
+      "source_location": "L228",
       "weight": 1.0
     },
     {
@@ -19930,18 +19942,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L292",
-      "weight": 1.0
-    },
-    {
-      "source": "backend_src_paycheques_extractors",
-      "target": "backend_src_paycheques_extractors_pdf_extract",
-      "relation": "contains",
-      "_origin": "ast",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L30",
+      "source_location": "L296",
       "weight": 1.0
     },
     {
@@ -19952,7 +19953,18 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L300",
+      "source_location": "L304",
+      "weight": 1.0
+    },
+    {
+      "source": "backend_src_paycheques_extractors",
+      "target": "backend_src_paycheques_extractors_pdf_extract",
+      "relation": "contains",
+      "_origin": "ast",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "backend/src/paycheques/extractors.py",
+      "source_location": "L31",
       "weight": 1.0
     },
     {
@@ -19963,7 +19975,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L313",
+      "source_location": "L317",
       "weight": 1.0
     },
     {
@@ -19974,7 +19986,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L326",
+      "source_location": "L330",
       "weight": 1.0
     },
     {
@@ -19985,7 +19997,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L40",
+      "source_location": "L41",
       "weight": 1.0
     },
     {
@@ -19996,7 +20008,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L59",
+      "source_location": "L60",
       "weight": 1.0
     },
     {
@@ -20007,7 +20019,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L97",
+      "source_location": "L98",
       "weight": 1.0
     },
     {
@@ -20227,7 +20239,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L640",
+      "source_location": "L645",
       "weight": 1.0
     },
     {
@@ -20238,7 +20250,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L711",
+      "source_location": "L716",
       "weight": 1.0
     },
     {
@@ -25630,47 +25642,47 @@
       "weight": 1.0
     },
     {
-      "source": "backend_src_paycheques_extractors_rationale_109",
+      "source": "backend_src_paycheques_extractors_rationale_110",
       "target": "backend_src_paycheques_extractors_preprocess_document_image",
       "relation": "rationale_for",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L109",
+      "source_location": "L110",
       "weight": 1.0
     },
     {
-      "source": "backend_src_paycheques_extractors_rationale_152",
+      "source": "backend_src_paycheques_extractors_rationale_153",
       "target": "backend_src_paycheques_extractors_visual_lines",
       "relation": "rationale_for",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L152",
+      "source_location": "L153",
       "weight": 1.0
     },
     {
-      "source": "backend_src_paycheques_extractors_rationale_165",
+      "source": "backend_src_paycheques_extractors_rationale_166",
       "target": "backend_src_paycheques_extractors_ocr_text",
       "relation": "rationale_for",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L165",
+      "source_location": "L166",
       "weight": 1.0
     },
     {
-      "source": "backend_src_paycheques_extractors_rationale_314",
+      "source": "backend_src_paycheques_extractors_rationale_318",
       "target": "backend_src_paycheques_extractors_compact_for_llm",
       "relation": "rationale_for",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L314",
+      "source_location": "L318",
       "weight": 1.0
     },
     {
@@ -25773,14 +25785,14 @@
       "weight": 1.0
     },
     {
-      "source": "backend_src_paycheques_parsers_rationale_647",
+      "source": "backend_src_paycheques_parsers_rationale_652",
       "target": "backend_src_paycheques_parsers_row_from_text",
       "relation": "rationale_for",
       "_origin": "ast",
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L647",
+      "source_location": "L652",
       "weight": 1.0
     },
     {
@@ -25991,7 +26003,7 @@
       "confidence_score": 0.85,
       "context": "argument",
       "source_file": "backend/src/paycheques/extractors.py",
-      "source_location": "L236",
+      "source_location": "L239",
       "weight": 1.0
     },
     {
@@ -26003,7 +26015,7 @@
       "confidence_score": 0.85,
       "context": "argument",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L720",
+      "source_location": "L725",
       "weight": 1.0
     },
     {
@@ -26015,7 +26027,7 @@
       "confidence_score": 0.85,
       "context": "argument",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L705",
+      "source_location": "L710",
       "weight": 1.0
     },
     {
@@ -26663,7 +26675,7 @@
       "confidence_score": 0.95,
       "context": "generic_arg",
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L646",
+      "source_location": "L651",
       "weight": 0.8
     },
     {
@@ -27267,7 +27279,7 @@
       "confidence": "INFERRED",
       "confidence_score": 0.95,
       "source_file": "backend/src/paycheques/parsers.py",
-      "source_location": "L757",
+      "source_location": "L764",
       "weight": 0.8
     },
     {

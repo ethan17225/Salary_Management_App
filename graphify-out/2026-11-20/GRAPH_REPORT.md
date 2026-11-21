@@ -1,12 +1,12 @@
 # Graph Report - Salary_Management_App  (2026-11-20)
 
 ## Corpus Check
-- 83 files · ~35,469 words
+- 83 files · ~35,529 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 9 file(s) not represented in the graph (top: (none) 6, .example 1, .css 1)
 
 ## Summary
-- 808 nodes · 1553 edges · 55 communities (48 shown, 7 thin omitted)
+- 808 nodes · 1554 edges · 51 communities (44 shown, 7 thin omitted)
 - Extraction: 91% EXTRACTED · 9% INFERRED · 0% AMBIGUOUS · INFERRED: 135 edges (avg confidence: 0.94)
 - Token cost: 0 input · 0 output
 
@@ -49,22 +49,18 @@
 - iso
 - (dashboard)/layout.tsx
 - UI Audit 04 — Async Form Pending States, Double-Submit Prevention & Destructive Safeguards
-- Navbar
+- Detailed Problem
 - Detailed Solutions
 - Detailed Problem
 - UI Audit 07 — Concentric Border Radii on Nested Surfaces
 - SourcePayload
-- devDependencies
 - [id]/page.tsx
 - payday.ts
 - UI Audit 01 — Semantic Card Navigation & Stretched Link Overlay
-- dependencies
 - master-ui-ux-improvement-plan.md
 - navbar.tsx
 - UI Audit 03 — `YearDropdown` Keyboard Navigation, Escape Handling & Focus Management
 - app/layout.tsx
-- scripts
-- sources/page.tsx
 - Detailed Solutions
 - postcss.config.mjs
 - zoneinfo
@@ -89,10 +85,10 @@
   PROJECT_OVERVIEW.md → frontend/src/components/layout/navbar.tsx
 - `Solution 1: Preserve `?year=` in `Navbar`` --references--> `Navbar()`  [INFERRED]
   refactor/05-persistent-year-and-url-filter-state.md → frontend/src/components/layout/navbar.tsx
+- `Description` --references--> `Navbar()`  [INFERRED]
+  ui-audit/08-compositor-safe-transitions-and-motion-restraint.md → frontend/src/components/layout/navbar.tsx
 - `1.3 Native `YearDropdown` (`frontend/src/components/ui/year-dropdown.tsx`)` --references--> `YearDropdown()`  [INFERRED]
   improvement-plan/master-ui-ux-improvement-plan.md → frontend/src/components/ui/year-dropdown.tsx
-- `3.1. Overview Dashboard (`/`)` --references--> `YearDropdown()`  [INFERRED]
-  PROJECT_OVERVIEW.md → frontend/src/components/ui/year-dropdown.tsx
 
 ## Import Cycles
 - None detected.
@@ -100,7 +96,7 @@
 ## Hyperedges (group relationships)
 - **Docker Compose Multi-Container Stack** — docker_compose_frontend_service, docker_compose_backend_service, docker_compose_payday_data_volume [EXTRACTED 1.00]
 
-## Communities (55 total, 7 thin omitted)
+## Communities (51 total, 7 thin omitted)
 
 ### Community 0 - "db.ts"
 Cohesion: 0.18
@@ -116,11 +112,11 @@ Nodes (38): AsyncClient, asyncio, allocate_cents_largest_remainder(), Splits `am
 
 ### Community 3 - "allocations.py"
 Cohesion: 0.06
-Nodes (72): AsyncEngine, AllocationPresetPayload, AllocationRule, AllocationRuleResponse, AllocationsListResponse, apply_preset(), create_allocation(), delete_allocation() (+64 more)
+Nodes (75): AsyncEngine, AllocationPresetPayload, AllocationRule, AllocationRuleResponse, AllocationsListResponse, apply_preset(), create_allocation(), delete_allocation() (+67 more)
 
 ### Community 4 - "paycheques/service.py"
 Cohesion: 0.06
-Nodes (56): NotFoundError, ErrorCode, StrEnum, DBDep, description, ge, Path, valid_paycheque_id() (+48 more)
+Nodes (53): NotFoundError, ErrorCode, StrEnum, DBDep, description, ge, Path, valid_paycheque_id() (+45 more)
 
 ### Community 5 - "AllocationRulePayload"
 Cohesion: 0.28
@@ -131,8 +127,8 @@ Cohesion: 0.18
 Nodes (10): DialogProvider(), 02 — Actionable Payday Transfer Checklist & Split Drawer, 1. Dead-End Feedback When Logging a Paycheque, 2. Cramped & Hidden Split UI in `/paycheques`, Description, Detailed Problem, Detailed Solutions, Solution 1: Build `PaydayChecklistDialog` Component (+2 more)
 
 ### Community 7 - "package.json"
-Cohesion: 0.17
-Nodes (11): name, private, chart.js, postcss, react-dom, tailwindcss, @tailwindcss/postcss, @types/node (+3 more)
+Cohesion: 0.06
+Nodes (31): dependencies, chart.js, next, react, react-dom, server-only, zod, devDependencies (+23 more)
 
 ### Community 8 - "YearDropdown"
 Cohesion: 0.19
@@ -222,9 +218,9 @@ Nodes (8): dynamic, PageProps, frontend_src_features_paycheques_index, frontend_
 Cohesion: 0.22
 Nodes (8): 1. Missing Pending State Across All 4 Dialogs & Card Actions, 2. Web Interface Guidelines Compliance, Description, Detailed Problem, Detailed Solutions, Target Snippet (`paycheque-dialog.tsx`), UI Audit 04 — Async Form Pending States, Double-Submit Prevention & Destructive Safeguards, Verification Criteria
 
-### Community 35 - "Navbar"
+### Community 35 - "Detailed Problem"
 Cohesion: 0.22
-Nodes (9): Navbar(), 1. Prohibited `transition-all` Usages, 2. Layout-Triggering Property Transitions, 3. Press Scale Consistency, Description, Detailed Problem, Detailed Solutions, UI Audit 08 — Compositor-Safe Transitions, Reduced Motion & Removal of `transition-all` (+1 more)
+Nodes (8): 1. Prohibited `transition-all` Usages, 2. Layout-Triggering Property Transitions, 3. Press Scale Consistency, Description, Detailed Problem, Detailed Solutions, UI Audit 08 — Compositor-Safe Transitions, Reduced Motion & Removal of `transition-all`, Verification Criteria
 
 ### Community 36 - "Detailed Solutions"
 Cohesion: 0.22
@@ -242,13 +238,9 @@ Nodes (7): 1. Inverted Radii in Modal Drawers (`4px` Outer vs. `10px` Inner), 2.
 Cohesion: 0.13
 Nodes (16): PaySchedule, StrEnum, SourceKind, Any, field_validator, model_validator, SourcePayload, 03 — Actionable "Next Paydays" & Explicit Source Pay Schedules (+8 more)
 
-### Community 40 - "devDependencies"
-Cohesion: 0.25
-Nodes (8): devDependencies, postcss, tailwindcss, @tailwindcss/postcss, @types/node, @types/react, @types/react-dom, typescript
-
 ### Community 41 - "[id]/page.tsx"
-Cohesion: 0.25
-Nodes (4): PageProps, frontend_src_features_sources_index_getsourcebyid, frontend_src_features_sources_index_sourcedetailview, next
+Cohesion: 0.20
+Nodes (6): PageProps, frontend_src_features_sources_index, frontend_src_features_sources_index_getsourcebyid, frontend_src_features_sources_index_getsourcesdata, frontend_src_features_sources_index_sourcedetailview, frontend_src_features_sources_index_sourcegrid
 
 ### Community 42 - "payday.ts"
 Cohesion: 0.29
@@ -258,33 +250,21 @@ Nodes (7): AllocationRule, ActionState, PaydaySettings, PaydayState, PaySchedule
 Cohesion: 0.29
 Nodes (6): Description, Detailed Problem, Detailed Solutions, Target Implementation (`source-card.tsx`), UI Audit 01 — Semantic Card Navigation & Stretched Link Overlay, Verification Criteria
 
-### Community 44 - "dependencies"
-Cohesion: 0.29
-Nodes (7): dependencies, chart.js, next, react, react-dom, server-only, zod
-
 ### Community 45 - "master-ui-ux-improvement-plan.md"
 Cohesion: 0.22
 Nodes (6): 1. Inconsistent Color Picker UX Between Dialogs, Description, Detailed Problem, Detailed Solutions, UI Audit 06 — Unified Color Swatch Picker & Minimum 40px Touch Targets, Verification Criteria
 
 ### Community 46 - "navbar.tsx"
-Cohesion: 0.43
-Nodes (6): HASH_ROUTES, NAV_ITEMS, NavbarSearchParamsSync(), NavLinks(), withYearParam(), useDialogs()
+Cohesion: 0.39
+Nodes (7): HASH_ROUTES, NAV_ITEMS, Navbar(), NavbarSearchParamsSync(), NavLinks(), withYearParam(), useDialogs()
 
 ### Community 47 - "UI Audit 03 — `YearDropdown` Keyboard Navigation, Escape Handling & Focus Management"
 Cohesion: 0.33
 Nodes (6): Description, Detailed Problem, Detailed Solutions, Target Snippet (`year-dropdown.tsx`), UI Audit 03 — `YearDropdown` Keyboard Navigation, Escape Handling & Focus Management, Verification Criteria
 
 ### Community 48 - "app/layout.tsx"
-Cohesion: 0.29
-Nodes (5): dmMono, metadata, outfit, viewport, frontend_src_styles_globals
-
-### Community 49 - "scripts"
-Cohesion: 0.40
-Nodes (5): scripts, build, dev, start, typecheck
-
-### Community 50 - "sources/page.tsx"
-Cohesion: 0.40
-Nodes (3): frontend_src_features_sources_index, frontend_src_features_sources_index_getsourcesdata, frontend_src_features_sources_index_sourcegrid
+Cohesion: 0.20
+Nodes (6): dmMono, metadata, outfit, viewport, frontend_src_styles_globals, next
 
 ### Community 51 - "Detailed Solutions"
 Cohesion: 0.40
@@ -302,9 +282,9 @@ Nodes (4): add_no_store_header(), Response, middleware, Request
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `2.2 URL-Synced Ledger Filters, Copyable Splits, Filtered Export & Idempotent CSV Import` connect `build_export_csv` to `PaychequePayload`, `Navbar`?**
+- **Why does `2.2 URL-Synced Ledger Filters, Copyable Splits, Filtered Export & Idempotent CSV Import` connect `build_export_csv` to `PaychequePayload`, `navbar.tsx`?**
   _High betweenness centrality (0.236) - this node is a cross-community bridge._
-- **Why does `Navbar()` connect `Navbar` to `(dashboard)/layout.tsx`, `PaychequePayload`, `navbar.tsx`, `build_export_csv`?**
+- **Why does `Navbar()` connect `navbar.tsx` to `(dashboard)/layout.tsx`, `Detailed Problem`, `PaychequePayload`, `build_export_csv`?**
   _High betweenness centrality (0.207) - this node is a cross-community bridge._
 - **Why does `ensure_schema_migrations()` connect `PaychequePayload` to `test_app.py`, `allocations.py`, `build_export_csv`?**
   _High betweenness centrality (0.146) - this node is a cross-community bridge._
@@ -315,4 +295,4 @@ _Questions this graph is uniquely positioned to answer:_
 - **Should `test_app.py` be split into smaller, more focused modules?**
   _Cohesion score 0.08233117483811286 - nodes in this community are weakly interconnected._
 - **Should `allocations.py` be split into smaller, more focused modules?**
-  _Cohesion score 0.06392009987515605 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06124357176250585 - nodes in this community are weakly interconnected._
