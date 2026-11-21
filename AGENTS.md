@@ -61,7 +61,7 @@ Switch levels with `/ponytail lite|ultra`. Turn it off with "stop ponytail" or "
 - **Frontend features:** `frontend/src/features/<allocations|overview|paycheques|sources|taxes>/{actions,components,schemas,services,types}`. Shared code lives in `components/{layout,ui}`, `lib/` (`allocation-engine.ts`, `tax-intelligence.ts`, `utils.ts`), `hooks/`, and `types/`. Design tokens are in `styles/globals.css`.
 - **Backend domains:** `backend/src/<sources|paycheques|settings>/{router,service,schemas,models,dependencies,exceptions,constants}.py` plus `allocations.py`. Tests are in `backend/test_app.py`.
 - **Data flow:** UI → Server Actions (Zod) → `/api/[...path]` proxy → FastAPI → SQLite.
-- **Docs:** `PROJECT_OVERVIEW.md` (features, business rules, API), `features/` (feature specs), `docs/solutions/` (captured dev problems & fixes), `docs/decisions/` (architectural & design decisions), `refactor/`, `ui-audit/`, and `improvement-plan/` (plans already done or in progress).
+- **Docs:** `PROJECT_OVERVIEW.md` (features, business rules, API), `CONCEPTS.md` (shared domain vocabulary — entities, named processes, and status concepts relevant when orienting to the codebase), `features/` (feature specs), `docs/solutions/` (captured dev problems & fixes), `docs/decisions/` (architectural & design decisions), `refactor/`, `ui-audit/`, and `improvement-plan/` (plans already done or in progress).
 
 ## 4. Invariants (do not break)
 
