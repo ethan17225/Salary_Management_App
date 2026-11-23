@@ -20,8 +20,8 @@ import pdfplumber
 
 from src.config import settings
 
-MAX_PDF_TEXT_PAGES = 5
-MAX_OCR_PAGES = 2
+MAX_PDF_TEXT_PAGES = 15
+MAX_OCR_PAGES = 5
 MAX_OCR_IMAGE_PX = 1800
 MAX_VISION_IMAGE_PX = 1280
 OCR_PDF_SCALE = 1.75
@@ -35,7 +35,7 @@ def pdf_extract(content: bytes) -> tuple[str, list[list[list[str | None]]]]:
         for page in pdf.pages[:MAX_PDF_TEXT_PAGES]:
             texts.append(page.extract_text() or "")
             tables.extend(page.extract_tables() or [])
-    return "\n".join(texts).strip(), tables
+    return "\n\f\n".join(texts).strip(), tables
 
 
 def _is_dark_background(gray) -> tuple[bool, float, float]:
@@ -167,33 +167,42 @@ def ocr_text(content: bytes, mime: str, images: list | None = None) -> tuple[str
     import numpy as np
 
     imgs = images if images is not None else prepare_images(content, mime)
-    lines: list[str] = []
+    pages: list[str] = []
     scores: list[float] = []
     for img in imgs:
         out = _ocr_engine()(np.array(img.convert("RGB")))
         if out.boxes is None or not len(out.boxes):
             continue
-        lines += _visual_lines(out.boxes.tolist(), out.txts)
+        pages.append("\n".join(_visual_lines(out.boxes.tolist(), out.txts)))
         scores += [float(s) for s in out.scores]
-    return "\n".join(lines), (sum(scores) / len(scores) if scores else 0.0)
+    return "\n\f\n".join(pages), (sum(scores) / len(scores) if scores else 0.0)
 
 
 # --- Optional OpenAI-compatible Vision OCR (GLM-OCR / Qwen3.5 / llama-server) -----------
 
 VISION_PROMPT = (
-    'Classify the image as "cheque" (if it shows PAY TO THE ORDER OF or /100 DOLLARS) '
+    'Classify the image as "cheque" (shows PAY TO THE ORDER OF or /100 DOLLARS), '
+    '"deposit" (Interac e-Transfer, banking deposit screenshot, or CRA/government benefit notice), '
     'or "paystub", then extract income fields as ONLY valid JSON:\n'
-    '{"document_type":"cheque"|"paystub","source_name":string|null,'
+    '{"document_type":"cheque"|"deposit"|"paystub","source_name":string|null,'
     '"paid_on":"YYYY-MM-DD"|null,"numeric_amount":"0.00"|null,'
     '"written_amount":"0.00"|null,"gross":"0.00"|null,"tax":"0.00"|null,'
     '"deductions":"0.00"|null,"withholdings":[{"label":string,"amount":"0.00"}],'
     '"hours":number|null,"cheque_number":string|null}\n'
-    "- source_name: employer or payer trade/brand name (from logo or header; "
-    "ignore numbered corps like '5024721 ONTARIO LIMITED').\n"
+    'If the image shows multiple distinct payments or statement rows, instead return '
+    '{"document_type":"cheque"|"deposit"|"paystub","source_name":string|null,"entries":[{...}]} '
+    "with one entry object per row using the same fields.\n"
+    "- source_name: employer, payer trade/brand name, e-Transfer sender, or 'CRA / Government' "
+    "(ignore numbered corps like '5024721 ONTARIO LIMITED' when a trade name is visible).\n"
     '- For cheques: numeric_amount = "$" box (superscript cents like 611^86 -> "611.86"); '
     'written_amount = spelled-out legal line ("611.86" or verbatim words); '
     "paid_on = YYYY-MM-DD (Nov 20 / 26 -> 2026-11-20); "
     "NEVER use company IDs, cheque numbers, or MICR digits as amounts; "
+    "set gross, tax, deductions, hours to null and withholdings to [].\n"
+    "- For deposits (Interac e-Transfer / bank deposit / CRA benefit): "
+    "source_name = sender or 'CRA / Government'; "
+    "paid_on = deposit/transfer/issue date as YYYY-MM-DD; "
+    "numeric_amount = deposited/received amount; written_amount = null; "
     "set gross, tax, deductions, hours to null and withholdings to [].\n"
     "- For paystubs: CURRENT PERIOD figures only (ignore YTD, Exemptions/Allowances, "
     "and Deposit Acct / Direct Deposit lines); "
@@ -291,6 +300,13 @@ CHEQUE_SYSTEM_PROMPT = (
     "- NEVER use numbered company IDs (e.g. 5024721), cheque numbers, or MICR digits as amounts.\n"
     "- Always set gross, tax, deductions, and hours to null."
 )
+DEPOSIT_SYSTEM_PROMPT = (
+    "Extract deposit, e-Transfer, or government benefit notice fields into JSON. Rules:\n"
+    "- source_name = sender name or 'CRA / Government' for tax/benefit notices.\n"
+    "- paid_on = deposit, transfer, or issue date as YYYY-MM-DD.\n"
+    "- amount = deposited/received dollar amount.\n"
+    "- Always set gross, tax, deductions, and hours to null."
+)
 _LLM_KEEP_RE = re.compile(
     r"\d+\.\d{2}|\d{4}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[-/]\d{1,2}[-/]\d{4}"
     r"|\b(?:gross|net|tax|deduct|pay|advice|cheque|check|current|total|earnings|deposit|hours"
@@ -334,8 +350,15 @@ def _compact_for_llm(text: str) -> str:
     return "\n".join(kept)[:MAX_LLM_CHARS]
 
 
-def llm_extract(text: str, cheque_mode: bool = False) -> dict:
-    prompt = CHEQUE_SYSTEM_PROMPT if cheque_mode else SYSTEM_PROMPT
+def llm_extract(text: str, cheque_mode: bool = False, doc_type: str | None = None) -> dict:
+    mode = doc_type or ("cheque" if cheque_mode else "paystub")
+    prompt = (
+        CHEQUE_SYSTEM_PROMPT
+        if mode == "cheque"
+        else DEPOSIT_SYSTEM_PROMPT
+        if mode == "deposit"
+        else SYSTEM_PROMPT
+    )
     with _LLM_LOCK:
         res = _llm().create_chat_completion(
             messages=[

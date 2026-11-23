@@ -17,7 +17,7 @@ from src.models import Base
 from src.paycheques.models import ImportPipelineLog, Paycheque  # noqa: F401
 from src.paycheques.utils import parse_cents
 from src.settings.models import Setting  # noqa: F401
-from src.sources.models import Source
+from src.sources.models import Source, SourceAlias  # noqa: F401
 
 # ponytail: pre-extracted from Salary.pdf; add pypdf upload only if importing arbitrary PDFs.
 SEED: dict[tuple[str, str, str], str] = {
@@ -261,6 +261,17 @@ def ensure_schema_migrations(conn: Any) -> None:
         conn,
         "CREATE INDEX IF NOT EXISTS idx_import_pipeline_logs_parse_log_id "
         "ON import_pipeline_logs (parse_log_id) WHERE parse_log_id IS NOT NULL",
+    )
+    _exec_sql(
+        conn,
+        """
+        CREATE TABLE IF NOT EXISTS source_aliases (
+            id        INTEGER PRIMARY KEY AUTOINCREMENT,
+            raw_name  TEXT NOT NULL COLLATE NOCASE UNIQUE
+                      CHECK (length(trim(raw_name)) BETWEEN 1 AND 60),
+            source_id INTEGER NOT NULL REFERENCES sources(id) ON DELETE CASCADE
+        )
+        """,
     )
 
     if not hasattr(conn, "exec_driver_sql") and hasattr(conn, "commit"):

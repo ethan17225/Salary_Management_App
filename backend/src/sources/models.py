@@ -1,4 +1,4 @@
-from sqlalchemy import CheckConstraint, Integer, Text
+from sqlalchemy import CheckConstraint, ForeignKey, Integer, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from src.models import Base
@@ -27,3 +27,13 @@ class Source(Base):
     is_tax_withheld: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     tax_reserve_bps: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     pay_schedule: Mapped[str] = mapped_column(Text, default=PaySchedule.AUTO.value, nullable=False)
+
+
+class SourceAlias(Base):
+    __tablename__ = "source_aliases"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    raw_name: Mapped[str] = mapped_column(Text(collation="NOCASE"), unique=True, nullable=False)
+    source_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("sources.id", ondelete="CASCADE"), nullable=False
+    )

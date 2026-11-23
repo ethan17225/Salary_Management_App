@@ -27,7 +27,7 @@ from src.paycheques.schemas import (
     PaychequeResponse,
     PaychequeUpdate,
 )
-from src.sources.models import Source
+from src.sources.models import Source, SourceAlias
 
 router = APIRouter(
     prefix="/api/paycheques",
@@ -250,9 +250,23 @@ async def parse_paycheque_file(file: UploadFile, db: DBDep) -> ParseResponse:
 
     file_sha256 = hashlib.sha256(content).hexdigest()
     try:
-        res = await db.execute(select(Source.name))
-        source_names = [name for (name,) in res.all()]
-        result = await parse_upload(content, filename, known_sources=source_names, trace=trace)
+        res = await db.execute(select(Source.id, Source.name))
+        source_rows = res.all()
+        sources_by_id = {sid: name for sid, name in source_rows}
+        source_names = [name for _, name in source_rows]
+        alias_res = await db.execute(select(SourceAlias.raw_name, SourceAlias.source_id))
+        source_aliases = {
+            raw.strip().lower(): sources_by_id[sid]
+            for raw, sid in alias_res.all()
+            if raw and raw.strip() and sid in sources_by_id
+        }
+        result = await parse_upload(
+            content,
+            filename,
+            known_sources=source_names,
+            source_aliases=source_aliases,
+            trace=trace,
+        )
         log_id = await import_logs.save_import_log(
             db,
             stage="parse",

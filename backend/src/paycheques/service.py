@@ -1,6 +1,7 @@
 import csv
 import hashlib
 import io
+import json
 import math
 import re
 from datetime import date
@@ -13,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.exceptions import BadRequestError
 from src.paycheques.constants import MAX_HOURS, MAX_NOTE_LENGTH, ErrorCode
 from src.paycheques.exceptions import InvalidSourceReference
-from src.paycheques.models import Paycheque
+from src.paycheques.models import ImportPipelineLog, Paycheque
 from src.paycheques.schemas import (
     PaychequeCreate,
     PaychequeImportPayload,
@@ -22,7 +23,7 @@ from src.paycheques.schemas import (
 )
 from src.paycheques.utils import parse_cents, parse_optional_cents, validate_paystub_breakdown
 from src.sources.constants import MAX_SOURCE_NAME_LENGTH, SourceKind
-from src.sources.models import Source
+from src.sources.models import Source, SourceAlias
 
 _CSV_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
 _MAX_IMPORT_CHARS = 5_000_000
@@ -217,6 +218,24 @@ async def import_paycheques_batch(
 
     sources_res = await db.execute(select(Source.id, Source.name))
     source_map = {name.strip().lower(): sid for sid, name in sources_res.all()}
+    aliases_res = await db.execute(select(SourceAlias))
+    aliases_by_key = {a.raw_name.strip().lower(): a for a in aliases_res.scalars().all()}
+
+    parse_log_rows: list[dict[str, Any]] = []
+    if payload.parse_log_id is not None and payload.parse_log_id > 0:
+        log_res = await db.execute(
+            select(ImportPipelineLog.response_json).where(
+                ImportPipelineLog.id == payload.parse_log_id
+            )
+        )
+        resp_json = log_res.scalar_one_or_none()
+        if resp_json:
+            try:
+                parsed_resp = json.loads(resp_json)
+                if isinstance(parsed_resp, dict) and isinstance(parsed_resp.get("rows"), list):
+                    parse_log_rows = [r for r in parsed_resp["rows"] if isinstance(r, dict)]
+            except Exception:
+                pass
 
     existing_res = await db.execute(
         select(
@@ -254,6 +273,8 @@ async def import_paycheques_batch(
                 )
 
             source_id = source_map.get(source_name.lower())
+            if not source_id and source_name.lower() in aliases_by_key:
+                source_id = aliases_by_key[source_name.lower()].source_id
             if not source_id:
                 if not payload.auto_create_sources:
                     raise ValueError(f"Unknown source '{source_name}'.")
@@ -270,6 +291,25 @@ async def import_paycheques_batch(
                 source_id = new_source.id
                 source_map[source_name.lower()] = source_id
                 created_sources += 1
+
+            raw_source_val = _pick_alias(norm, "raw_source_name", "original_source_name")
+            if raw_source_val is None and len(raw_rows) == len(parse_log_rows):
+                log_row = parse_log_rows[row_num - 1]
+                raw_source_val = log_row.get("raw_source_name") or log_row.get("source_name")
+            raw_source_name = str(raw_source_val or "").strip()
+            raw_key = raw_source_name.lower()
+            if (
+                raw_source_name
+                and len(raw_source_name) <= MAX_SOURCE_NAME_LENGTH
+                and raw_key != source_name.lower()
+                and raw_key not in source_map
+            ):
+                if raw_key in aliases_by_key:
+                    aliases_by_key[raw_key].source_id = source_id
+                else:
+                    alias = SourceAlias(raw_name=raw_source_name, source_id=source_id)
+                    db.add(alias)
+                    aliases_by_key[raw_key] = alias
 
             raw_date = _pick_alias(norm, "paid_on", "date")
             if raw_date is None:

@@ -61,6 +61,12 @@ def compact_parse_response(resp: ParseResponse) -> dict[str, Any]:
         data["rows_total"] = len(rows)
         data["rows_truncated"] = True
         data["rows"] = rows[:MAX_STORED_ROWS]
+    if isinstance(data.get("sheets"), list):
+        data["sheets"] = [
+            {k: v for k, v in s.items() if k != "raw_rows"}
+            for s in data["sheets"]
+            if isinstance(s, dict)
+        ]
     return data
 
 

@@ -139,6 +139,7 @@ class ParsedPaychequeRow(CustomModel):
     /import converts it to integer cents."""
 
     source_name: str | None = None
+    raw_source_name: str | None = None
     paid_on: str | None = None  # YYYY-MM-DD
     amount: str | None = None
     gross: str | None = None
@@ -146,9 +147,22 @@ class ParsedPaychequeRow(CustomModel):
     deductions: str | None = None
     hours: float | None = None
     note: str | None = None
-    document_type: Literal["paystub", "cheque", "tabular"] = "paystub"
+    sheet_name: str | None = None
+    document_type: Literal["paystub", "cheque", "deposit", "tabular"] = "paystub"
     confidence: float = Field(default=1.0, ge=0.0, le=1.0)
     warnings: list[str] = Field(default_factory=list)
+
+
+class ParsedSheetPreview(CustomModel):
+    """Raw grid preview & inferred column/row config for interactive Excel/CSV mapping."""
+
+    name: str
+    raw_rows: list[list[str | None]] = Field(default_factory=list)
+    header_row_index: int = 0
+    default_source: str | None = None
+    default_year: int | None = None
+    default_note: str | None = None
+    inferred_mapping: dict[str, int | None] = Field(default_factory=dict)
 
 
 class ParseResponse(CustomModel):
@@ -158,6 +172,7 @@ class ParseResponse(CustomModel):
     used_llm_fallback: bool = False
     rows: list[ParsedPaychequeRow]
     unmapped_columns: list[str] = Field(default_factory=list)
+    sheets: list[ParsedSheetPreview] = Field(default_factory=list)
     parse_log_id: int | None = None
 
 

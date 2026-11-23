@@ -240,8 +240,10 @@ def test_idempotent_schema_migration() -> None:
 
     src_cols = {r[1] for r in conn.execute("PRAGMA table_info(sources)").fetchall()}
     pay_cols = {r[1] for r in conn.execute("PRAGMA table_info(paycheques)").fetchall()}
+    alias_cols = {r[1] for r in conn.execute("PRAGMA table_info(source_aliases)").fetchall()}
     assert {"is_tax_withheld", "tax_reserve_bps", "pay_schedule"} <= src_cols
     assert {"gross_cents", "tax_cents", "deductions_cents", "import_hash"} <= pay_cols
+    assert {"id", "raw_name", "source_id"} <= alias_cols
 
 
 @pytest.mark.asyncio
@@ -1096,6 +1098,497 @@ async def test_import_pipeline_logs_capture_parse_steps_errors_and_linked_import
         "steps_json",
         "response_json",
     } <= log_cols
+
+
+@pytest.mark.asyncio
+async def test_multi_row_summary_and_multipage_pdfs(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from PIL import Image
+
+    # 1. Ruled tabular summary PDF (multi-row)
+    summary_tables = [
+        [
+            ["Pay Date", "Source", "Gross", "Taxes", "Deductions", "Net Pay"],
+            ["2026-11-01", "Softchoice", "2000.00", "350.00", "150.00", "1500.00"],
+            ["2026-11-15", "Softchoice", "2100.00", "370.00", "160.00", "1570.00"],
+        ]
+    ]
+    monkeypatch.setattr(
+        extractors, "pdf_extract", lambda _c: ("Annual Payroll Summary", summary_tables)
+    )
+    res_tbl = (await _upload(client, "summary_table.pdf", b"%PDF-1.7 fake")).json()
+    assert res_tbl["parser_used"] == "pdf_text" and len(res_tbl["rows"]) == 2
+    assert (res_tbl["rows"][0]["paid_on"], res_tbl["rows"][0]["amount"]) == (
+        "2026-11-01",
+        "1500.00",
+    )
+    assert (res_tbl["rows"][1]["paid_on"], res_tbl["rows"][1]["amount"]) == (
+        "2026-11-15",
+        "1570.00",
+    )
+
+    # 2. Text-aligned summary PDF (Salary.pdf style with section headers)
+    salary_pdf_text = (
+        "Annual Income Summary\n"
+        "Kung Fu Tea\n"
+        "2026-10-15 554.36 Biweekly shift\n"
+        "2026-10-28 619.82 Biweekly shift\n"
+        "Softchoice\n"
+        "2026-11-15 1405.71 Co-op term\n"
+    )
+    monkeypatch.setattr(extractors, "pdf_extract", lambda _c: (salary_pdf_text, []))
+    res_list = (await _upload(client, "Salary.pdf", b"%PDF-1.7 fake")).json()
+    assert res_list["parser_used"] == "pdf_text" and len(res_list["rows"]) == 3
+    assert (
+        res_list["rows"][0]["source_name"],
+        res_list["rows"][0]["paid_on"],
+        res_list["rows"][0]["amount"],
+        res_list["rows"][0]["note"],
+    ) == ("Kung Fu Tea", "2026-10-15", "554.36", "Biweekly shift")
+    assert (
+        res_list["rows"][2]["source_name"],
+        res_list["rows"][2]["paid_on"],
+        res_list["rows"][2]["amount"],
+        res_list["rows"][2]["note"],
+    ) == ("Softchoice", "2026-11-15", "1405.71", "Co-op term")
+
+    # 3. Multi-page paystub PDF in Tier 2 (pdf_text)
+    two_page_stubs = (
+        "Softchoice\nAdvice Date: 2026-08-15\nGross Pay $1,700.00\nTotal Taxes $250.00\n"
+        "Total Deductions $50.00\nNet Pay $1,400.00\n"
+        "\f\n"
+        "Softchoice\nAdvice Date: 2026-08-31\nGross Pay $1,800.00\nTotal Taxes $270.00\n"
+        "Total Deductions $60.00\nNet Pay $1,470.00\n"
+    )
+    monkeypatch.setattr(extractors, "pdf_extract", lambda _c: (two_page_stubs, []))
+    res_pages = (await _upload(client, "stubs_bundle.pdf", b"%PDF-1.7 fake")).json()
+    assert res_pages["parser_used"] == "pdf_text" and len(res_pages["rows"]) == 2
+    assert [r["paid_on"] for r in res_pages["rows"]] == ["2026-08-15", "2026-08-31"]
+    assert [r["amount"] for r in res_pages["rows"]] == ["1400.00", "1470.00"]
+
+    # 4. Tier 3 Vision entries[] and multi-page PDF Vision extraction
+    monkeypatch.setattr(extractors, "vision_available", lambda: True)
+    monkeypatch.setattr(extractors, "pdf_extract", lambda _c: ("", []))
+    monkeypatch.setattr(
+        extractors,
+        "prepare_images",
+        lambda _c, _m: [Image.new("RGB", (60, 60), "white"), Image.new("RGB", (60, 60), "white")],
+    )
+    page_payloads = iter(
+        [
+            {
+                "document_type": "paystub",
+                "source_name": "Softchoice",
+                "entries": [
+                    {
+                        "paid_on": "2026-09-15",
+                        "numeric_amount": "1405.71",
+                        "gross": "1718.09",
+                        "tax": "312.38",
+                    }
+                ],
+            },
+            {
+                "document_type": "deposit",
+                "source_name": "CRA / Government",
+                "paid_on": "2026-10-05",
+                "numeric_amount": "245.50",
+            },
+        ]
+    )
+
+    async def _multi_page_vision(_images: list, **_kw: object) -> dict:
+        return next(page_payloads)
+
+    monkeypatch.setattr(extractors, "vision_extract", _multi_page_vision)
+    res_vis = (await _upload(client, "scanned_bundle.pdf", b"%PDF-1.7 fake")).json()
+    assert res_vis["parser_used"] == "vision" and len(res_vis["rows"]) == 2
+    assert (res_vis["rows"][0]["source_name"], res_vis["rows"][0]["amount"]) == (
+        "Softchoice",
+        "1405.71",
+    )
+    assert (
+        res_vis["rows"][1]["document_type"],
+        res_vis["rows"][1]["source_name"],
+        res_vis["rows"][1]["amount"],
+    ) == ("deposit", "CRA / Government", "245.50")
+
+
+@pytest.mark.asyncio
+async def test_source_aliases_persist_on_commit_and_resolve_on_reparse(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from PIL import Image
+
+    buf = io.BytesIO()
+    Image.new("RGB", (120, 80), "white").save(buf, format="PNG")
+    png_bytes = buf.getvalue()
+
+    monkeypatch.setattr(extractors, "vision_available", lambda: True)
+
+    async def _corp_cheque(_images: list, **_kw: object) -> dict:
+        return {
+            "document_type": "cheque",
+            "source_name": "5024721 ONTARIO LIMITED",
+            "paid_on": "2026-11-22",
+            "numeric_amount": "611.86",
+            "written_amount": "Six hundred eleven 86/100",
+        }
+
+    monkeypatch.setattr(extractors, "vision_extract", _corp_cheque)
+
+    # First parse sees raw corporate name
+    p1 = (await _upload(client, "cheque1.png", png_bytes)).json()
+    assert p1["rows"][0]["source_name"] == "5024721 ONTARIO LIMITED"
+    assert p1["rows"][0]["raw_source_name"] == "5024721 ONTARIO LIMITED"
+
+    # User renames source_name -> "Kung Fu Tea" during import review and commits
+    imp = await client.post(
+        "/api/paycheques/import",
+        json={
+            "parse_log_id": p1["parse_log_id"],
+            "auto_create_sources": True,
+            "rows": [
+                {
+                    **p1["rows"][0],
+                    "source_name": "Kung Fu Tea",
+                }
+            ],
+        },
+    )
+    assert imp.status_code == 200 and imp.json()["imported_count"] == 1
+    assert imp.json()["created_sources"] == 0
+
+    # Subsequent parse of the same numbered corp automatically resolves to "Kung Fu Tea"
+    p2 = (await _upload(client, "cheque2.png", png_bytes)).json()
+    assert p2["rows"][0]["source_name"] == "Kung Fu Tea"
+    assert p2["rows"][0]["raw_source_name"] == "5024721 ONTARIO LIMITED"
+
+    # Even direct /import with raw alias resolves to existing Kung Fu Tea without creating a source
+    imp2 = await client.post(
+        "/api/paycheques/import",
+        json={
+            "auto_create_sources": True,
+            "rows": [
+                {
+                    "source_name": "5024721 ONTARIO LIMITED",
+                    "paid_on": "2026-11-29",
+                    "amount": "520.00",
+                }
+            ],
+        },
+    )
+    assert imp2.status_code == 200 and imp2.json()["imported_count"] == 1
+    assert imp2.json()["created_sources"] == 0
+
+
+@pytest.mark.asyncio
+async def test_deposit_mode_etransfer_cra_and_vision(
+    client: AsyncClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from PIL import Image
+
+    buf = io.BytesIO()
+    Image.new("RGB", (120, 80), "white").save(buf, format="PNG")
+    png_bytes = buf.getvalue()
+
+    # 1. Interac e-Transfer screenshot via OCR text
+    monkeypatch.setattr(extractors, "vision_available", lambda: False)
+    etransfer_ocr = (
+        "Interac e-Transfer\n"
+        "Money Received\n"
+        "Sent From: Acme Client\n"
+        "Date: Nov 20, 2026\n"
+        "Amount: $425.00\n"
+    )
+    monkeypatch.setattr(extractors, "ocr_text", lambda _c, _m, **_kw: (etransfer_ocr, 0.94))
+    res_et = (await _upload(client, "etransfer.png", png_bytes)).json()
+    [r_et] = res_et["rows"]
+    assert r_et["document_type"] == "deposit"
+    assert (r_et["source_name"], r_et["paid_on"], r_et["amount"]) == (
+        "Acme Client",
+        "2026-11-20",
+        "425.00",
+    )
+    assert r_et["gross"] is None and r_et["tax"] is None and r_et["deductions"] is None
+    assert r_et["hours"] is None and r_et["warnings"] == []
+
+    # 2. CRA benefit notice via PDF text
+    cra_text = (
+        "Canada Revenue Agency\n"
+        "GST/HST credit notice\n"
+        "Issued: 2026-10-05\n"
+        "Benefit Amount: $245.50\n"
+    )
+    monkeypatch.setattr(extractors, "pdf_extract", lambda _c: (cra_text, []))
+    res_cra = (await _upload(client, "cra_notice.pdf", b"%PDF-1.7 fake")).json()
+    [r_cra] = res_cra["rows"]
+    assert res_cra["parser_used"] == "pdf_text" and r_cra["document_type"] == "deposit"
+    assert (r_cra["source_name"], r_cra["paid_on"], r_cra["amount"]) == (
+        "CRA / Government",
+        "2026-10-05",
+        "245.50",
+    )
+    assert r_cra["warnings"] == []
+
+    # 3. Vision AI deposit mode forces net-only even if spurious fields returned
+    monkeypatch.setattr(extractors, "vision_available", lambda: True)
+
+    async def _deposit_vision(_images: list, **_kw: object) -> dict:
+        return {
+            "document_type": "deposit",
+            "source_name": "Acme Client",
+            "paid_on": "2026-11-21",
+            "numeric_amount": "310.00",
+            "gross": "999.00",
+            "tax": "100.00",
+            "hours": 10,
+        }
+
+    monkeypatch.setattr(extractors, "vision_extract", _deposit_vision)
+    res_vis = (await _upload(client, "bank_deposit.png", png_bytes)).json()
+    [r_vis] = res_vis["rows"]
+    assert r_vis["document_type"] == "deposit" and r_vis["amount"] == "310.00"
+    assert r_vis["gross"] is None and r_vis["tax"] is None and r_vis["hours"] is None
+
+
+@pytest.mark.asyncio
+async def test_excel_multisheet_banners_totals_multicolumn_and_serial_dates(
+    client: AsyncClient,
+) -> None:
+    # 1. Multi-sheet .xlsx: banner row, multi-column tax/deductions, Total footer,
+    #    zero gross cell, worksheet-tab fallback, and Excel serial dates
+    wb = openpyxl.Workbook()
+    ws1 = wb.active
+    ws1.title = "Overview"
+    ws1.append(["2026 Pay Tracker"])
+    ws1.append([])
+    ws1.append(
+        [
+            "Pay Date *",
+            "Employer",
+            "Gross (CAD)",
+            "Federal Tax",
+            "Provincial Tax",
+            "CPP",
+            "EI",
+            "Net Pay ($)",
+            "Memo",
+        ]
+    )
+    ws1.append(["2026-11-01", "Softchoice", 2000, 220, 130, 100, 50, 1500, "Regular"])
+    ws1.append(["2026-11-15", "Softchoice", 0, 0, 0, 0, 0, 500, "Bonus"])
+    ws1.append(["Total", "", 2000, 220, 130, 100, 50, 2000, ""])
+
+    ws2 = wb.create_sheet("Kung Fu Tea")
+    ws2.append(["Date", "Take-Home", "Notes"])
+    ws2.append([46340, 611.86, "Shift"])  # 46340 -> 2026-11-14 in Excel 1900 date system
+
+    ws3 = wb.create_sheet("Notes")
+    ws3.append(["Just personal notes"])
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    xlsx_res = (await _upload(client, "pay_tracker.xlsx", buf.getvalue())).json()
+    assert xlsx_res["parser_used"] == "tabular"
+    assert len(xlsx_res["rows"]) == 3
+    r1, r2, r3 = xlsx_res["rows"]
+    assert (
+        r1["source_name"],
+        r1["paid_on"],
+        r1["gross"],
+        r1["tax"],
+        r1["deductions"],
+        r1["amount"],
+    ) == (
+        "Softchoice",
+        "2026-11-01",
+        "2000.00",
+        "350.00",
+        "150.00",
+        "1500.00",
+    )
+    assert r1["warnings"] == []
+    assert (r2["source_name"], r2["amount"], r2["gross"], r2["warnings"]) == (
+        "Softchoice",
+        "500.00",
+        None,
+        [],
+    )
+    assert (r3["source_name"], r3["paid_on"], r3["amount"], r3["note"], r3["warnings"]) == (
+        "Kung Fu Tea",
+        "2026-11-14",
+        "611.86",
+        "Shift",
+        [],
+    )
+
+    # 2. Headerless Excel sheet + mid-sheet section banner
+    wb2 = openpyxl.Workbook()
+    ws_hl = wb2.active
+    ws_hl.title = "Data"
+    ws_hl.append(["2026-10-01", 450.25, "Kung Fu Tea", "First shift"])
+    ws_hl.append(["2026-10-15", 480.00, "Kung Fu Tea", "Second shift"])
+    buf2 = io.BytesIO()
+    wb2.save(buf2)
+    hl_res = (await _upload(client, "headerless.xlsx", buf2.getvalue())).json()
+    assert len(hl_res["rows"]) == 2
+    assert (
+        hl_res["rows"][0]["paid_on"],
+        hl_res["rows"][0]["amount"],
+        hl_res["rows"][0]["source_name"],
+    ) == (
+        "2026-10-01",
+        "450.25",
+        "Kung Fu Tea",
+    )
+
+    # 3. Semicolon CSV, UTF-16 BOM Excel CSV, and HTML-table .xls bank export
+    semi_csv = "Pay Date;Net Pay;Source\n2026-11-05;700.00;Kung Fu Tea\n"
+    semi_res = (await _upload(client, "semi.csv", semi_csv.encode("utf-8"))).json()
+    assert semi_res["rows"][0]["amount"] == "700.00"
+
+    utf16_tsv = "Date\tAmount\tEmployer\n2026-11-06\t800.00\tSoftchoice\n".encode("utf-16")
+    u16_res = (await _upload(client, "excel_unicode.csv", utf16_tsv)).json()
+    assert (u16_res["rows"][0]["paid_on"], u16_res["rows"][0]["source_name"]) == (
+        "2026-11-06",
+        "Softchoice",
+    )
+
+    html_xls = (
+        "<html><body><table>"
+        "<tr><th>Posting Date</th><th>Credit</th><th>Description</th></tr>"
+        "<tr><td>2026-11-07</td><td>$925.50</td><td>Direct deposit</td></tr>"
+        "</table></body></html>"
+    )
+    xls_res = (await _upload(client, "bank_export.xls", html_xls.encode("utf-8"))).json()
+    assert (
+        xls_res["rows"][0]["paid_on"],
+        xls_res["rows"][0]["amount"],
+        xls_res["rows"][0]["note"],
+    ) == (
+        "2026-11-07",
+        "925.50",
+        "Direct deposit",
+    )
+
+
+@pytest.mark.asyncio
+async def test_user_salary_split_month_date_forward_fill_and_sections(
+    client: AsyncClient,
+) -> None:
+    from src.paycheques.utils import parse_cents
+
+    salary_csv = "\n".join(
+        [
+            "Kung Fu Tea Salary 2025,,,",
+            "Month,Date,Salary,Monthly Total",
+            "4,11,545.25,995.44",
+            ",25,450.19,",
+            "5,09,425.39,1061.54",
+            ",23,636.15,",
+            "6,06,570.04,1394.1",
+            ",20,712.06,",
+            ",30,112,",
+            "7,04,508.05,1206.79",
+            ",18,698.74,",
+            "8,01,691.63,1773.8600000000001",
+            ",15,586.57,",
+            ",29,495.66,",
+            "9,12,724.34,1112.54",
+            ",26,388.2,",
+            "10,10,458.47,957.01",
+            ",24,498.54,",
+            "11,07,504.17,1095.74",
+            ",21,591.57,",
+            "12,05,578.88,1212.73",
+            ",19,633.85,",
+            "Total,,,10809.75",
+            "Kung Fu Tea Salary 2026,,,",
+            "Month,Date,Salary,Monthly Total",
+            "1,02,464.75,1402.73",
+            ",16,608.55,",
+            ",30,329.43,",
+            "2,13,481.67,1167.97",
+            ",15,230,",
+            ",27,456.3,",
+            "3,13,692.76,1153.29",
+            ",27,460.53,",
+            "4,10,443.62,781.5",
+            ",24,337.88,",
+            "5,13,667.75,1124.05",
+            ",24,456.3,",
+            "6,07,621.23,1077.53",
+            ",19,456.3,",
+            "7,02,604.32,1329.1",
+            ",17,724.78,",
+            "8,4,700.04,1410.98",
+            ",17,710.94,",
+            "9,2,604.32,1009.8700000000001",
+            ",14,405.55,",
+            "10,15,554.36,1174.18",
+            ",28,619.82,",
+            "11,9,413.46,413.46",
+            ",,,",
+            ",,,0",
+            ",,,",
+            "Total,,,12044.66",
+            "Softchoice Winter 2025 Co-op Term,,,",
+            "Month,Date,Salary,Monthly Total",
+            "9,15,1402.99,2936.6800000000003",
+            ",29,1533.69,",
+            "10,15,1533.69,3067.38",
+            ",31,1533.69,",
+            "11,14,1533.69,3067.38",
+            ",28,1533.69,",
+            "12,15,1533.69,2188.1800000000003",
+            ",31,654.49,",
+            "Total,,,11259.620000000003",
+            "Softchoice Winter 2025 Co-op Term,,,",
+            "Month,Date,Salary,Monthly Total",
+            "5,15,1427.43,2963.8500000000004",
+            ",29,1536.42,",
+            "6,13,1536.42,3072.84",
+            ",30,1536.42,",
+            "7,15,1536.42,3072.84",
+            ",30,1536.42,",
+            "8,15,1536.42,2942.13",
+            ",31,1405.71,",
+            "Total,,,12051.66",
+            "Tax Turn 2025,,,,",
+            "Month,Date,Type,Amount,Sum",
+            "4,8,Income Tax,1262.09,1262.09",
+            "5,8,Ontario trillium benefit,920.71,920.71",
+            "6,5,GST/HST credit,944.75,1790.75",
+            ",10,Ontario trillium benefit,846,",
+            "Total,,,,3973.55",
+        ]
+    )
+
+    res = (await _upload(client, "salary.csv", salary_csv.encode("utf-8"))).json()
+    assert res["parser_used"] == "tabular"
+    rows = res["rows"]
+    assert len(rows) == 63
+    assert all(r["warnings"] == [] for r in rows)
+    assert len(res["sheets"]) == 5
+    assert res["sheets"][0]["inferred_mapping"]["month"] == 0
+    assert res["sheets"][0]["inferred_mapping"]["day"] == 1
+    assert res["sheets"][0]["inferred_mapping"]["amount"] == 2
+    assert res["sheets"][4]["default_source"] == "CRA / Government"
+
+    def sum_cents(source: str, year: str) -> int:
+        return sum(
+            parse_cents(r["amount"], "Amount")
+            for r in rows
+            if r["source_name"] == source and r["paid_on"].startswith(year)
+        )
+
+    assert sum_cents("Kung Fu Tea", "2025") == 1080975
+    assert sum_cents("Kung Fu Tea", "2026") == 1204466
+    assert sum_cents("Softchoice", "2025") == 1125962
+    assert sum_cents("Softchoice", "2026") == 1205166
+    assert sum_cents("CRA / Government", "2025") == 397355
 
 
 if __name__ == "__main__":
