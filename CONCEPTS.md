@@ -17,7 +17,15 @@ Gross pay must be at least take-home pay, and the sum of tax and deductions cann
 ### Two-Stage Import
 Payday's split ingestion workflow separating candidate extraction (the Parse stage) from atomic persistence (the Import stage).
 
-The Parse stage reads an uploaded spreadsheet, PDF, or image into unpersisted candidate rows carrying confidence scores, review warnings, and a persisted diagnostic trace without modifying saved Paycheques. The Import stage validates, deduplicates, and atomically commits the user-reviewed rows.
+The Parse stage reads an uploaded spreadsheet (`.csv`, `.tsv`, `.xlsx`, `.xlsm`, `.ods`, HTML/text `.xls`), PDF, or image (paystub, cheque, or net-only deposit notice/e-Transfer) into unpersisted candidate rows carrying confidence scores, review warnings, optional sheet/column previews, and a persisted diagnostic trace without modifying saved Paycheques. The Import stage validates, deduplicates, and atomically commits the user-reviewed rows.
+
+### Source Alias
+A persistent mapping in SQLite (`source_aliases`) linking a raw payer or corporate name seen on a document (such as `5024721 ONTARIO LIMITED`) to a canonical `Source`.
+
+When a user renames a parsed source during Import review and commits the rows, Payday records the alias automatically so future Parse and Import runs resolve that raw name deterministically.
+
+### Sheet Preview & Interactive Mapping
+Structured grid metadata (`ParsedSheetPreview`) returned by the Parse stage for multi-sheet or multi-section spreadsheets, allowing users to switch sheet tabs/dropdowns, adjust the header/start row, set default source or year values, and remap columns (including split `Month` / `Day` / `Year` date columns with forward-filled months) inside `ImportDialog` before committing.
 
 ### Statutory Withholding
 A mandatory government payroll withholding deducted from gross pay, such as income tax, pension contributions (CPP/QPP, Social Security), or employment insurance (EI, Medicare).

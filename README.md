@@ -14,7 +14,7 @@
 - **Paycheques Ledger (`/paycheques`)**:
   - Monthly grouped deposit ledger with URL-synced filters (`?year=&source=&q=`), 1-click **Clear filters**, and expandable **Split** panels with 1-click **Copy** buttons for bucket & tax-reserve transfers.
   - Smart `PaychequeDialog` with collapsible Gross/Tax/Deductions drawer, live auto-net sync, live `$/h` rate preview, `"Same as last time"` preset, `"Save & add another"` batch mode, and 7-second undoable delete toasts.
-  - **Filtered CSV Export** (`GET /api/export.csv?year=&source_id=&q=`) with formula-injection escaping and **Idempotent Bulk CSV Import** (`POST /api/paycheques/import`) using SHA-256 deduplication.
+  - **Filtered CSV Export** (`GET /api/export.csv?year=&source_id=&q=`) with formula-injection escaping and **Multi-Format Two-Stage Import** (`POST /api/paycheques/parse` $\rightarrow$ `POST /api/paycheques/import`) supporting spreadsheets (`.csv`, `.tsv`, `.xlsx`, `.xlsm`, `.ods`, HTML/text `.xls` with multi-sheet tabs, split `Month`/`Day`/`Year` columns, and interactive column/start-row mapping), paystub/summary PDFs, cheques, e-Transfer/CRA deposit notices, learned `source_aliases`, SHA-256 deduplication, and `/paycheques/logs` pipeline telemetry.
 - **Income Sources (`/sources` & `/sources/[id]`)**:
   - Accessible stretched-link source cards with interactive 12-month sparklines (`data-tip` hover totals), hourly net/gross rates, custom pay schedules, tax treatment settings, and 2-step delete confirmation (blocked if paycheques exist).
 - **Tax Intelligence (`/taxes`)**:
@@ -109,7 +109,10 @@ Interactive OpenAPI docs are available at `/docs` when `ENVIRONMENT` is `local` 
 | `DELETE` | `/api/sources/{id}` | Delete an income source (blocked if paycheques exist) |
 | `GET` | `/api/paycheques` | List paycheques |
 | `POST` | `/api/paycheques` | Create a paycheque |
-| `POST` | `/api/paycheques/import` | Atomic bulk CSV/row import with SHA-256 deduplication |
+| `POST` | `/api/paycheques/parse` | Stage 1 multi-format file parser (spreadsheets, PDFs, cheques, deposits) |
+| `POST` | `/api/paycheques/import` | Atomic bulk CSV/row import with SHA-256 deduplication & alias learning |
+| `GET` | `/api/paycheques/import-logs` | List recent parse and import telemetry runs |
+| `GET` | `/api/paycheques/import-logs/{log_id}` | Inspect step-by-step parser telemetry for a log run |
 | `PUT` | `/api/paycheques/{id}` | Update a paycheque |
 | `DELETE` | `/api/paycheques/{id}` | Delete a paycheque |
 | `GET` | `/api/export.csv` | Export paycheques as CSV (`?year=&source_id=&q=` optional filters) |
@@ -169,6 +172,9 @@ Salary_Management_App/
 | `DB_PATH` | `data/salary.db` | Path to SQLite database file (set to `/data/salary.db` in Docker) |
 | `PORT` | `8000` | Backend listen port |
 | `CORS_ORIGINS` | `["*"]` | Allowed CORS origins |
+| `OCR_RUNTIME` | `docker` | `"local"` routes Vision OCR to host Ollama/OpenAI API; `"docker"` uses RapidOCR + CPU LLM |
+| `VISION_API_BASE_URL` | `None` | Vision endpoint override (defaults to `http://host.docker.internal:11434/v1` when `OCR_RUNTIME=local`) |
+| `VISION_MODEL_NAME` | `qwen3-vl:4b-instruct` | Local Vision model name for paystubs, cheques, and deposit screenshots |
 
 ### Frontend (`frontend/src/lib/env.ts`)
 

@@ -1,7 +1,7 @@
 ---
 status: shipped
 date: 2026-11-20
-commits: [4cf53e5, bd840d3, b832904, a85a790]
+commits: [4cf53e5, bd840d3, b832904, a85a790, f4a9cc9, f5a6c46]
 ---
 
 # Superior Import — Dynamic Multi-Format Paycheque Ingestion Specification
@@ -1767,3 +1767,14 @@ Execute the implementation in this exact order:
    # Full-stack Docker verification
    docker compose up -d --build
    ```
+
+---
+
+## 8. Universal Extensions (v2.1 — Shipped `f4a9cc9`, `f5a6c46`)
+
+Building on the shipped two-stage pipeline, v2.1 adds:
+
+- **SQLite `source_aliases` memory:** `ensure_schema_migrations` creates `source_aliases (id, raw_name COLLATE NOCASE UNIQUE, source_id REFERENCES sources(id) ON DELETE CASCADE)`. When a user renames a parsed source (e.g. `5024721 ONTARIO LIMITED` $\rightarrow$ `Kung Fu Tea`) before committing `/api/paycheques/import`, the alias is saved and resolved automatically on future `/parse` and `/import` calls.
+- **`"deposit"` document mode:** Added net-only extraction for Interac e-Transfer screenshots, bank deposit notices, and CRA / government benefit notices (`gross`/`tax`/`deductions`/`hours` forced to `null`).
+- **1-to-Many Tier 2 & Tier 3 extraction:** Supports ruled multi-row PDF tables, text-aligned annual summary PDFs (`Salary.pdf` style), `\f`-delimited multi-page PDF stub bundles, per-page Vision extraction, and Vision `entries[]` expansion.
+- **Excel multi-sheet & interactive column/start-row mapper:** `parse_table_with_sheets()` reads all worksheets (`.xlsx`, `.xlsm`, `.ods`, UTF-16/semicolon CSV, HTML-table `.xls`), detects section banners (`Kung Fu Tea Salary 2025`, `Tax Turn 2025`), pairs split `Month`/`Date`/`Year` columns with forward-filled months, sums multi-column taxes/deductions, filters summary totals, and returns `sheets: list[ParsedSheetPreview]` so `ImportDialog` renders multi-sheet tabs/dropdowns and live client-side column/start-row remapping (`sheet-mapper.ts`).

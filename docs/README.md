@@ -9,7 +9,7 @@ Root documents hold high-level project context: [README.md](../README.md) (setup
 | [`specs/`](./specs/) | Feature specs (what to build & why) | `NN-<kebab-slug>.md` (`draft` \| `active` \| `shipped` \| `superseded`) |
 | `plans/` | Active multi-step plans, audits & refactors *(created on first use)* | `YYYY-MM-<initiative>/` (`active`) |
 | [`solutions/`](./solutions/) | Solved dev bugs & prevention notes (`ce-compound`) | `<category>/<slug>.md` |
-| `decisions/` | Short ADRs for non-obvious trade-offs *(created on first use)* | `YYYY-MM-DD-<slug>.md` |
+| [`decisions/`](./decisions/) | Short ADRs for non-obvious trade-offs | `YYYY-MM-DD-<slug>.md` |
 | [`archive/`](./archive/) | Completed initiatives moved from `plans/` via `git mv` | `YYYY-MM-<initiative>/` (`shipped` \| `superseded`) |
 
 ## Feature Specs (`specs/`)
@@ -30,6 +30,11 @@ Root documents hold high-level project context: [README.md](../README.md) (setup
 
 ## Captured Solutions (`solutions/`)
 
+- [Excel split-date (Month/Date) parsing, forward-fill & banner year money collision](./solutions/logic-errors/excel-split-dates-forward-fill-and-banner-year-money-collision.md) (`2026-11-23`)
 - [Corrupted-font payroll PDFs & VLM withholding reconciliation](./solutions/logic-errors/corrupted-payroll-pdf-and-vlm-withholding-reconciliation.md) (`2026-11-21`)
 - [Hero YearDropdown multi-click navigation stall, popover sizing & Net label](./solutions/ui-bugs/year-dropdown-multi-click-stall-and-popover-sizing.md) (`2026-11-21`)
 - [Next.js 15 RSC multi-chunk synchronous ping deadlock on Link navigation](./solutions/ui-bugs/nextjs-15-rsc-multi-chunk-sync-ping-deadlock.md) (`2026-11-23`)
+
+## Architecture Decisions (`decisions/`)
+
+- [Universal import extensions: `source_aliases`, `"deposit"` mode, multi-row PDFs & interactive sheet mapper](./decisions/2026-11-23-universal-import-aliases-and-sheet-mapper.md) (`2026-11-23`)

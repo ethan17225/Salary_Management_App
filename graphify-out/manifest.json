@@ -342,15 +342,15 @@
     "semantic_hash": "758da8246a90578db78126211c4e3e82"
   },
   "PROJECT_OVERVIEW.md": {
-    "mtime": 1795291501.225173,
-    "seen": 1795291539.789842,
-    "ast_hash": "9dcf4e555e003b6bc18ca2e9ec446d47",
+    "mtime": 1795466602.715012,
+    "seen": 1795466628.386127,
+    "ast_hash": "ad30706e271e914fb514050471668bc3",
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1795291499.9975421,
-    "seen": 1795291539.7898428,
-    "ast_hash": "4b2038bb676669cc274b33e7b1fb5cc4",
+    "mtime": 1795466617.114799,
+    "seen": 1795466628.386128,
+    "ast_hash": "6410ac5b5f6e74cdb2706274f09462f4",
     "semantic_hash": ""
   },
   "docker-compose.yml": {
@@ -390,8 +390,8 @@
     "semantic_hash": ""
   },
   "backend/src/paycheques/parsers.py": {
-    "mtime": 1795465823.0574217,
-    "seen": 1795465854.221368,
+    "mtime": 1795465884.7354765,
+    "seen": 1795466628.3860302,
     "ast_hash": "166ce552d0a2c7efb588028925304cae",
     "semantic_hash": ""
   },
@@ -534,8 +534,8 @@
     "semantic_hash": ""
   },
   "frontend/src/features/paycheques/components/import-dialog.tsx": {
-    "mtime": 1795465789.5676703,
-    "seen": 1795465854.221431,
+    "mtime": 1795465885.2006915,
+    "seen": 1795466628.38609,
     "ast_hash": "f59ff4c67eef2e7a63999c5c279dbf46",
     "semantic_hash": ""
   },
@@ -720,15 +720,15 @@
     "semantic_hash": ""
   },
   "CONCEPTS.md": {
-    "mtime": 1795290592.7620833,
-    "seen": 1795291539.789841,
-    "ast_hash": "c619e1d766ab9c3155cf0f3dc3178bd0",
+    "mtime": 1795466592.724478,
+    "seen": 1795466628.386126,
+    "ast_hash": "82da61c1df1e6416e16803984443cf7e",
     "semantic_hash": ""
   },
   "docs/README.md": {
-    "mtime": 1795451969.6342897,
-    "seen": 1795452002.342895,
-    "ast_hash": "e9fcf5a44ff9f8f982aec3f9f4623881",
+    "mtime": 1795466595.404666,
+    "seen": 1795466628.386129,
+    "ast_hash": "97732a26589cf17f0f9656e08772c107",
     "semantic_hash": ""
   },
   "docs/solutions/logic-errors/corrupted-payroll-pdf-and-vlm-withholding-reconciliation.md": {
@@ -753,6 +753,18 @@
     "mtime": 1795465759.5023222,
     "seen": 1795465854.221439,
     "ast_hash": "a081aa471b3927b2ab937a4cbfa62b07",
+    "semantic_hash": ""
+  },
+  "docs/decisions/2026-11-23-universal-import-aliases-and-sheet-mapper.md": {
+    "mtime": 1795466579.6274884,
+    "seen": 1795466628.3861299,
+    "ast_hash": "728c2efb291dc7bad3df4a76af530138",
+    "semantic_hash": ""
+  },
+  "docs/solutions/logic-errors/excel-split-dates-forward-fill-and-banner-year-money-collision.md": {
+    "mtime": 1795466578.6194272,
+    "seen": 1795466628.386132,
+    "ast_hash": "fdca1ccee2525014f498b124801b5a94",
     "semantic_hash": ""
   }
 }

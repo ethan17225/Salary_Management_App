@@ -88,7 +88,8 @@ flowchart TD
 | **URL-Synced Filters** | Filters by **Year**, **Source**, and **Search** (`Note, source, or amount…`), synced to URL query parameters (`?year=&source=&q=`) via `window.history.replaceState` with a 1-click **Clear filters** reset. |
 | **Inline Allocation & Reserve Splits** | Expandable `Split` panel on rows with active allocation buckets or contractor tax reserves, complete with 1-click **Copy** buttons (`(cents / 100).toFixed(2)`) for quick banking transfers. |
 | **Filtered CSV Export** | Downloads `/api/export.csv` scoped to active `year`, `source_id`, and `q` filters (`Export filtered CSV (N)`), with spreadsheet formula-injection escaping (`_safe_csv_cell`). |
-| **Idempotent Bulk CSV Import** | `CsvImportDialog` uploads `.csv` files (with sample template download and auto-create source option) to `POST /api/paycheques/import`, validating rows atomically and skipping duplicates via deterministic SHA-256 `import_hash` (`source_id:paid_on:amount_cents`). |
+| **Multi-Format Two-Stage Import** | `ImportDialog` uploads spreadsheets (`.csv`, `.tsv`, `.xlsx`, `.xlsm`, `.ods`, HTML/text `.xls`), PDFs (single-stub, multi-page bundles, and summary tables), and images (paystubs, cheques, e-Transfer/CRA deposit notices) to `POST /api/paycheques/parse`, provides multi-sheet tabs/dropdowns and an interactive column/start-row mapper (supporting split `Month`/`Day`/`Year` columns with forward-fill), persists renamed source mappings in `source_aliases`, and commits reviewed rows via `POST /api/paycheques/import` with SHA-256 deduplication. |
+| **Import Pipeline Telemetry (`/paycheques/logs`)** | Lists Stage 1 (`parse`) and Stage 2 (`import`) runs (`import_pipeline_logs`) with status/parser/warning filters and a step-by-step detail inspector (`/paycheques/logs/[id]`) showing proportional step timings, raw extraction traces, withholding reconciliation diffs, and parse $\leftrightarrow$ import cross-links. |
 
 ---
 
@@ -133,6 +134,8 @@ flowchart TD
    - `sources`: Unique case-insensitive `name` (`COLLATE NOCASE`), `kind IN ('job', 'government', 'other')`, `is_tax_withheld IN (0, 1)`, `tax_reserve_bps BETWEEN 0 AND 6000`, `pay_schedule IN ('auto', 'weekly', 'biweekly', 'semimonthly', 'monthly', 'irregular')`.
    - `paycheques`: `FOREIGN KEY (source_id) REFERENCES sources(id) ON DELETE RESTRICT`, `date(paid_on) = paid_on`, `amount_cents > 0`, `gross_cents IS NULL OR gross_cents >= amount_cents`, `tax_cents >= 0`, `deductions_cents >= 0`, `hours > 0`, and partial unique index `idx_paycheques_import_hash` on `import_hash WHERE import_hash IS NOT NULL`.
    - `allocation_rules`: Unique case-insensitive `name` (1–50 chars), `category IN ('essentials', 'investments', 'savings', 'lifestyle')`, `weight_bps BETWEEN 1 AND 10000`, 6-digit hex `color`, `active IN (0, 1)`, and total active sum `<= 10000` bps enforced by API service logic.
+   - `source_aliases`: Unique case-insensitive `raw_name` (1–60 chars) with `FOREIGN KEY (source_id) REFERENCES sources(id) ON DELETE CASCADE`, automatically persisting renamed parsed sources on import commit.
+   - `import_pipeline_logs`: Persists `parse` / `import` run telemetry (`stage`, `status`, optional `parse_log_id` self-FK `ON DELETE SET NULL`, `parser_used`, timings, `steps_json`, and compacted `response_json`).
 3. **Transaction Safety**: Mutations and batch CSV imports run inside async SQLAlchemy transactions with rollback on `IntegrityError`.
 
 ---
@@ -146,7 +149,10 @@ flowchart TD
 | `GET` | `/api/export.csv` | Download filtered or full CSV | `?year=YYYY&source_id=N&q=...` | Streamed UTF-8 CSV |
 | `GET` | `/api/paycheques` | List paycheques (desc) | *None* | `PaychequeResponse[]` |
 | `POST` | `/api/paycheques` | Create a paycheque | `{ source_id, paid_on, amount, gross?, tax?, deductions?, hours?, note? }` | `{"id": int}` |
-| `POST` | `/api/paycheques/import` | Atomic idempotent CSV import | `{ csv_text?, rows?, auto_create_sources }` | `{ ok, imported_count, skipped_duplicates, created_sources, error_count, errors }` |
+| `POST` | `/api/paycheques/parse` | Stage 1 parse of spreadsheet, PDF, or image | `multipart/form-data` (`file`) | `{ filename, detected_mime, parser_used, used_llm_fallback, rows, unmapped_columns, sheets, parse_log_id }` |
+| `POST` | `/api/paycheques/import` | Atomic idempotent CSV/row import | `{ csv_text?, rows?, auto_create_sources, parse_log_id? }` | `{ ok, imported_count, skipped_duplicates, created_sources, error_count, errors }` |
+| `GET` | `/api/paycheques/import-logs` | List recent parse/import telemetry logs | `?limit=&stage=&status=&parser_used=&has_warnings=` | `ImportPipelineLogSummary[]` |
+| `GET` | `/api/paycheques/import-logs/{log_id}` | Inspect step-by-step pipeline telemetry | *None* | `ImportPipelineLogDetail` |
 | `PUT` | `/api/paycheques/{id}` | Update a paycheque | Same as create payload | `{"ok": true}` |
 | `DELETE` | `/api/paycheques/{id}` | Delete a paycheque | *None* | `{"ok": true}` |
 | `GET` | `/api/sources` | List all income sources | *None* | `SourceResponse[]` |
@@ -177,7 +183,7 @@ Salary_Management_App/
 │       ├── exceptions.py               # Domain exception types & handlers
 │       ├── models.py                   # SQLAlchemy Base & shared Pydantic response models
 │       ├── allocations.py              # AllocationRule model, Largest Remainder & router
-│       ├── paycheques/                 # Paycheque models, schemas, router, CSV import/export service
+│       ├── paycheques/                 # Paycheque domain, multi-tier parsers, extractors, telemetry & router
 │       ├── settings/                   # Goal settings & full-state snapshot domain
 │       └── sources/                    # Source models, schedules, schemas, router, service
 ├── frontend/
@@ -193,7 +199,9 @@ Salary_Management_App/
 │       │   │   ├── layout.tsx          # Dashboard shell, Navbar & global dialogs
 │       │   │   ├── loading.tsx         # Structural dashboard skeleton
 │       │   │   ├── page.tsx            # Overview dashboard
-│       │   │   ├── paycheques/page.tsx # Paycheques ledger page
+│       │   │   ├── paycheques/
+│       │   │   │   ├── page.tsx      # Paycheques ledger page
+│       │   │   │   └── logs/         # Import pipeline logs list & detail inspector pages
 │       │   │   ├── taxes/page.tsx      # Tax intelligence page
 │       │   │   ├── allocations/page.tsx# Allocations & simulator page
 │       │   │   └── sources/
@@ -208,7 +216,7 @@ Salary_Management_App/
 │       ├── features/
 │       │   ├── allocations/            # Allocation buckets, presets & simulator
 │       │   ├── overview/               # Charts, KPIs, onboarding, goal dialog & upcoming paydays
-│       │   ├── paycheques/             # Ledger, PaychequeDialog, CsvImportDialog & actions
+│       │   ├── paycheques/             # Ledger, PaychequeDialog, ImportDialog, sheet-mapper & log views
 │       │   ├── sources/                # SourceCardShell, sparklines, SourceDialog & detail views
 │       │   └── taxes/                  # Gross-to-net retention bar & tax tables
 │       ├── lib/                        # Allocation engine, tax intelligence, DB client, utils

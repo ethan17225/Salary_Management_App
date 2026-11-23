@@ -1,13 +1,13 @@
 # Graph Report - Salary_Management_App  (2026-11-23)
 
 ## Corpus Check
-- 124 files · ~57,696 words
+- 125 files · ~60,963 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 9 file(s) not represented in the graph (top: (none) 6, .example 1, .css 1)
 
 ## Summary
-- 938 nodes · 2566 edges · 59 communities (35 shown, 24 thin omitted)
-- Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 185 edges (avg confidence: 0.94)
+- 970 nodes · 2644 edges · 69 communities (45 shown, 24 thin omitted)
+- Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 186 edges (avg confidence: 0.94)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
@@ -16,11 +16,11 @@
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
-- next
+- parse_table_with_sheets
 - sumCents
 - test_app.py
 - CustomModel
-- paycheques/router.py
+- paycheques/service.py
 - SourcePayload
 - allocations.py
 - package.json
@@ -30,32 +30,39 @@
 - Docker Compose backend Service
 - compilerOptions
 - cn
-- import-paycheques.ts
-- main.py
+- parsers.py
+- paycheques/router.py
 - frontend_src_features_overview_index_getoverviewdata
-- paycheques/exceptions.py
+- src/exceptions.py
 - database.py
 - AGENTS.md — Payday (Salary & Income Management App)
 - src/__init__.py
 - next-env.d.ts
-- sources/router.py
-- db.ts
+- parse_cents
+- payday.ts
 - payday-backend
-- utils.ts
+- taxes-dashboard.tsx
 - extractors.py
 - Source
-- sources/index.ts
+- utils.ts
 - add_no_store_header
-- skeleton.tsx
+- overview-charts.tsx
 - paycheques/index.ts
 - AllocationRulePayload
 - import_logs.py
-- parsers.py
+- check_row
+- parse_upload
+- config.py
+- validate_paystub_breakdown
 - useDialogs
-- AllocationsDashboard
-- payday.ts
+- ensure_schema_migrations
+- _HtmlTableParser
+- db_session_factory
+- valid_paycheque_id
+- sources/constants.py
+- test_corrupted_adp_pdf_escalates_to_vision_and_reconciles_withholdings
 - frontend_src_features_allocations_index_allocationsdashboard
-- app/layout.tsx
+- test_vision_ocr_cheque_cross_check_and_rapidocr_fallback
 - frontend_src_features_overview_index_overviewdashboard
 - paycheque-dialog.tsx
 - frontend_src_features_paycheques_index_getimportlogbyid
@@ -73,6 +80,9 @@
 - frontend_src_features_sources_index_sourcedialog
 - frontend_src_features_sources_index_sourcegrid
 - frontend_src_features_taxes_index_taxesdashboard
+- allocate_cents_largest_remainder
+- test_parse_pdf_ocr_escalation_and_llm_fallback
+- parse_written_amount
 
 ## God Nodes (most connected - your core abstractions)
 1. `Source` - 33 edges
@@ -80,17 +90,17 @@
 3. `react` - 31 edges
 4. `Paycheque` - 31 edges
 5. `fmt()` - 29 edges
-6. `CustomModel` - 25 edges
-7. `next` - 24 edges
-8. `cn()` - 23 edges
-9. `dateLabel()` - 23 edges
-10. `parse_cents()` - 22 edges
+6. `CustomModel` - 26 edges
+7. `parse_table_with_sheets()` - 26 edges
+8. `next` - 24 edges
+9. `parse_cents()` - 23 edges
+10. `cn()` - 23 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Technology Highlights` --references--> `ensure_schema_migrations()`  [INFERRED]
   PROJECT_OVERVIEW.md → backend/src/database.py
-- `Symptoms` --references--> `validate_paystub_breakdown()`  [INFERRED]
-  docs/solutions/logic-errors/corrupted-payroll-pdf-and-vlm-withholding-reconciliation.md → backend/src/paycheques/utils.py
+- `Problem` --references--> `parse_upload()`  [INFERRED]
+  docs/solutions/logic-errors/corrupted-payroll-pdf-and-vlm-withholding-reconciliation.md → backend/src/paycheques/parsers.py
 - `Problem` --references--> `YearDropdown()`  [INFERRED]
   docs/solutions/ui-bugs/year-dropdown-multi-click-stall-and-popover-sizing.md → frontend/src/components/ui/year-dropdown.tsx
 - `Symptoms` --references--> `SourceDetailView()`  [INFERRED]
@@ -104,51 +114,51 @@
 ## Hyperedges (group relationships)
 - **Docker Compose Multi-Container Stack** — docker_compose_frontend_service, docker_compose_backend_service, docker_compose_payday_data_volume [EXTRACTED 1.00]
 
-## Communities (59 total, 24 thin omitted)
+## Communities (69 total, 24 thin omitted)
 
-### Community 0 - "next"
-Cohesion: 0.18
-Nodes (9): deletePaychequeSchema, optionalMoneySchema, SavePaychequeInput, savePaychequeSchema, deleteSourceSchema, SaveSourceInput, saveSourceSchema, ActionState (+1 more)
+### Community 0 - "parse_table_with_sheets"
+Cohesion: 0.15
+Nodes (21): clean_date(), _clean_day(), clean_hours(), _clean_month(), _clean_text(), _clean_year(), _infer_headerless_columns(), _is_banner_row() (+13 more)
 
 ### Community 1 - "sumCents"
-Cohesion: 0.17
-Nodes (24): Solution, Why This Works, OverviewPage(), PageProps, PageProps, SourceDetailPage(), Navbar(), YearOption (+16 more)
+Cohesion: 0.29
+Nodes (9): OverviewPage(), PageProps, YearDropdownProps, YearOption, computeOverviewYearSlice(), getOverviewData, OverviewData, sumCents() (+1 more)
 
 ### Community 2 - "test_app.py"
-Cohesion: 0.06
-Nodes (55): 3. Project map, AsyncClient, asyncio, allocate_cents_largest_remainder(), Splits `amount_cents` across `active_rules` using the Largest Remainder Method., AppConfig, field_validator, ensure_schema_migrations() (+47 more)
+Cohesion: 0.14
+Nodes (30): AsyncClient, asyncio, Async integration tests for Payday FastAPI backend., test_allocation_crud_and_100_percent_cap(), test_allocation_presets_endpoint(), test_create_paycheque_with_paystub_breakdown(), test_deposit_mode_etransfer_cra_and_vision(), test_excel_multisheet_banners_totals_multicolumn_and_serial_dates() (+22 more)
 
 ### Community 3 - "CustomModel"
-Cohesion: 0.19
-Nodes (20): AllocationRuleResponse, CustomModel, ErrorResponse, OkResponse, Paycheques bounded context., PaychequeResponse, Settings and aggregate state bounded context., get_state() (+12 more)
+Cohesion: 0.18
+Nodes (20): AllocationRuleResponse, CustomModel, ParsedSheetPreview, PaychequeResponse, Raw grid preview & inferred column/row config for interactive Excel/CSV mapping., Settings and aggregate state bounded context., get_state(), DBDep (+12 more)
 
-### Community 4 - "paycheques/router.py"
-Cohesion: 0.11
-Nodes (34): BadRequestError, delete_paycheque(), import_paycheques(), delete, PaychequeUpdate, put, update_paycheque(), PaychequeImportPayload (+26 more)
+### Community 4 - "paycheques/service.py"
+Cohesion: 0.14
+Nodes (29): BadRequestError, Paycheque, create_paycheque(), import_paycheques(), list_paycheques(), parse_paycheque_file(), DBDep, PaychequeCreate (+21 more)
 
 ### Community 5 - "SourcePayload"
 Cohesion: 0.35
 Nodes (4): Any, field_validator, model_validator, SourcePayload
 
 ### Community 6 - "allocations.py"
-Cohesion: 0.14
-Nodes (25): AllocationPresetPayload, AllocationRule, AllocationsListResponse, apply_preset(), create_allocation(), delete_allocation(), get_active_bps_sum(), get_allocations() (+17 more)
+Cohesion: 0.16
+Nodes (22): AllocationPresetPayload, AllocationRule, AllocationsListResponse, apply_preset(), create_allocation(), delete_allocation(), get_active_bps_sum(), get_allocations() (+14 more)
 
 ### Community 7 - "package.json"
 Cohesion: 0.06
 Nodes (30): dependencies, chart.js, next, react, react-dom, server-only, zod, devDependencies (+22 more)
 
 ### Community 8 - "import-dialog.tsx"
-Cohesion: 0.14
-Nodes (15): importPaychequesAction(), DOT_CLASS, fileKind(), formatSize(), ImportDialog(), handleFile(), handleImport(), MONEY_FIELDS (+7 more)
+Cohesion: 0.07
+Nodes (38): Skeleton(), importPaychequesAction(), DOT_CLASS, fileKind(), formatSize(), ImportDialog(), applySheetOverride(), handleFile() (+30 more)
 
 ### Community 9 - "PaychequePayload"
 Cohesion: 0.10
-Nodes (20): 4. Invariants (do not break), PaychequePayload, Any, field_validator, model_validator, 1. Executive Summary, 2. System Architecture & Tech Stack, 3.2. Paycheques Ledger (`/paycheques`) (+12 more)
+Nodes (21): 4. Invariants (do not break), PaychequePayload, Any, field_validator, model_validator, parse_optional_cents(), 1. Executive Summary, 2. System Architecture & Tech Stack (+13 more)
 
 ### Community 10 - "Source"
-Cohesion: 0.14
-Nodes (26): ConflictError, parse_tax_reserve_bps(), Validates range 0 <= bps <= 6000 (0% to 60%)., ErrorCode, PaySchedule, StrEnum, SourceKind, DBDep (+18 more)
+Cohesion: 0.11
+Nodes (29): DBDep, description, ge, Path, valid_source_id(), Source, create_source(), delete_source() (+21 more)
 
 ### Community 11 - "Docker Compose backend Service"
 Cohesion: 0.67
@@ -159,112 +169,152 @@ Cohesion: 0.11
 Nodes (18): compilerOptions, allowJs, esModuleInterop, incremental, isolatedModules, jsx, lib, module (+10 more)
 
 ### Community 13 - "cn"
-Cohesion: 0.22
-Nodes (9): dynamic, HASH_ROUTES, NAV_ITEMS, NavbarSearchParamsSync(), NavLinks(), withYearParam(), DialogProvider(), CopyJsonButton() (+1 more)
+Cohesion: 0.25
+Nodes (8): HASH_ROUTES, NAV_ITEMS, NavbarSearchParamsSync(), NavLinks(), withYearParam(), DialogProvider(), CopyJsonButton(), cn()
 
-### Community 14 - "import-paycheques.ts"
-Cohesion: 0.27
-Nodes (7): PaychequeImportResult, importRowSchema, importRowsSchema, Nullable, ParsedRow, ParseResponse, toCents()
+### Community 14 - "parsers.py"
+Cohesion: 0.13
+Nodes (19): UnsupportedFileType, truncate_text(), detect_mime(), _fields_from_summary_lines(), _header_match(), is_cheque_text(), is_deposit_text(), _is_row_data_like() (+11 more)
 
-### Community 15 - "main.py"
+### Community 15 - "paycheques/router.py"
 Cohesion: 0.14
-Nodes (12): FastAPI, register_exception_handlers(), health_check(), lifespan(), FastAPI, get, collections_abc, contextlib (+4 more)
+Nodes (21): health_check(), lifespan(), FastAPI, get, CreatedResponse, ErrorResponse, OkResponse, delete_paycheque() (+13 more)
 
-### Community 17 - "paycheques/exceptions.py"
-Cohesion: 0.16
-Nodes (15): AppError, NotFoundError, ErrorCode, StrEnum, DBDep, description, ge, Path (+7 more)
+### Community 17 - "src/exceptions.py"
+Cohesion: 0.14
+Nodes (18): AppError, ConflictError, NotFoundError, FastAPI, register_exception_handlers(), ErrorCode, StrEnum, FileTooLarge (+10 more)
 
 ### Community 18 - "database.py"
 Cohesion: 0.18
-Nodes (18): AsyncEngine, get_db(), init_db(), async_sessionmaker, AsyncSession, seed_database(), Base, Paycheque (+10 more)
+Nodes (15): AsyncEngine, get_db(), init_db(), async_sessionmaker, AsyncSession, seed_database(), Base, Paycheques bounded context. (+7 more)
 
 ### Community 19 - "AGENTS.md — Payday (Salary & Income Management App)"
 Cohesion: 0.04
 Nodes (41): 1. Knowledge base first: graphify, 2. Ponytail mode (always on, level: full), 5. Skills (load when relevant), 6. Capture problems, decisions, and feature specs, 7. Verify before you say "done", 8. Git commits, AGENTS.md — Payday (Salary & Income Management App), Concepts (+33 more)
 
-### Community 23 - "sources/router.py"
-Cohesion: 0.17
-Nodes (13): Sources bounded context., create_source(), delete_source(), list_sources(), DBDep, delete, get, post (+5 more)
+### Community 23 - "parse_cents"
+Cohesion: 0.19
+Nodes (13): clean_money(), Drop tax/deductions if a tiny LLM copied net pay into them and broke gross -…, $1,842.5 CAD' or '(150.00)' -> '1842.50' / '150.00', in exact cents via…, _reconcile_vision_withholdings(), cents(), _sanitize_llm_fields(), _sum_money_cells(), parse_cents() (+5 more)
 
-### Community 24 - "db.ts"
-Cohesion: 0.14
-Nodes (12): dynamic, proxy(), RouteContext, AllocationsPage(), PageProps, UpdateGoalInput, updateGoalSchema, db (+4 more)
+### Community 24 - "payday.ts"
+Cohesion: 0.06
+Nodes (48): dynamic, proxy(), RouteContext, AllocationsPage(), PageProps, dmMono, metadata, outfit (+40 more)
 
-### Community 27 - "utils.ts"
-Cohesion: 0.26
-Nodes (11): PageProps, TaxesPage(), TaxesDashboard(), computeAggregateTaxSummary(), addDays(), addMonthsClamped(), CAD, iso() (+3 more)
+### Community 27 - "taxes-dashboard.tsx"
+Cohesion: 0.24
+Nodes (13): Solution, Why This Works, Navbar(), YearDropdown(), SourceDetailView(), TaxesDashboard(), AggregateTaxSummary, computeAggregateTaxSummary() (+5 more)
 
 ### Community 28 - "extractors.py"
-Cohesion: 0.09
-Nodes (31): _auto_crop_paper(), _compact_for_llm(), _encode_vision_jpeg_b64(), _enhance_ink_contrast(), _is_dark_background(), _llm(), llm_available(), llm_extract() (+23 more)
+Cohesion: 0.10
+Nodes (28): _auto_crop_paper(), _compact_for_llm(), _encode_vision_jpeg_b64(), _enhance_ink_contrast(), _is_dark_background(), _llm(), llm_available(), llm_extract() (+20 more)
 
 ### Community 29 - "Source"
-Cohesion: 0.18
-Nodes (24): DialogContext, DialogContextValue, PaychequeDialogRequest, PaychequePrefill, SourceDialogRequest, ToastState, configureChartDefaults(), CumulativeChartProps (+16 more)
+Cohesion: 0.12
+Nodes (29): DialogContext, DialogContextValue, PaychequeDialogRequest, PaychequePrefill, SourceDialogRequest, ToastState, AllocationsDashboardProps, CATEGORY_LABELS (+21 more)
 
-### Community 30 - "sources/index.ts"
-Cohesion: 0.27
-Nodes (8): SourcesPage(), SourceCardShell(), SourceGrid(), getSourcesData, SourceCardSummary, SparkItem, SparkYearSpan, MONTHS
+### Community 30 - "utils.ts"
+Cohesion: 0.13
+Nodes (27): PageProps, SourceDetailPage(), SourcesPage(), PageProps, TaxesPage(), SourceCardShell(), SourceGrid(), computeSourceYearSlice() (+19 more)
 
 ### Community 31 - "add_no_store_header"
 Cohesion: 0.50
 Nodes (4): add_no_store_header(), Response, middleware, Request
 
+### Community 32 - "overview-charts.tsx"
+Cohesion: 0.44
+Nodes (11): configureChartDefaults(), CumulativeIncomeChart(), getChartMonths(), MonthlyIncomeChart(), SourceSplitChart(), SourceIncomeChart(), formatDollars(), pad() (+3 more)
+
 ### Community 33 - "paycheques/index.ts"
 Cohesion: 0.08
-Nodes (47): Next.js 15 RSC multi-chunk synchronous ping deadlock on Link navigation, Prevention, Problem, Related Issues, Root Cause, Solution, Symptoms, What Didn't Work (+39 more)
+Nodes (46): Next.js 15 RSC multi-chunk synchronous ping deadlock on Link navigation, Prevention, Problem, Related Issues, Root Cause, Solution, Symptoms, What Didn't Work (+38 more)
 
 ### Community 34 - "AllocationRulePayload"
 Cohesion: 0.28
 Nodes (6): AllocationRulePayload, parse_weight_bps(), Any, field_validator, model_validator, Extracts integer basis points (1..10000) from `weight_bps` or `percentage`.
 
 ### Community 35 - "import_logs.py"
-Cohesion: 0.11
-Nodes (34): alias, compact_parse_response(), compact_submitted_rows(), get_import_log(), list_import_logs(), list_linked_import_ids(), Any, AsyncSession (+26 more)
+Cohesion: 0.14
+Nodes (26): alias, compact_parse_response(), compact_submitted_rows(), get_import_log(), list_import_logs(), list_linked_import_ids(), Any, AsyncSession (+18 more)
 
-### Community 37 - "parsers.py"
-Cohesion: 0.06
-Nodes (75): vision_available(), PipelineTrace, In-memory collector of ordered intermediate parser step outputs., truncate_text(), check_row(), cents(), clean_date(), clean_hours() (+67 more)
+### Community 36 - "check_row"
+Cohesion: 0.20
+Nodes (11): check_row(), cents(), _fields_from_tables(), _infer_source_name(), _norm_cell(), Read ruled PDF summary tables (skipping unmapped columns like CIT Taxable…, Extract multi-row tabular schedules from ruled PDF tables (e.g. annual salary…, Extract multi-row date + amount statement lists (e.g. Salary.pdf). (+3 more)
+
+### Community 37 - "parse_upload"
+Cohesion: 0.22
+Nodes (17): vision_available(), PipelineTrace, In-memory collector of ordered intermediate parser step outputs., _deterministic_text_row(), _llm_fallback_for_text(), parse_upload(), Returns (row, used_llm). Runs deterministic rules first and only calls the…, Extract 1..N rows from OCR/text (summary lists, multi-page bundles, or single… (+9 more)
+
+### Community 38 - "config.py"
+Cohesion: 0.20
+Nodes (6): AppConfig, field_validator, test_ocr_runtime_switch(), BaseSettings, pathlib, pydantic_settings
+
+### Community 39 - "validate_paystub_breakdown"
+Cohesion: 0.22
+Nodes (8): Validates cross-field invariants for a paycheque breakdown. If tax_cents or…, validate_paystub_breakdown(), Corrupted-font payroll PDFs bypassing vision escalation and VLM withholding misreads, Problem, Related Issues, Symptoms, What Didn't Work, Why This Works
 
 ### Community 40 - "useDialogs"
 Cohesion: 0.24
-Nodes (19): What Didn't Work, useDialogs(), YearDropdown(), YearDropdownProps, HeroTotalCounter(), LatestPaychequesList(), UpcomingPaydaysList(), normalizeYearFilter() (+11 more)
+Nodes (19): What Didn't Work, useDialogs(), updateGoalAction(), GoalDialogTrigger(), HeroTotalCounter(), LatestPaychequesList(), OverviewDashboard(), UpcomingPaydaysList() (+11 more)
 
-### Community 41 - "AllocationsDashboard"
-Cohesion: 0.32
-Nodes (10): applyAllocationPresetAction(), deleteAllocationRuleAction(), saveAllocationRuleAction(), AllocationsDashboard(), handleApplyPreset(), handleDeleteRule(), handleSaveRule(), handleToggleActive() (+2 more)
-
-### Community 42 - "payday.ts"
-Cohesion: 0.14
-Nodes (19): AllocationsDashboardProps, CATEGORY_LABELS, PRESET_CARDS, updateGoalAction(), GoalDialogTrigger(), PaychequeLedgerProps, deleteSourceAction(), saveSourceAction() (+11 more)
-
-### Community 48 - "app/layout.tsx"
+### Community 41 - "ensure_schema_migrations"
 Cohesion: 0.29
-Nodes (5): dmMono, metadata, outfit, viewport, frontend_src_styles_globals
+Nodes (8): 3. Project map, ensure_schema_migrations(), _exec_sql(), Any, Idempotently adds Gross-to-Net and Tax Intelligence columns to existing…, _set_sqlite_pragma(), test_idempotent_schema_migration(), listens_for
+
+### Community 42 - "_HtmlTableParser"
+Cohesion: 0.25
+Nodes (4): _HtmlTableParser, _read_ods_sheets(), _read_sheets(), HTMLParser
+
+### Community 43 - "db_session_factory"
+Cohesion: 0.47
+Nodes (5): client(), db_session_factory(), async_sessionmaker, AsyncSession, fixture
+
+### Community 44 - "valid_paycheque_id"
+Cohesion: 0.40
+Nodes (5): DBDep, description, ge, Path, valid_paycheque_id()
+
+### Community 45 - "sources/constants.py"
+Cohesion: 0.50
+Nodes (4): PaySchedule, StrEnum, SourceKind, enum
+
+### Community 46 - "test_corrupted_adp_pdf_escalates_to_vision_and_reconciles_withholdings"
+Cohesion: 0.50
+Nodes (3): pdf_extract(), test_corrupted_adp_pdf_escalates_to_vision_and_reconciles_withholdings(), Prevention
 
 ### Community 50 - "paycheque-dialog.tsx"
-Cohesion: 0.14
-Nodes (20): deletePaychequeAction(), savePaychequeAction(), PaychequeDialog(), buildSavedToast(), deletePay(), handleSave(), submitPay(), PaychequeFormState (+12 more)
+Cohesion: 0.36
+Nodes (8): deletePaychequeAction(), savePaychequeAction(), PaychequeDialog(), buildSavedToast(), deletePay(), handleSave(), submitPay(), PaychequeFormState
+
+### Community 66 - "allocate_cents_largest_remainder"
+Cohesion: 0.67
+Nodes (3): allocate_cents_largest_remainder(), Splits `amount_cents` across `active_rules` using the Largest Remainder Method., test_largest_remainder_exact_cent_invariant()
+
+### Community 67 - "test_parse_pdf_ocr_escalation_and_llm_fallback"
+Cohesion: 0.67
+Nodes (3): Group OCR boxes into visual rows (top-to-bottom, then left-to-right) so a line…, _visual_lines(), test_parse_pdf_ocr_escalation_and_llm_fallback()
+
+### Community 68 - "parse_written_amount"
+Cohesion: 0.67
+Nodes (3): parse_written_amount(), Convert legal cheque line ('Six hundred eleven 86/100') into '611.86'., test_cheque_preprocessing_dates_written_amount_and_sanity_guards()
 
 ## Knowledge Gaps
-- **141 isolated node(s):** `payday-backend`, `name`, `private`, `dev`, `build` (+136 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 311 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **142 isolated node(s):** `payday-backend`, `name`, `private`, `dev`, `build` (+137 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 314 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **24 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `3. Comprehensive Feature Breakdown` connect `PaychequePayload` to `useDialogs`, `payday.ts`?**
-  _High betweenness centrality (0.375) - this node is a cross-community bridge._
-- **Why does `_safe_csv_cell()` connect `paycheques/router.py` to `PaychequePayload`?**
+- **Why does `3. Comprehensive Feature Breakdown` connect `PaychequePayload` to `overview-charts.tsx`, `useDialogs`?**
+  _High betweenness centrality (0.379) - this node is a cross-community bridge._
+- **Why does `_safe_csv_cell()` connect `paycheques/service.py` to `PaychequePayload`?**
+  _High betweenness centrality (0.340) - this node is a cross-community bridge._
+- **Why does `3.2. Paycheques Ledger (`/paycheques`)` connect `PaychequePayload` to `paycheques/service.py`?**
   _High betweenness centrality (0.335) - this node is a cross-community bridge._
-- **Why does `3.2. Paycheques Ledger (`/paycheques`)` connect `PaychequePayload` to `paycheques/router.py`?**
-  _High betweenness centrality (0.330) - this node is a cross-community bridge._
 - **What connects `payday-backend`, `name`, `private` to the rest of the system?**
-  _141 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _142 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `test_app.py` be split into smaller, more focused modules?**
-  _Cohesion score 0.058823529411764705 - nodes in this community are weakly interconnected._
-- **Should `paycheques/router.py` be split into smaller, more focused modules?**
-  _Cohesion score 0.11336032388663968 - nodes in this community are weakly interconnected._
-- **Should `allocations.py` be split into smaller, more focused modules?**
-  _Cohesion score 0.13538461538461538 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.1365079365079365 - nodes in this community are weakly interconnected._
+- **Should `paycheques/service.py` be split into smaller, more focused modules?**
+  _Cohesion score 0.14022988505747128 - nodes in this community are weakly interconnected._
+- **Should `package.json` be split into smaller, more focused modules?**
+  _Cohesion score 0.06451612903225806 - nodes in this community are weakly interconnected._
