@@ -106,6 +106,7 @@ Maintain a strict one-way import hierarchy to prevent circular dependencies and 
 - Every component is a **React Server Component (RSC)** by default.
 - Never add `'use client'` to `page.tsx` or `layout.tsx`.
 - Push `'use client'` down to the smallest interactive leaf component inside `src/features/<domain>/components/` (e.g., an interactive search bar, modal trigger, or form control).
+- **Payday view-boundary exception (`next 15.5.29 / react 19.3.1`):** Keep large/rich dashboard list and detail view components (`src/features/<domain>/components/*-view.tsx`) as `'use client'` boundaries fed serialized JSON props from thin Server Component `page.tsx` wrappers to avoid the multi-chunk Flight `resolved_model` synchronous-ping transition deadlock (see `docs/solutions/ui-bugs/nextjs-15-rsc-multi-chunk-sync-ping-deadlock.md`).
 
 ### Slot & Children Composition Pattern
 When a Client Component needs to wrap Server Component content, pass the Server Component via `children` or props rather than importing the Server Component directly inside the `'use client'` file:

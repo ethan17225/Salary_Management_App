@@ -32,3 +32,4 @@ Root documents hold high-level project context: [README.md](../README.md) (setup
 
 - [Corrupted-font payroll PDFs & VLM withholding reconciliation](./solutions/logic-errors/corrupted-payroll-pdf-and-vlm-withholding-reconciliation.md) (`2026-11-21`)
 - [Hero YearDropdown multi-click navigation stall, popover sizing & Net label](./solutions/ui-bugs/year-dropdown-multi-click-stall-and-popover-sizing.md) (`2026-11-21`)
+- [Next.js 15 RSC multi-chunk synchronous ping deadlock on Link navigation](./solutions/ui-bugs/nextjs-15-rsc-multi-chunk-sync-ping-deadlock.md) (`2026-11-23`)

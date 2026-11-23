@@ -540,9 +540,9 @@
     "semantic_hash": ""
   },
   "frontend/src/features/paycheques/components/import-log-detail-view.tsx": {
-    "mtime": 1795283568.0652695,
-    "seen": 1795291539.7898118,
-    "ast_hash": "00dd2d9693acfaf5a08548cb9e108476",
+    "mtime": 1795451956.844882,
+    "seen": 1795452002.342857,
+    "ast_hash": "57e9c724e0b30d45ba7947c286842bfa",
     "semantic_hash": ""
   },
   "frontend/src/features/paycheques/components/import-logs-view.tsx": {
@@ -726,9 +726,9 @@
     "semantic_hash": ""
   },
   "docs/README.md": {
-    "mtime": 1795291495.4912462,
-    "seen": 1795291539.789844,
-    "ast_hash": "304c6596c3aba82831c174e9de7c1b9a",
+    "mtime": 1795451969.6342897,
+    "seen": 1795452002.342895,
+    "ast_hash": "e9fcf5a44ff9f8f982aec3f9f4623881",
     "semantic_hash": ""
   },
   "docs/solutions/logic-errors/corrupted-payroll-pdf-and-vlm-withholding-reconciliation.md": {
@@ -738,9 +738,15 @@
     "semantic_hash": ""
   },
   "docs/solutions/ui-bugs/year-dropdown-multi-click-stall-and-popover-sizing.md": {
-    "mtime": 1795291399.5935495,
-    "seen": 1795291539.789846,
-    "ast_hash": "5ec829d26d45b8a4bc4ffea8038c592d",
+    "mtime": 1795291580.7237465,
+    "seen": 1795452002.3428988,
+    "ast_hash": "49381687aad5352be71afe2601432511",
+    "semantic_hash": ""
+  },
+  "docs/solutions/ui-bugs/nextjs-15-rsc-multi-chunk-sync-ping-deadlock.md": {
+    "mtime": 1795451968.628854,
+    "seen": 1795452002.342898,
+    "ast_hash": "d6ebc48f5d39559514d259a4e08e94f6",
     "semantic_hash": ""
   }
 }

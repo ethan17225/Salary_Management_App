@@ -1,3 +1,7 @@
+'use client';
+
+// Client boundary keeps /paycheques/logs/[id] to a single Flight chunk and avoids the
+// Next.js 15.5.29 multi-chunk resolved_model synchronous-ping transition deadlock.
 import Link from 'next/link';
 import { cn, plural } from '@/lib/utils';
 import {
