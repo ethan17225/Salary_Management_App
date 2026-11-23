@@ -20,6 +20,7 @@ export const STEP_LABELS: Record<string, string> = {
   detect_mime: 'Detect file type',
   parse_table: 'Parse spreadsheet',
   pdf_extract: 'Extract PDF text & tables',
+  pdf_summary_table: 'Extract PDF summary rows',
   deterministic_text: 'Match deterministic rules',
   prepare_images: 'Render & preprocess pages',
   vision_extract: 'Vision AI extraction',

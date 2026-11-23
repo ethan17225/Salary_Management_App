@@ -6,13 +6,26 @@ import { useDialogs } from '@/components/ui/dialog-provider';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Source } from '@/types/payday';
 import { importPaychequesAction } from '../actions/import-paycheques';
-import { importRowSchema, type ParsedRow, type ParseResponse } from '../schemas/import-schema';
+import {
+  buildRowsFromSheetOverride,
+  colLetter,
+  initialSheetOverride,
+  MAPPING_FIELDS,
+  type SheetColumnField,
+  type SheetOverride,
+} from '../lib/sheet-mapper';
+import {
+  importRowSchema,
+  type ParsedRow,
+  type ParsedSheetPreview,
+  type ParseResponse,
+} from '../schemas/import-schema';
 
 type Row = ParsedRow & { _id: number };
 type Status = { tone: 'down' | 'warn' | 'up'; text: string };
 type ParsingFile = { name: string; size: number; kind: 'table' | 'pdf' | 'image' };
 
-const ACCEPT = '.csv,.tsv,.xlsx,.pdf,.png,.jpg,.jpeg,.webp';
+const ACCEPT = '.csv,.tsv,.xlsx,.xlsm,.xls,.ods,.pdf,.png,.jpg,.jpeg,.webp';
 const MONEY_FIELDS = [
   ['amount', 'Take-home'],
   ['gross', 'Gross'],
@@ -79,6 +92,10 @@ export function ImportDialog({ sources }: { sources: Source[] }) {
 
   const [meta, setMeta] = useState<Omit<ParseResponse, 'rows'> | null>(null);
   const [rows, setRows] = useState<Row[]>([]);
+  const [activeSheet, setActiveSheet] = useState<string>('__all__');
+  const [showMapper, setShowMapper] = useState(false);
+  const [mapperSheet, setMapperSheet] = useState<string>('');
+  const [sheetOverrides, setSheetOverrides] = useState<Record<string, SheetOverride>>({});
   const [autoCreate, setAutoCreate] = useState(true);
   const [dragOver, setDragOver] = useState(false);
   const [err, setErr] = useState('');
@@ -89,6 +106,19 @@ export function ImportDialog({ sources }: { sources: Source[] }) {
   const statuses = rows.map(rowStatus);
   const blocked = statuses.filter((s) => s.tone === 'down').length;
   const missingSource = rows.some((r) => !r.source_name?.trim());
+  const sheets = meta?.sheets ?? [];
+  const sheetTabs = sheets.map((s) => ({
+    name: s.name,
+    count: rows.filter((r) => r.sheet_name === s.name).length,
+  }));
+  const visibleRowEntries = rows
+    .map((row, idx) => ({ row, idx, status: statuses[idx] }))
+    .filter(({ row }) => activeSheet === '__all__' || row.sheet_name === activeSheet);
+  const activeMapperSheet: ParsedSheetPreview | undefined =
+    sheets.find((s) => s.name === mapperSheet) ?? sheets[0];
+  const activeOverride: SheetOverride | undefined = activeMapperSheet
+    ? sheetOverrides[activeMapperSheet.name]
+    : undefined;
 
   useEffect(() => {
     if (pending !== 'parse') return;
@@ -108,6 +138,10 @@ export function ImportDialog({ sources }: { sources: Source[] }) {
     setElapsedSec(0);
     setMeta(null);
     setRows([]);
+    setActiveSheet('__all__');
+    setShowMapper(false);
+    setMapperSheet('');
+    setSheetOverrides({});
     setDragOver(false);
     setErr('');
     if (fileRef.current) fileRef.current.value = '';
@@ -132,9 +166,25 @@ export function ImportDialog({ sources }: { sources: Source[] }) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? `Couldn't read this file (${res.status}).`);
       const { rows: parsed, ...rest } = data as ParseResponse;
-      if (parsed.length === 0) throw new Error('No paycheques found in this file.');
+      if (parsed.length === 0 && (!rest.sheets || rest.sheets.length === 0)) {
+        throw new Error('No paycheques found in this file.');
+      }
       setMeta(rest);
-      setRows(parsed.map((r) => ({ ...r, _id: nextRowId++ })));
+      const initialOverrides: Record<string, SheetOverride> = {};
+      for (const sheet of rest.sheets ?? []) {
+        initialOverrides[sheet.name] = initialSheetOverride(sheet);
+      }
+      setSheetOverrides(initialOverrides);
+      setActiveSheet('__all__');
+      setMapperSheet(rest.sheets?.[0]?.name ?? '');
+      setShowMapper(parsed.length === 0 && (rest.sheets?.length ?? 0) > 0);
+      setRows(
+        parsed.map((r) => ({
+          ...r,
+          raw_source_name: r.raw_source_name ?? r.source_name ?? null,
+          _id: nextRowId++,
+        }))
+      );
     } catch (e) {
       if (e instanceof Error && e.name === 'AbortError') return;
       setErr(e instanceof Error ? e.message : "Couldn't read this file.");
@@ -156,7 +206,28 @@ export function ImportDialog({ sources }: { sources: Source[] }) {
   }
 
   function fillMissingSource(name: string) {
-    setRows((prev) => prev.map((r) => (r.source_name?.trim() ? r : { ...r, source_name: name })));
+    setRows((prev) =>
+      prev.map((r) =>
+        (activeSheet === '__all__' || r.sheet_name === activeSheet) && !r.source_name?.trim()
+          ? { ...r, source_name: name }
+          : r
+      )
+    );
+  }
+
+  function applySheetOverride(sheet: ParsedSheetPreview, nextOverride: SheetOverride) {
+    setSheetOverrides((prev) => ({ ...prev, [sheet.name]: nextOverride }));
+    const rebuilt = buildRowsFromSheetOverride(sheet, nextOverride).map((r) => ({
+      ...r,
+      _id: nextRowId++,
+    }));
+    setRows((prev) => {
+      const firstIdx = prev.findIndex((r) => r.sheet_name === sheet.name);
+      const remaining = prev.filter((r) => r.sheet_name !== sheet.name);
+      if (firstIdx === -1) return [...remaining, ...rebuilt];
+      const insertAt = prev.slice(0, firstIdx).filter((r) => r.sheet_name !== sheet.name).length;
+      return [...remaining.slice(0, insertAt), ...rebuilt, ...remaining.slice(insertAt)];
+    });
   }
 
   async function handleImport() {
@@ -354,22 +425,236 @@ export function ImportDialog({ sources }: { sources: Source[] }) {
                     <span className="block">Ignored columns: {meta.unmapped_columns.join(', ')}</span>
                   ) : null}
                 </p>
-                {missingSource && sources.length > 0 ? (
-                  <label className="grid gap-1.5 text-sm font-medium min-w-[220px]">
-                    Source for rows without one
-                    <select value="" onChange={(e) => fillMissingSource(e.target.value)}>
-                      <option value="" disabled>
-                        Pick a source
-                      </option>
-                      {sources.map((s) => (
-                        <option key={s.id} value={s.name}>
-                          {s.name}
+                <div className="flex flex-wrap items-center gap-2">
+                  {sheets.length > 0 ? (
+                    <button
+                      type="button"
+                      className="btn min-h-[40px]"
+                      aria-expanded={showMapper}
+                      onClick={() => setShowMapper((prev) => !prev)}
+                    >
+                      {showMapper ? 'Hide column mapping' : 'Map columns & start row'}
+                    </button>
+                  ) : null}
+                  {missingSource && sources.length > 0 ? (
+                    <label className="grid gap-1.5 text-sm font-medium min-w-[220px]">
+                      Source for rows without one
+                      <select value="" onChange={(e) => fillMissingSource(e.target.value)}>
+                        <option value="" disabled>
+                          Pick a source
+                        </option>
+                        {sources.map((s) => (
+                          <option key={s.id} value={s.name}>
+                            {s.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : null}
+                </div>
+              </div>
+
+              {sheetTabs.length > 1 ? (
+                <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-line pb-3">
+                  <div className="flex flex-wrap items-center gap-1.5" role="tablist" aria-label="Sheets">
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={activeSheet === '__all__'}
+                      onClick={() => setActiveSheet('__all__')}
+                      className={`min-h-[36px] px-3 rounded-full text-[13px] font-medium border transition-colors ${
+                        activeSheet === '__all__'
+                          ? 'bg-accent text-white border-accent'
+                          : 'bg-bg text-ink border-line hover:bg-surface'
+                      }`}
+                    >
+                      All (<span className="num">{rows.length}</span>)
+                    </button>
+                    {sheetTabs.map((tab) => {
+                      const selected = activeSheet === tab.name;
+                      return (
+                        <button
+                          key={tab.name}
+                          type="button"
+                          role="tab"
+                          aria-selected={selected}
+                          onClick={() => {
+                            setActiveSheet(tab.name);
+                            setMapperSheet(tab.name);
+                          }}
+                          className={`min-h-[36px] px-3 rounded-full text-[13px] font-medium border transition-colors ${
+                            selected
+                              ? 'bg-accent text-white border-accent'
+                              : 'bg-bg text-ink border-line hover:bg-surface'
+                          }`}
+                        >
+                          {tab.name} (<span className="num">{tab.count}</span>)
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <label className="flex items-center gap-2 text-[13px] font-medium text-muted shrink-0">
+                    Sheet
+                    <select
+                      aria-label="Filter by sheet"
+                      value={activeSheet}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setActiveSheet(val);
+                        if (val !== '__all__') setMapperSheet(val);
+                      }}
+                      className="min-h-[38px] w-auto max-w-[240px] text-[13px]"
+                    >
+                      <option value="__all__">All sheets ({rows.length})</option>
+                      {sheetTabs.map((tab) => (
+                        <option key={tab.name} value={tab.name}>
+                          {tab.name} ({tab.count})
                         </option>
                       ))}
                     </select>
                   </label>
-                ) : null}
-              </div>
+                </div>
+              ) : null}
+
+              {showMapper && activeMapperSheet && activeOverride ? (
+                <div className="rounded-xl border border-line bg-bg p-4 grid gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {sheets.length > 1 ? (
+                      <label className="grid gap-1 text-[13px] font-medium">
+                        Sheet to configure
+                        <select
+                          value={activeMapperSheet.name}
+                          onChange={(e) => {
+                            setMapperSheet(e.target.value);
+                            if (activeSheet !== '__all__') setActiveSheet(e.target.value);
+                          }}
+                          className="min-h-[40px] text-sm"
+                        >
+                          {sheets.map((s) => (
+                            <option key={s.name} value={s.name}>
+                              {s.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    ) : null}
+
+                    <label className="grid gap-1 text-[13px] font-medium">
+                      Header / start row
+                      <select
+                        value={activeOverride.headerRowIndex}
+                        onChange={(e) =>
+                          applySheetOverride(activeMapperSheet, {
+                            ...activeOverride,
+                            headerRowIndex: Number(e.target.value),
+                          })
+                        }
+                        className="min-h-[40px] text-sm"
+                      >
+                        <option value={-1}>No header row (start at row 1)</option>
+                        {activeMapperSheet.raw_rows.slice(0, 20).map((r, rIdx) => {
+                          const preview = r
+                            .filter((c): c is string => Boolean(c && c.trim()))
+                            .slice(0, 4)
+                            .join(' · ');
+                          return (
+                            <option key={rIdx} value={rIdx}>
+                              Row {rIdx + 1}: {preview || '(blank)'}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </label>
+
+                    <label className="grid gap-1 text-[13px] font-medium">
+                      Default source
+                      <input
+                        list="importSourceNames"
+                        value={activeOverride.defaultSource}
+                        placeholder="e.g. Kung Fu Tea"
+                        onChange={(e) =>
+                          applySheetOverride(activeMapperSheet, {
+                            ...activeOverride,
+                            defaultSource: e.target.value,
+                          })
+                        }
+                        className="min-h-[40px] text-sm"
+                      />
+                    </label>
+
+                    <label className="grid gap-1 text-[13px] font-medium">
+                      Default year (for split Month/Day)
+                      <input
+                        type="number"
+                        min={1900}
+                        max={2100}
+                        value={activeOverride.defaultYear}
+                        placeholder="2026"
+                        onChange={(e) =>
+                          applySheetOverride(activeMapperSheet, {
+                            ...activeOverride,
+                            defaultYear: e.target.value,
+                          })
+                        }
+                        className="num min-h-[40px] text-sm"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+                    {(() => {
+                      const headerRow =
+                        activeOverride.headerRowIndex >= 0
+                          ? activeMapperSheet.raw_rows[activeOverride.headerRowIndex] ?? []
+                          : [];
+                      const sampleRow =
+                        activeMapperSheet.raw_rows[
+                          activeOverride.headerRowIndex >= 0
+                            ? activeOverride.headerRowIndex + 1
+                            : 0
+                        ] ?? [];
+                      const colCount = Math.max(
+                        headerRow.length,
+                        sampleRow.length,
+                        ...activeMapperSheet.raw_rows.slice(0, 10).map((r) => r.length)
+                      );
+                      return MAPPING_FIELDS.map(({ key, label }) => {
+                        const selectedIdx = activeOverride.mapping[key];
+                        return (
+                          <label key={key} className="grid gap-1 text-[12px] font-medium text-muted">
+                            {label}
+                            <select
+                              value={selectedIdx === null || selectedIdx === undefined ? '' : String(selectedIdx)}
+                              onChange={(e) => {
+                                const val = e.target.value === '' ? null : Number(e.target.value);
+                                applySheetOverride(activeMapperSheet, {
+                                  ...activeOverride,
+                                  mapping: {
+                                    ...activeOverride.mapping,
+                                    [key]: val,
+                                  } as Partial<Record<SheetColumnField, number | null>>,
+                                });
+                              }}
+                              className="min-h-[38px] text-[13px]"
+                            >
+                              <option value="">— Ignore —</option>
+                              {Array.from({ length: colCount }, (_, cIdx) => {
+                                const hdrText = headerRow[cIdx] ?? sampleRow[cIdx] ?? '';
+                                return (
+                                  <option key={cIdx} value={String(cIdx)}>
+                                    Col {colLetter(cIdx)}
+                                    {hdrText ? `: ${hdrText}` : ''}
+                                  </option>
+                                );
+                              })}
+                            </select>
+                          </label>
+                        );
+                      });
+                    })()}
+                  </div>
+                </div>
+              ) : null}
 
               <div className="max-h-[50vh] overflow-auto rounded-xl border border-line">
                 <table className="text-sm">
@@ -389,8 +674,7 @@ export function ImportDialog({ sources }: { sources: Source[] }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {rows.map((row, i) => {
-                      const status = statuses[i];
+                    {visibleRowEntries.map(({ row, idx: i, status }) => {
                       return (
                         <tr
                           key={row._id}
@@ -429,7 +713,9 @@ export function ImportDialog({ sources }: { sources: Source[] }) {
                                 aria-label={`${label}, row ${i + 1}`}
                                 value={row[field] ?? ''}
                                 placeholder={
-                                  row.document_type === 'cheque' && field !== 'amount'
+                                  (row.document_type === 'cheque' ||
+                                    row.document_type === 'deposit') &&
+                                  field !== 'amount'
                                     ? '—'
                                     : undefined
                                 }

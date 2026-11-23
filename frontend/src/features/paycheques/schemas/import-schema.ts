@@ -19,6 +19,7 @@ export const importRowSchema = z
       .trim()
       .min(1, 'Pick a source')
       .max(60, 'Source name must be 60 characters or fewer'),
+    raw_source_name: z.string().trim().max(60).nullable().optional(),
     paid_on: z
       .string({ invalid_type_error: 'Add the pay date' })
       .regex(/^\d{4}-\d{2}-\d{2}$/, 'Add the pay date'),
@@ -68,10 +69,21 @@ type Nullable<T> = { [K in keyof T]: T[K] | null };
 
 /** A candidate row from POST /api/paycheques/parse (money as decimal strings). */
 export type ParsedRow = Nullable<z.input<typeof importRowSchema>> & {
-  document_type?: 'paystub' | 'cheque' | 'tabular';
+  sheet_name?: string | null;
+  document_type?: 'paystub' | 'cheque' | 'deposit' | 'tabular';
   confidence: number;
   warnings: string[];
 };
+
+export interface ParsedSheetPreview {
+  name: string;
+  raw_rows: Array<Array<string | null>>;
+  header_row_index: number;
+  default_source: string | null;
+  default_year: number | null;
+  default_note: string | null;
+  inferred_mapping: Record<string, number | null>;
+}
 
 export interface ParseResponse {
   filename: string;
@@ -80,5 +92,6 @@ export interface ParseResponse {
   used_llm_fallback: boolean;
   rows: ParsedRow[];
   unmapped_columns: string[];
+  sheets?: ParsedSheetPreview[];
   parse_log_id?: number | null;
 }
